@@ -1,5 +1,5 @@
 #pragma once
-#include "model/Board.h"
+#include "../model/Board.h"
 #include <memory>
 #include <string>
 #include <vector>

@@ -1,14 +1,14 @@
 #include "io/BoardParser.h"
 #include "io/BoardPrinter.h"
-#include "logic/Controller.h"
+#include "input/Controller.h"
 #include <iostream>
 
 int main() {
-    // 1. שלב ה-Parsing
+    // 1.  -Parsing
     auto board = BoardParser::parseBoardOnly(std::cin);
     Controller controller(board);
 
-    // 2. שלב הפקודות
+    // 2.  
     std::string line;
     while (std::getline(std::cin, line)) {
         if (line.find("click") == 0) {

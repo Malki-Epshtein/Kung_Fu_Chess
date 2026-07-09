@@ -22,9 +22,6 @@
     <Filter Include="input">
       <UniqueIdentifier>{41d4c95e-9b99-4572-9fc5-1b06612e821e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="rules">
-      <UniqueIdentifier>{6e22aef6-433e-4963-8c2c-d73bb054eebc}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="model\Piece.cpp">
@@ -42,23 +39,41 @@
     <ClCompile Include="test_board.cpp">
       <Filter>model</Filter>
     </ClCompile>
-    <ClCompile Include="BoardParser.cpp">
-      <Filter>io</Filter>
-    </ClCompile>
-    <ClCompile Include="BoardPrinter.cpp">
-      <Filter>io</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test_BoardParser.cpp">
       <Filter>io</Filter>
     </ClCompile>
-    <ClCompile Include="BoardMapper.cpp">
-      <Filter>input</Filter>
+    <ClCompile Include="rules\BishopRules.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Controller.cpp">
-      <Filter>input</Filter>
+    <ClCompile Include="rules\KingRules.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rules\KnightRules.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rules\PawnRules.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rules\PieceRules.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rules\QueenRules.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rules\RookRules.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test_PieceRules.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="input\Controller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="input\BoardMapper.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -74,17 +89,32 @@
     <ClInclude Include="doctest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BoardParser.h">
-      <Filter>io</Filter>
+    <ClInclude Include="rules\BishopRules.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BoardPrinter.h">
-      <Filter>io</Filter>
+    <ClInclude Include="rules\KingRules.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BoardMapper.h">
-      <Filter>input</Filter>
+    <ClInclude Include="rules\KnightRules.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Controller.h">
-      <Filter>input</Filter>
+    <ClInclude Include="rules\PawnRules.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rules\PieceRules.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rules\QueenRules.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rules\RookRules.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="input\Controller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="input\BoardMapper.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
