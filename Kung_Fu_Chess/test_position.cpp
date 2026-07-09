@@ -1,5 +1,5 @@
-#include <cassert>
-#include "model/position.h"
+#include "doctest.h"
+#include "model/Position.h"
 
 void test_equality_same_values() {
     Position a = { 2, 3 };
@@ -25,10 +25,4 @@ void test_stored_values() {
     assert(p.col == 7);
 }
 
-int main() {
-    test_equality_same_values();
-    test_inequality_different_row();
-    test_inequality_different_col();
-    test_stored_values();
-    return 0;
-}
+

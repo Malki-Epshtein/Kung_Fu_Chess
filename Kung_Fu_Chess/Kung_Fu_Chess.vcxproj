@@ -127,17 +127,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Kung_Fu_Chess.cpp" />
-    <ClCompile Include="model\board.c" />
-    <ClCompile Include="model\piece.c" />
-    <ClCompile Include="model\position.c" />
-    <ClCompile Include="test_position.cpp" />
+    <ClCompile Include="BoardParser.cpp" />
+    <ClCompile Include="BoardPrinter.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="model\Board.cpp" />
+    <ClCompile Include="model\Piece.cpp" />
+    <ClCompile Include="model\Position.cpp" />
+    <ClCompile Include="test_board.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test_position.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BoardParser.h" />
+    <ClInclude Include="BoardPrinter.h" />
     <ClInclude Include="doctest.h" />
-    <ClInclude Include="model\board.h" />
-    <ClInclude Include="model\piece.h" />
-    <ClInclude Include="model\position.h" />
+    <ClInclude Include="model\Board.h" />
+    <ClInclude Include="model\Piece.h" />
+    <ClInclude Include="model\Position.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

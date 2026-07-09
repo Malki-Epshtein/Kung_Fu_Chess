@@ -16,36 +16,54 @@
     <Filter Include="model">
       <UniqueIdentifier>{9f5bff26-1174-4f96-b181-77b8f2f59f77}</UniqueIdentifier>
     </Filter>
+    <Filter Include="io">
+      <UniqueIdentifier>{2c10da01-1a72-49e8-a7ad-277678a28c08}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Kung_Fu_Chess.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="model\board.c">
+    <ClCompile Include="model\Piece.cpp">
       <Filter>model</Filter>
     </ClCompile>
-    <ClCompile Include="model\piece.c">
-      <Filter>model</Filter>
-    </ClCompile>
-    <ClCompile Include="model\position.c">
+    <ClCompile Include="model\Position.cpp">
       <Filter>model</Filter>
     </ClCompile>
     <ClCompile Include="test_position.cpp">
       <Filter>model</Filter>
     </ClCompile>
+    <ClCompile Include="model\Board.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="test_board.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="BoardParser.cpp">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="BoardPrinter.cpp">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="model\board.h">
+    <ClInclude Include="model\Board.h">
       <Filter>model</Filter>
     </ClInclude>
-    <ClInclude Include="model\piece.h">
+    <ClInclude Include="model\Piece.h">
       <Filter>model</Filter>
     </ClInclude>
-    <ClInclude Include="model\position.h">
+    <ClInclude Include="model\Position.h">
       <Filter>model</Filter>
     </ClInclude>
     <ClInclude Include="doctest.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BoardParser.h">
+      <Filter>io</Filter>
+    </ClInclude>
+    <ClInclude Include="BoardPrinter.h">
+      <Filter>io</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
