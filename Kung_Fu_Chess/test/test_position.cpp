@@ -1,5 +1,6 @@
-#include "doctest.h"
-#include "model/Position.h"
+#include "../doctest.h"
+#include "../model/Position.h"
+#include <cassert>
 
 void test_equality_same_values() {
     Position a = { 2, 3 };

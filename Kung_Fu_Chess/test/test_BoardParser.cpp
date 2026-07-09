@@ -1,8 +1,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "doctest.h"
+#include "../doctest.h"
 #include <sstream>
-#include "BoardParser.h"
-#include "BoardPrinter.h"
+#include "../io/BoardParser.h"
+#include "../io/BoardPrinter.h"
 
 TEST_CASE("valid rectangular board - print board") {
     std::stringstream ss(

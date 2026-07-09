@@ -140,16 +140,16 @@
     <ClCompile Include="rules\PieceRules.cpp" />
     <ClCompile Include="rules\QueenRules.cpp" />
     <ClCompile Include="rules\RookRules.cpp" />
-    <ClCompile Include="test_board.cpp">
+    <ClCompile Include="test\test_board.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="test_BoardParser.cpp">
+    <ClCompile Include="test\test_BoardParser.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="test_PieceRules.cpp">
+    <ClCompile Include="test\test_PieceRules.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="test_position.cpp">
+    <ClCompile Include="test\test_position.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
   </ItemGroup>

@@ -1,14 +1,14 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "doctest.h"
-#include "rules/PieceRules.h"
-#include "rules/RookRules.h"
-#include "rules/BishopRules.h"
-#include "rules/QueenRules.h"
-#include "rules/KnightRules.h"
-#include "rules/KingRules.h"
-#include "rules/PawnRules.h"
-#include "model/Board.h"
-#include "model/Piece.h"
+#include "../doctest.h"
+#include "../rules/PieceRules.h"
+#include "../rules/RookRules.h"
+#include "../rules/BishopRules.h"
+#include "../rules/QueenRules.h"
+#include "../rules/KnightRules.h"
+#include "../rules/KingRules.h"
+#include "../rules/PawnRules.h"
+#include "../model/Board.h"
+#include "../model/Piece.h"
 #include <algorithm>
 
 // כלי עזר לטסטים
