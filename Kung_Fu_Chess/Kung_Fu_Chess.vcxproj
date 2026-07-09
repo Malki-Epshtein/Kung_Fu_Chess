@@ -127,8 +127,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BoardMapper.cpp" />
     <ClCompile Include="BoardParser.cpp" />
     <ClCompile Include="BoardPrinter.cpp" />
+    <ClCompile Include="Controller.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="model\Board.cpp" />
     <ClCompile Include="model\Piece.cpp" />
@@ -136,13 +138,18 @@
     <ClCompile Include="test_board.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="test_BoardParser.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="test_position.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BoardMapper.h" />
     <ClInclude Include="BoardParser.h" />
     <ClInclude Include="BoardPrinter.h" />
+    <ClInclude Include="Controller.h" />
     <ClInclude Include="doctest.h" />
     <ClInclude Include="model\Board.h" />
     <ClInclude Include="model\Piece.h" />

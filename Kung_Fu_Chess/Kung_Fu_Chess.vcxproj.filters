@@ -19,6 +19,9 @@
     <Filter Include="io">
       <UniqueIdentifier>{2c10da01-1a72-49e8-a7ad-277678a28c08}</UniqueIdentifier>
     </Filter>
+    <Filter Include="input">
+      <UniqueIdentifier>{41d4c95e-9b99-4572-9fc5-1b06612e821e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="model\Piece.cpp">
@@ -45,6 +48,15 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_BoardParser.cpp">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="BoardMapper.cpp">
+      <Filter>input</Filter>
+    </ClCompile>
+    <ClCompile Include="Controller.cpp">
+      <Filter>input</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="model\Board.h">
@@ -64,6 +76,12 @@
     </ClInclude>
     <ClInclude Include="BoardPrinter.h">
       <Filter>io</Filter>
+    </ClInclude>
+    <ClInclude Include="BoardMapper.h">
+      <Filter>input</Filter>
+    </ClInclude>
+    <ClInclude Include="Controller.h">
+      <Filter>input</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
