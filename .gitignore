@@ -1,0 +1,15 @@
+# Visual Studio / MSVC
+.vs/
+*.obj
+*.exe
+*.pdb
+*.user
+*.aps
+*.pch
+*.vspscc
+*.vssscc
+build/
+bin/
+obj/
+x64/
+x86/
