@@ -2,7 +2,7 @@
 #include "BoardMapper.h"
 #include "../model/Board.h"
 #include "../model/Position.h"
-#include "GameEngine.h"
+#include "../engine/GameEngine.h"
 #include <memory>
 
 class Controller {

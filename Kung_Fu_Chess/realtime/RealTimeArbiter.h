@@ -18,4 +18,5 @@ public:
     void addMotion(Position from, Position to, int piece_id);
     bool tick(int ms);
     int  getClock() const { return game_clock_ms; }
+    const std::vector<Motion>& getActiveMotions() const { return active_motions; }
 };
