@@ -81,6 +81,18 @@
     <ClCompile Include="test\test_rule_engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="realtime\RealTimeArbiter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="engine\GameEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="io\BoardParser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="io\BoardPrinter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="model\Board.h">
@@ -126,6 +138,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rules\MoveValidation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="realtime\Motion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="realtime\RealTimeArbiter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="model\GameState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="engine\GameEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="engine\MoveResult.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="io\BoardParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="io\BoardPrinter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

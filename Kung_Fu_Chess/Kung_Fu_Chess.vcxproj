@@ -127,12 +127,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="engine\GameEngine.cpp" />
     <ClCompile Include="input\BoardMapper.cpp" />
     <ClCompile Include="input\Controller.cpp" />
+    <ClCompile Include="io\BoardParser.cpp" />
+    <ClCompile Include="io\BoardPrinter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="model\Board.cpp" />
     <ClCompile Include="model\Piece.cpp" />
     <ClCompile Include="model\Position.cpp" />
+    <ClCompile Include="realtime\RealTimeArbiter.cpp" />
     <ClCompile Include="rules\BishopRules.cpp" />
     <ClCompile Include="rules\KingRules.cpp" />
     <ClCompile Include="rules\KnightRules.cpp" />
@@ -159,11 +163,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="doctest.h" />
+    <ClInclude Include="engine\GameEngine.h" />
+    <ClInclude Include="engine\MoveResult.h" />
     <ClInclude Include="input\BoardMapper.h" />
     <ClInclude Include="input\Controller.h" />
+    <ClInclude Include="io\BoardParser.h" />
+    <ClInclude Include="io\BoardPrinter.h" />
     <ClInclude Include="model\Board.h" />
+    <ClInclude Include="model\GameState.h" />
     <ClInclude Include="model\Piece.h" />
     <ClInclude Include="model\Position.h" />
+    <ClInclude Include="realtime\Motion.h" />
+    <ClInclude Include="realtime\RealTimeArbiter.h" />
     <ClInclude Include="rules\BishopRules.h" />
     <ClInclude Include="rules\KingRules.h" />
     <ClInclude Include="rules\KnightRules.h" />
