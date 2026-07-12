@@ -117,6 +117,9 @@
     <ClCompile Include="view\ImageView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test\test_ImageView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="texttests\ScriptParser.cpp">
       <Filter>texttests</Filter>
     </ClCompile>

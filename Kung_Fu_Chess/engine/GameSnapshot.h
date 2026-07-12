@@ -15,4 +15,6 @@ struct GameSnapshot {
     int                        board_height;
     std::vector<SnapshotPiece> pieces;
     bool                       game_over;
+    bool                       has_selection = false;
+    Position                   selected_cell{};
 };

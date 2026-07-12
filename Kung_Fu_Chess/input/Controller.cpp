@@ -58,5 +58,10 @@ void Controller::handleWait(int ms) {
 }
 
 GameSnapshot Controller::getSnapshot() const {
-    return engine.snapshot();
+    GameSnapshot snap = engine.snapshot();
+    if (selectedPos != nullptr) {
+        snap.has_selection = true;
+        snap.selected_cell = *selectedPos;
+    }
+    return snap;
 }

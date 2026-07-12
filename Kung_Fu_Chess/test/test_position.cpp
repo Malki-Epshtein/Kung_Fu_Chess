@@ -1,29 +1,26 @@
 #include "../doctest.h"
 #include "../model/Position.h"
-#include <cassert>
 
-void test_equality_same_values() {
+TEST_CASE("Position - שני מיקומים עם אותה שורה ועמודה שווים") {
     Position a = { 2, 3 };
     Position b = { 2, 3 };
-    assert(a == b);
+    CHECK(a == b);
 }
 
-void test_inequality_different_row() {
+TEST_CASE("Position - שני מיקומים עם שורה שונה אינם שווים") {
     Position a = { 1, 3 };
     Position b = { 2, 3 };
-    assert(a != b);
+    CHECK(a != b);
 }
 
-void test_inequality_different_col() {
+TEST_CASE("Position - שני מיקומים עם עמודה שונה אינם שווים") {
     Position a = { 2, 1 };
     Position b = { 2, 3 };
-    assert(a != b);
+    CHECK(a != b);
 }
 
-void test_stored_values() {
+TEST_CASE("Position - השדות row ו-col נשמרים כמו שהוזנו") {
     Position p = { 4, 7 };
-    assert(p.row == 4);
-    assert(p.col == 7);
+    CHECK(p.row == 4);
+    CHECK(p.col == 7);
 }
-
-

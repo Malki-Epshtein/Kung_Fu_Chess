@@ -172,3 +172,39 @@ TEST_CASE("handleWait - מאציל את קידום הזמן ל-GameEngine") {
     controller.handleWait(1);
     CHECK(findAt(controller.getSnapshot(), {3, 4}) != nullptr);
 }
+
+// ==================== getSnapshot - has_selection / selected_cell ====================
+
+TEST_CASE("getSnapshot - אין בחירה לפני קליק ראשון") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    GameEngine engine(board);
+    Controller controller(engine);
+
+    CHECK_FALSE(controller.getSnapshot().has_selection);
+}
+
+TEST_CASE("getSnapshot - קליק ראשון על כלי חושף אותו כתא נבחר") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    GameEngine engine(board);
+    Controller controller(engine);
+
+    click(controller, 3, 3);
+
+    auto snap = controller.getSnapshot();
+    CHECK(snap.has_selection);
+    CHECK(snap.selected_cell == Position{ 3, 3 });
+}
+
+TEST_CASE("getSnapshot - קליק שני מנקה את הבחירה מתמונת המצב") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    GameEngine engine(board);
+    Controller controller(engine);
+
+    click(controller, 3, 3);
+    click(controller, 3, 6);
+
+    CHECK_FALSE(controller.getSnapshot().has_selection);
+}
