@@ -14,6 +14,7 @@ private:
 public:
     RealTimeArbiter(Board& board) : board(board) {}
     void addMotion(Position from, Position to, int piece_id);
+    void addJump(Position pos, int piece_id);
     bool tick(int ms);
     int  getClock() const { return game_clock_ms; }
     const std::vector<Motion>& getActiveMotions() const { return active_motions; }

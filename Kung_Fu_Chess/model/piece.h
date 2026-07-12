@@ -5,7 +5,7 @@
 namespace Chess {
     enum class Color { White, Black, None };
     enum class Kind  { King, Queen, Rook, Bishop, Knight, Pawn, None };
-    enum class State { Idle, Moving, Captured };
+    enum class State { Idle, Moving, Captured};
 }
 
 class Piece {
@@ -26,6 +26,9 @@ public:
     Chess::Kind  getKind()  const { return kind;  }
     Position     getCell()  const { return cell;  }
     Chess::State getState() const { return state; }
+
+    void promoteTo(Chess::Kind newKind) { kind = newKind; }
+    void setCell(Position pos) { cell = pos; }
 
     virtual ~Piece() = default;
 };

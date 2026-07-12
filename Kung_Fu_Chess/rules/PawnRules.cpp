@@ -8,7 +8,7 @@ std::vector<Position> PawnRules::moves(const Board& board, const Piece& piece) {
     // לבן זז למעלה (row-1), שחור זז למטה (row+1)
     int dir = (piece.getColor() == Chess::Color::White) ? -1 : 1;
     int startRow = (piece.getColor() == Chess::Color::White)
-        ? board.getHeight() - 1 : 0;
+        ? board.getHeight() - 2 : 1;
 
     // צעד אחד קדימה - רק אם ריק
     Position oneStep{ r + dir, c };

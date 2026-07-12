@@ -1,17 +1,17 @@
 #pragma once
 #include "BoardMapper.h"
-#include "../model/Board.h"
-#include "../model/Position.h"
 #include "../engine/GameEngine.h"
 #include <memory>
 
 class Controller {
 private:
     std::shared_ptr<Position> selectedPos = nullptr;
-    std::shared_ptr<Board> board;
     GameEngine& engine;
 
 public:
-    Controller(std::shared_ptr<Board> b, GameEngine& ge) : board(b), engine(ge) {}
-    void handleMouseClick(int x, int y);
+    Controller(GameEngine& ge) : engine(ge) {}
+    void         handleMouseClick(int x, int y);
+    void         handleJump(int x, int y);
+    void         handleWait(int ms);
+    GameSnapshot getSnapshot() const;
 };

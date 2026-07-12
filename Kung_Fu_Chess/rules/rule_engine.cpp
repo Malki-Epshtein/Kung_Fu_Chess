@@ -19,3 +19,14 @@ MoveValidation RuleEngine::validateMove(const Board& board, Position from, Posit
 
     return { false, "illegal_piece_move" };
 }
+
+MoveValidation RuleEngine::validateJump(const Board& board, Position pos) {
+    if (!board.isWithinBounds(pos))
+        return { false, "outside_board" };
+
+    auto piece = board.getPiece(pos);
+    if (!piece || piece->getColor() == Chess::Color::None)
+        return { false, "empty_source" };
+
+    return { true, "ok" };
+}

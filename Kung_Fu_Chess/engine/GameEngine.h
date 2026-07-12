@@ -1,20 +1,25 @@
 #pragma once
 #include "MoveResult.h"
-#include "../model/GameState.h"
+#include "GameSnapshot.h"
+#include "../model/Board.h"
 #include "../realtime/RealTimeArbiter.h"
 #include "../model/Position.h"
+#include <memory>
 
 class GameEngine {
 private:
-    GameState&      state;
-    RealTimeArbiter arbiter;
+    std::shared_ptr<Board> board;
+    bool                   game_over = false;
+    RealTimeArbiter        arbiter;
 
     bool hasMotionOnPath(Position from, Position to) const;
 
 public:
-    GameEngine(GameState& state) : state(state), arbiter(*state.board) {}
+    GameEngine(std::shared_ptr<Board> board) : board(board), arbiter(*board) {}
 
-    MoveResult requestMove(Position from, Position to);
-    void       wait(int ms);
-    bool       isGameOver() const { return state.game_over; }
+    MoveResult   requestMove(Position from, Position to);
+    MoveResult   requestJump(Position pos);
+    void         wait(int ms);
+    bool         isGameOver() const { return game_over; }
+    GameSnapshot snapshot() const;
 };

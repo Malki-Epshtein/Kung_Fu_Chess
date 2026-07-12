@@ -42,5 +42,6 @@ bool Board::isWithinBounds(Position pos) const {
 void Board::movePiece(Position from, Position to) {
     if (!isWithinBounds(from) || !isWithinBounds(to)) return;
     grid[to.row][to.col] = grid[from.row][from.col];
+    grid[to.row][to.col]->setCell(to);
     grid[from.row][from.col] = makeEmpty(from);
 }

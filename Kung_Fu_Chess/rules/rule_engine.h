@@ -6,4 +6,5 @@
 class RuleEngine {
 public:
     static MoveValidation validateMove(const Board& board, Position from, Position to);
+    static MoveValidation validateJump(const Board& board, Position pos);
 };

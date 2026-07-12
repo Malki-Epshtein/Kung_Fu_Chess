@@ -1,13 +1,19 @@
 #include "Controller.h"
 
+static const SnapshotPiece* findPieceAt(const GameSnapshot& snap, Position pos) {
+    for (const auto& p : snap.pieces)
+        if (p.cell == pos)
+            return &p;
+    return nullptr;
+}
+
 void Controller::handleMouseClick(int x, int y) {
-    int cols = board->getWidth();
-    int rows = board->getHeight();
+    GameSnapshot snap = engine.snapshot();
 
-    int boardWidth  = cols * BoardMapper::CELL_SIZE;
-    int boardHeight = rows * BoardMapper::CELL_SIZE;
+    int boardWidthPx  = snap.board_width  * BoardMapper::CELL_SIZE;
+    int boardHeightPx = snap.board_height * BoardMapper::CELL_SIZE;
 
-    if (x < 0 || y < 0 || x >= boardWidth || y >= boardHeight) {
+    if (x < 0 || y < 0 || x >= boardWidthPx || y >= boardHeightPx) {
         selectedPos = nullptr;
         return;
     }
@@ -15,16 +21,16 @@ void Controller::handleMouseClick(int x, int y) {
     Position clickedPos = BoardMapper::mapToPosition(x, y);
 
     if (selectedPos == nullptr) {
-        if (!board->isCellEmpty(clickedPos))
+        if (findPieceAt(snap, clickedPos))
             selectedPos = std::make_shared<Position>(clickedPos);
     }
     else {
-        auto clickedPiece  = board->getPiece(clickedPos);
-        auto selectedPiece = board->getPiece(*selectedPos);
+        const SnapshotPiece* clickedPiece  = findPieceAt(snap, clickedPos);
+        const SnapshotPiece* selectedPiece = findPieceAt(snap, *selectedPos);
 
         if (clickedPiece && selectedPiece &&
-            clickedPiece->getColor() == selectedPiece->getColor() &&
-            clickedPiece->getColor() != Chess::Color::None) {
+            clickedPiece->color == selectedPiece->color &&
+            clickedPiece->color != Chess::Color::None) {
             selectedPos = std::make_shared<Position>(clickedPos);
         }
         else {
@@ -32,4 +38,25 @@ void Controller::handleMouseClick(int x, int y) {
             selectedPos = nullptr;
         }
     }
+}
+
+void Controller::handleJump(int x, int y) {
+    GameSnapshot snap = engine.snapshot();
+
+    int boardWidthPx  = snap.board_width  * BoardMapper::CELL_SIZE;
+    int boardHeightPx = snap.board_height * BoardMapper::CELL_SIZE;
+
+    if (x < 0 || y < 0 || x >= boardWidthPx || y >= boardHeightPx)
+        return;
+
+    Position pos = BoardMapper::mapToPosition(x, y);
+    engine.requestJump(pos);
+}
+
+void Controller::handleWait(int ms) {
+    engine.wait(ms);
+}
+
+GameSnapshot Controller::getSnapshot() const {
+    return engine.snapshot();
 }

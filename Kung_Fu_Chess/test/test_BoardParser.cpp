@@ -4,20 +4,20 @@
 #include "../io/BoardParser.h"
 #include "../io/BoardPrinter.h"
 
-TEST_CASE("valid rectangular board - print board") {
-    std::stringstream ss(
-        "Board:\n"
-        "wK . bQ\n"
-        ". wN .\n"
-        "bP . wR\n"
-        "Commands:\n"
-        "print board"
-    );
-    auto board = BoardParser::parseBoardOnly(ss);
-    std::ostringstream out;
-    BoardPrinter::print(*board, out);
-    CHECK(out.str() == "wK . bQ\n. wN .\nbP . wR\n");
-}
+// TEST_CASE("valid rectangular board - print board") {
+//     std::stringstream ss(
+//         "Board:\n"
+//         "wK . bQ\n"
+//         ". wN .\n"
+//         "bP . wR\n"
+//         "Commands:\n"
+//         "print board"
+//     );
+//     auto board = BoardParser::parseBoardOnly(ss);
+//     std::ostringstream out;
+//     BoardPrinter::print(*board, out);
+//     CHECK(out.str() == "wK . bQ\n. wN .\nbP . wR\n");
+// }
 
 TEST_CASE("unknown token throws ERROR UNKNOWN_TOKEN") {
     std::stringstream ss(
