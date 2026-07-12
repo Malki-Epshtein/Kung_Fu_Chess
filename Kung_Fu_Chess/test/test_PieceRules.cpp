@@ -1,4 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "../doctest.h"
 #include "../rules/PieceRules.h"
 #include "../rules/RookRules.h"
@@ -259,11 +258,11 @@ TEST_CASE("Pawn לבן - צעד אחד קדימה") {
 
 TEST_CASE("Pawn לבן - שני צעדים מהשורה ההתחלתית") {
     Board board(8, 8);
-    auto pawn = make(Chess::Color::White, Chess::Kind::Pawn, {7, 3});
-    board.addPiece(pawn, {7, 3});
+    auto pawn = make(Chess::Color::White, Chess::Kind::Pawn, {6, 3});
+    board.addPiece(pawn, {6, 3});
     auto moves = PawnRules::moves(board, *pawn);
-    CHECK(contains(moves, {6, 3}));
     CHECK(contains(moves, {5, 3}));
+    CHECK(contains(moves, {4, 3}));
 }
 
 TEST_CASE("Pawn לבן - לא שני צעדים אם לא בשורת התחלה") {
@@ -324,11 +323,11 @@ TEST_CASE("Pawn שחור - זז למטה") {
 
 TEST_CASE("Pawn שחור - שני צעדים מהשורה ההתחלתית") {
     Board board(8, 8);
-    auto pawn = make(Chess::Color::Black, Chess::Kind::Pawn, {0, 3});
-    board.addPiece(pawn, {0, 3});
+    auto pawn = make(Chess::Color::Black, Chess::Kind::Pawn, {1, 3});
+    board.addPiece(pawn, {1, 3});
     auto moves = PawnRules::moves(board, *pawn);
-    CHECK(contains(moves, {1, 3}));
     CHECK(contains(moves, {2, 3}));
+    CHECK(contains(moves, {3, 3}));
 }
 
 // ==================== PIECERULES (מנתב) ====================

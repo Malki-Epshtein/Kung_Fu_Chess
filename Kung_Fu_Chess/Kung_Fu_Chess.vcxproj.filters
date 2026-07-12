@@ -22,6 +22,9 @@
     <Filter Include="input">
       <UniqueIdentifier>{41d4c95e-9b99-4572-9fc5-1b06612e821e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="texttests">
+      <UniqueIdentifier>{7a2b3c4d-5e6f-4a1b-9c2d-3e4f5a6b7c8d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="model\Piece.cpp">
@@ -43,6 +46,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_BoardParser.cpp">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_BoardPrinter.cpp">
       <Filter>io</Filter>
     </ClCompile>
     <ClCompile Include="rules\BishopRules.cpp">
@@ -84,7 +90,22 @@
     <ClCompile Include="realtime\RealTimeArbiter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test\test_RealTimeArbiter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="engine\GameEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_GameEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_Controller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_BoardMapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\doctest_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="io\BoardParser.cpp">
@@ -95,6 +116,18 @@
     </ClCompile>
     <ClCompile Include="view\ImageView.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="texttests\ScriptParser.cpp">
+      <Filter>texttests</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_ScriptParser.cpp">
+      <Filter>texttests</Filter>
+    </ClCompile>
+    <ClCompile Include="texttests\ScriptRunner.cpp">
+      <Filter>texttests</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_ScriptRunner.cpp">
+      <Filter>texttests</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -169,6 +202,18 @@
     </ClInclude>
     <ClInclude Include="view\Renderer.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="texttests\ScriptCommand.h">
+      <Filter>texttests</Filter>
+    </ClInclude>
+    <ClInclude Include="texttests\ScriptParser.h">
+      <Filter>texttests</Filter>
+    </ClInclude>
+    <ClInclude Include="texttests\ScriptResult.h">
+      <Filter>texttests</Filter>
+    </ClInclude>
+    <ClInclude Include="texttests\ScriptRunner.h">
+      <Filter>texttests</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -179,7 +179,8 @@ TEST_CASE("הגעה - אכילת כלי שאינו מלך מסירה אותו ו
     engine.requestMove({3, 3}, {3, 6});
     engine.wait(3000);
 
-    auto* mover = findAt(engine.snapshot(), {3, 6});
+    auto snap = engine.snapshot();
+    auto* mover = findAt(snap, {3, 6});
     CHECK(mover != nullptr);
     CHECK(mover->color == Chess::Color::White);
     CHECK(mover->kind == Chess::Kind::Rook);
