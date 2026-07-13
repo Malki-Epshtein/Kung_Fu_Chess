@@ -6,32 +6,30 @@ static std::shared_ptr<Piece> makeEmpty(Position pos) {
 
 Board::Board(int width, int height)
     : width(width), height(height) {
-    grid.resize(height);
-    for (int r = 0; r < height; r++) {
-        grid[r].resize(width);
+    grid.resize(width * height);
+    for (int r = 0; r < height; r++)
         for (int c = 0; c < width; c++)
-            grid[r][c] = makeEmpty({ r, c });
-    }
+            grid[index(r, c)] = makeEmpty({ r, c });
 }
 
 void Board::addPiece(std::shared_ptr<Piece> piece, Position pos) {
     if (isWithinBounds(pos) && isCellEmpty(pos))
-        grid[pos.row][pos.col] = piece;
+        grid[index(pos.row, pos.col)] = piece;
 }
 
 void Board::removePiece(Position pos) {
     if (isWithinBounds(pos))
-        grid[pos.row][pos.col] = makeEmpty(pos);
+        grid[index(pos.row, pos.col)] = makeEmpty(pos);
 }
 
 std::shared_ptr<Piece> Board::getPiece(Position pos) const {
     if (!isWithinBounds(pos)) return nullptr;
-    return grid[pos.row][pos.col];
+    return grid[index(pos.row, pos.col)];
 }
 
 bool Board::isCellEmpty(Position pos) const {
     if (!isWithinBounds(pos)) return false;
-    return grid[pos.row][pos.col]->getKind() == Chess::Kind::None;
+    return grid[index(pos.row, pos.col)]->getKind() == Chess::Kind::None;
 }
 
 bool Board::isWithinBounds(Position pos) const {
@@ -41,7 +39,7 @@ bool Board::isWithinBounds(Position pos) const {
 
 void Board::movePiece(Position from, Position to) {
     if (!isWithinBounds(from) || !isWithinBounds(to)) return;
-    grid[to.row][to.col] = grid[from.row][from.col];
-    grid[to.row][to.col]->setCell(to);
-    grid[from.row][from.col] = makeEmpty(from);
+    grid[index(to.row, to.col)] = grid[index(from.row, from.col)];
+    grid[index(to.row, to.col)]->setCell(to);
+    grid[index(from.row, from.col)] = makeEmpty(from);
 }

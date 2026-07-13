@@ -20,6 +20,12 @@ std::vector<ScriptCommand> ScriptParser::parse(std::istream& input, int boardHei
             ls >> cmd.x >> cmd.y;
             commands.push_back(cmd);
         }
+        else if (word == "jump") {
+            ScriptCommand cmd;
+            cmd.type = ScriptCommandType::Jump;
+            ls >> cmd.x >> cmd.y;
+            commands.push_back(cmd);
+        }
         else if (word == "wait") {
             ScriptCommand cmd;
             cmd.type = ScriptCommandType::Wait;

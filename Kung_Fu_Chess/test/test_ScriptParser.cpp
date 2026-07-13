@@ -117,6 +117,6 @@ TEST_CASE("parse - שורות ריקות בין פקודות מתעלמים מה
 // ==================== פקודה לא-מוכרת ====================
 
 TEST_CASE("parse - פקודה לא מוכרת זורקת שגיאה") {
-    std::stringstream ss("jump 50 50\n");
+    std::stringstream ss("teleport 50 50\n");
     CHECK_THROWS_WITH(ScriptParser::parse(ss, 3), "ERROR UNKNOWN_COMMAND");
 }

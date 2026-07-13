@@ -1,25 +1,34 @@
 #pragma once
 #include "MoveResult.h"
 #include "GameSnapshot.h"
-#include "../model/Board.h"
+#include "../model/GameState.h"
 #include "../realtime/RealTimeArbiter.h"
 #include "../model/Position.h"
 #include <memory>
+#include <unordered_map>
+
+struct Premove {
+    Position from;
+    Position to;
+};
 
 class GameEngine {
 private:
-    std::shared_ptr<Board> board;
-    bool                   game_over = false;
-    RealTimeArbiter        arbiter;
+    GameState        state;
+    RealTimeArbiter  arbiter;
+    bool             simultaneousMode;
+    std::unordered_map<int, Premove> premoves;
 
     bool hasMotionOnPath(Position from, Position to) const;
+    void firePremoves();
 
 public:
-    GameEngine(std::shared_ptr<Board> board) : board(board), arbiter(*board) {}
+    GameEngine(std::shared_ptr<Board> board, bool simultaneousMode = false)
+        : state(board), arbiter(*state.board, simultaneousMode), simultaneousMode(simultaneousMode) {}
 
     MoveResult   requestMove(Position from, Position to);
     MoveResult   requestJump(Position pos);
     void         wait(int ms);
-    bool         isGameOver() const { return game_over; }
+    bool         isGameOver() const { return state.game_over; }
     GameSnapshot snapshot() const;
 };

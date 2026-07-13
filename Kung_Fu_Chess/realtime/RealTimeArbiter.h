@@ -1,21 +1,36 @@
 #pragma once
 #include <vector>
 #include <algorithm>
+#include <unordered_map>
 #include "Motion.h"
+#include "MotionPath.h"
 #include "../model/Board.h"
 
 class RealTimeArbiter {
 private:
-    int                 game_clock_ms = 0;
-    std::vector<Motion> active_motions;
-    Board&              board;
-    static int calcTravelTime(Position from, Position to);
+    static const int COOLDOWN_MS = 1000;
+
+    int                        game_clock_ms = 0;
+    std::vector<Motion>        active_motions;
+    std::unordered_map<int,int> cooldown_until_ms;
+    Board&                     board;
+    bool                       collisionEnabled;
+
+    // returns false if the motion is fully blocked at its very first step
+    bool applyNearMiss(Motion& motion) const;
+    void resolveCollisions(int previous_clock, bool& king_captured);
+    void resolveArrival(const Motion& m, bool& king_captured);
 
 public:
-    RealTimeArbiter(Board& board) : board(board) {}
-    void addMotion(Position from, Position to, int piece_id);
+    RealTimeArbiter(Board& board, bool collisionEnabled = false)
+        : board(board), collisionEnabled(collisionEnabled) {}
+
+    bool addMotion(Position from, Position to, int piece_id);
     void addJump(Position pos, int piece_id);
     bool tick(int ms);
     int  getClock() const { return game_clock_ms; }
     const std::vector<Motion>& getActiveMotions() const { return active_motions; }
+
+    bool isPieceBusy(int piece_id) const;
+    bool isPieceCoolingDown(int piece_id) const;
 };

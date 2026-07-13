@@ -1,7 +1,7 @@
 #include "rule_engine.h"
 #include "PieceRules.h"
 
-MoveValidation RuleEngine::validateMove(const Board& board, Position from, Position to) {
+MoveValidation RuleEngine::validateMove(const Board& board, Position from, Position to, bool relaxedBlocking) {
     if (!board.isWithinBounds(from) || !board.isWithinBounds(to))
         return { false, "outside_board" };
 
@@ -13,7 +13,7 @@ MoveValidation RuleEngine::validateMove(const Board& board, Position from, Posit
     if (dest && dest->getColor() == piece->getColor())
         return { false, "friendly_destination" };
 
-    for (const auto& pos : PieceRules::legalDestinations(board, *piece))
+    for (const auto& pos : PieceRules::legalDestinations(board, *piece, relaxedBlocking))
         if (pos == to)
             return { true, "ok" };
 

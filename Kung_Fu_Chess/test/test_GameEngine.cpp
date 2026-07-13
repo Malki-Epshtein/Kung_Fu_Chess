@@ -74,6 +74,181 @@ TEST_CASE("requestMove - דוחה מהלך שיעדו כבר יעד של תנו�
     CHECK(second.reason == "motion_in_progress");
 }
 
+// ==================== simultaneousMode ====================
+
+TEST_CASE("requestMove - כשsimultaneousMode כבוי (ברירת מחדל), התנהגות motion_in_progress נשארת בדיוק כמו קודם (לפי from/to חופפים)") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {0, 0}), {0, 0});
+    board->addPiece(make(2, Chess::Color::White, Chess::Kind::Rook, {5, 5}), {5, 5});
+    GameEngine engine(board); // ברירת מחדל: simultaneousMode=false
+
+    auto first = engine.requestMove({0, 0}, {0, 6});
+    CHECK(first.is_accepted);
+
+    // כלי אחר לגמרי, בלי from/to חופפים - זו התנהגות קיימת שלא השתנתה
+    auto second = engine.requestMove({5, 5}, {5, 6});
+    CHECK(second.is_accepted);
+}
+
+TEST_CASE("requestMove - כשsimultaneousMode כבוי (ברירת מחדל), אין מושג של צינון - אפשר לצוות על אותו כלי מיד אחרי הגעה") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    GameEngine engine(board); // ברירת מחדל: simultaneousMode=false
+
+    auto first = engine.requestMove({3, 3}, {3, 4});
+    CHECK(first.is_accepted);
+
+    engine.wait(1000); // הגעה
+
+    auto second = engine.requestMove({3, 4}, {3, 5}); // מיד אחרי ההגעה, בלי המתנת צינון
+    CHECK(second.is_accepted);
+}
+
+TEST_CASE("requestMove - כשsimultaneousMode דלוק, שני כלים שונים יכולים לזוז בו-זמנית") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {0, 0}), {0, 0});
+    board->addPiece(make(2, Chess::Color::White, Chess::Kind::Rook, {5, 5}), {5, 5});
+    GameEngine engine(board, /*simultaneousMode=*/true);
+
+    auto first = engine.requestMove({0, 0}, {0, 6});
+    CHECK(first.is_accepted);
+
+    auto second = engine.requestMove({5, 5}, {5, 6});
+    CHECK(second.is_accepted);
+}
+
+TEST_CASE("requestMove - כשsimultaneousMode דלוק, אותו כלי נדחה בזמן שהוא בתנועה") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    GameEngine engine(board, /*simultaneousMode=*/true);
+
+    auto first = engine.requestMove({3, 3}, {3, 6});
+    CHECK(first.is_accepted);
+
+    auto second = engine.requestMove({3, 3}, {3, 5});
+    CHECK_FALSE(second.is_accepted);
+    CHECK(second.reason == "motion_in_progress");
+}
+
+TEST_CASE("requestMove - כשsimultaneousMode דלוק, אותו כלי בזמן צינון אחרי הגעה - הבקשה מתווספת לתור premove") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    GameEngine engine(board, /*simultaneousMode=*/true);
+
+    auto first = engine.requestMove({3, 3}, {3, 4});
+    CHECK(first.is_accepted);
+
+    engine.wait(1000); // הגעה, מתחיל צינון
+
+    auto second = engine.requestMove({3, 4}, {3, 5});
+    CHECK(second.is_accepted);
+    CHECK(second.reason == "queued");
+
+    // התור לא יורה מיד - הכלי עדיין ב-{3,4} כי הצינון עוד לא נגמר
+    CHECK(findAt(engine.snapshot(), {3, 4}) != nullptr);
+}
+
+TEST_CASE("requestMove - כשsimultaneousMode דלוק, אותו כלי בתנועה פעילה (לא צינון) נדחה לגמרי") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    GameEngine engine(board, /*simultaneousMode=*/true);
+
+    auto first = engine.requestMove({3, 3}, {3, 6});
+    CHECK(first.is_accepted);
+
+    auto second = engine.requestMove({3, 3}, {3, 5}); // אותו כלי, עדיין בתנועה פעילה
+    CHECK_FALSE(second.is_accepted);
+    CHECK(second.reason == "motion_in_progress");
+}
+
+// ==================== premove ====================
+
+TEST_CASE("requestMove - premove יורה אוטומטית ברגע שהצינון נגמר") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    GameEngine engine(board, /*simultaneousMode=*/true);
+
+    engine.requestMove({3, 3}, {3, 4});
+    engine.wait(1000); // הגעה, מתחיל צינון
+
+    auto queued = engine.requestMove({3, 4}, {3, 5});
+    CHECK(queued.reason == "queued");
+    CHECK(findAt(engine.snapshot(), {3, 4}) != nullptr); // עדיין לא ירה
+
+    engine.wait(999);
+    CHECK(findAt(engine.snapshot(), {3, 4}) != nullptr); // עדיין בצינון
+
+    engine.wait(1); // הצינון נגמר בדיוק עכשיו - ה-premove אמור לירות ולהתחיל תנועה חדשה
+    CHECK(findAt(engine.snapshot(), {3, 4}) != nullptr); // כבר יורה, אבל עדיין לא הגיע ל-(3,5)
+
+    engine.wait(1000); // התנועה שנורתה על ידי premove מסתיימת
+    CHECK(findAt(engine.snapshot(), {3, 4}) == nullptr);
+    CHECK(findAt(engine.snapshot(), {3, 5}) != nullptr);
+}
+
+TEST_CASE("requestMove - מהלך לא-חוקי מבטל premove ממתין") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    board->addPiece(make(2, Chess::Color::White, Chess::Kind::Pawn, {4, 3}), {4, 3});
+    GameEngine engine(board, /*simultaneousMode=*/true);
+
+    engine.requestMove({3, 3}, {3, 4});
+    engine.wait(1000); // הגעה, מתחיל צינון
+
+    auto queued = engine.requestMove({3, 4}, {3, 6}); // premove לגיטימי בזמן צינון
+    CHECK(queued.reason == "queued");
+
+    auto illegal = engine.requestMove({3, 4}, {4, 3}); // יעד ידידותי - לא-חוקי, מבטל את הpremove
+    CHECK_FALSE(illegal.is_accepted);
+    CHECK(illegal.reason == "friendly_destination");
+
+    engine.wait(2000); // מספיק זמן לצינון ולירי premove, אם הוא לא היה מבוטל
+    CHECK(findAt(engine.snapshot(), {3, 4}) != nullptr); // נשאר במקומו - הpremove בוטל
+}
+
+TEST_CASE("requestMove - premove שהיעד שלו הפך ללא-חוקי עד שהצינון נגמר נמחק בשקט בלי לירות") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    GameEngine engine(board, /*simultaneousMode=*/true);
+
+    engine.requestMove({3, 3}, {3, 4});
+    engine.wait(1000); // הגעה, מתחיל צינון
+
+    auto queued = engine.requestMove({3, 4}, {3, 6}); // premove לגיטימי כרגע
+    CHECK(queued.reason == "queued");
+
+    board->addPiece(make(2, Chess::Color::White, Chess::Kind::Bishop, {3, 6}), {3, 6}); // היעד הופך ידידותי-תפוס
+
+    engine.wait(1000); // הצינון נגמר - premove מנסה לירות, אבל היעד כבר לא חוקי
+
+    CHECK(findAt(engine.snapshot(), {3, 4}) != nullptr); // נשאר במקומו - premove נמחק בשקט
+    CHECK_FALSE(engine.isGameOver());
+}
+
+// ==================== relaxedBlocking - מהלך דרך חוסם (סעיף 7) ====================
+
+TEST_CASE("requestMove - כשsimultaneousMode דלוק, מהלך צריח דרך חוסם ידידותי מתקבל") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    board->addPiece(make(2, Chess::Color::White, Chess::Kind::Pawn, {3, 5}), {3, 5});
+    GameEngine engine(board, /*simultaneousMode=*/true);
+
+    auto result = engine.requestMove({3, 3}, {3, 6});
+    CHECK(result.is_accepted);
+    CHECK(result.reason == "ok");
+}
+
+TEST_CASE("requestMove - כשsimultaneousMode כבוי (ברירת מחדל), מהלך דרך חוסם עדיין נדחה כרגיל") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    board->addPiece(make(2, Chess::Color::White, Chess::Kind::Pawn, {3, 5}), {3, 5});
+    GameEngine engine(board); // ברירת מחדל
+
+    auto result = engine.requestMove({3, 3}, {3, 6});
+    CHECK_FALSE(result.is_accepted);
+    CHECK(result.reason == "illegal_piece_move");
+}
+
 // ==================== סיבות לא-חוקיות מ-RuleEngine ====================
 
 TEST_CASE("requestMove - מעביר הלאה סיבות לא-חוקיות בלי להתחיל תנועה") {

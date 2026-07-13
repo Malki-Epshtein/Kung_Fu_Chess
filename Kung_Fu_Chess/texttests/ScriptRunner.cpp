@@ -19,6 +19,10 @@ ScriptResult ScriptRunner::run(std::istream& input) {
                 controller.handleMouseClick(cmd.x, cmd.y);
                 break;
 
+            case ScriptCommandType::Jump:
+                controller.handleJump(cmd.x, cmd.y);
+                break;
+
             case ScriptCommandType::Wait:
                 engine.wait(cmd.ms);
                 break;

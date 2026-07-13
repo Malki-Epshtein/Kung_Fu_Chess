@@ -2,6 +2,7 @@
 #include <sstream>
 #include "../io/BoardParser.h"
 #include "../io/BoardPrinter.h"
+#include "../model/GameState.h"
 
 // TEST_CASE("valid rectangular board - print board") {
 //     std::stringstream ss(
@@ -52,7 +53,8 @@ TEST_CASE("board with single piece") {
         "Commands:\n"
     );
     auto board = BoardParser::parseBoardOnly(ss);
+    GameState state(board);
     std::ostringstream out;
-    BoardPrinter::print(*board, out);
+    BoardPrinter::print(state, out);
     CHECK(out.str() == "wK\n");
 }

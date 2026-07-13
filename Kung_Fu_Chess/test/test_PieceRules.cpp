@@ -330,6 +330,92 @@ TEST_CASE("Pawn שחור - שני צעדים מהשורה ההתחלתית") {
     CHECK(contains(moves, {3, 3}));
 }
 
+// ==================== ignoreBlockers (סעיף 7 - מהלכים דרך חוסמים) ====================
+
+TEST_CASE("Rook - ignoreBlockers=true ממשיך מעבר לחוסם ידידותי עד קצה הלוח") {
+    Board board(8, 8);
+    auto rook = make(Chess::Color::White, Chess::Kind::Rook, {3, 3});
+    auto friend1 = make(Chess::Color::White, Chess::Kind::Pawn, {3, 5});
+    board.addPiece(rook, {3, 3});
+    board.addPiece(friend1, {3, 5});
+
+    auto moves = RookRules::moves(board, *rook, /*ignoreBlockers=*/true);
+    CHECK(contains(moves, {3, 4}));
+    CHECK(contains(moves, {3, 5})); // כולל את תא החוסם עצמו
+    CHECK(contains(moves, {3, 6})); // וגם מעברו
+    CHECK(contains(moves, {3, 7}));
+}
+
+TEST_CASE("Rook - ignoreBlockers=true ממשיך מעבר לחוסם אויב עד קצה הלוח") {
+    Board board(8, 8);
+    auto rook = make(Chess::Color::White, Chess::Kind::Rook, {3, 3});
+    auto enemy = make(Chess::Color::Black, Chess::Kind::Pawn, {3, 5});
+    board.addPiece(rook, {3, 3});
+    board.addPiece(enemy, {3, 5});
+
+    auto moves = RookRules::moves(board, *rook, /*ignoreBlockers=*/true);
+    CHECK(contains(moves, {3, 5}));
+    CHECK(contains(moves, {3, 6}));
+    CHECK(contains(moves, {3, 7}));
+}
+
+TEST_CASE("Rook - ignoreBlockers=false (ברירת מחדל) נשאר כמו קודם") {
+    Board board(8, 8);
+    auto rook = make(Chess::Color::White, Chess::Kind::Rook, {3, 3});
+    auto friend1 = make(Chess::Color::White, Chess::Kind::Pawn, {3, 5});
+    board.addPiece(rook, {3, 3});
+    board.addPiece(friend1, {3, 5});
+
+    auto moves = RookRules::moves(board, *rook); // בלי הפרמטר בכלל
+    CHECK_FALSE(contains(moves, {3, 5}));
+    CHECK_FALSE(contains(moves, {3, 6}));
+}
+
+TEST_CASE("Bishop - ignoreBlockers=true ממשיך מעבר לחוסם באלכסון") {
+    Board board(8, 8);
+    auto bishop = make(Chess::Color::White, Chess::Kind::Bishop, {3, 3});
+    auto friend1 = make(Chess::Color::White, Chess::Kind::Pawn, {5, 5});
+    board.addPiece(bishop, {3, 3});
+    board.addPiece(friend1, {5, 5});
+
+    auto moves = BishopRules::moves(board, *bishop, /*ignoreBlockers=*/true);
+    CHECK(contains(moves, {5, 5}));
+    CHECK(contains(moves, {6, 6}));
+}
+
+TEST_CASE("Queen - ignoreBlockers=true ממשיך מעבר לחוסם") {
+    Board board(8, 8);
+    auto queen = make(Chess::Color::White, Chess::Kind::Queen, {3, 3});
+    auto friend1 = make(Chess::Color::White, Chess::Kind::Pawn, {3, 5});
+    board.addPiece(queen, {3, 3});
+    board.addPiece(friend1, {3, 5});
+
+    auto moves = QueenRules::moves(board, *queen, /*ignoreBlockers=*/true);
+    CHECK(contains(moves, {3, 5}));
+    CHECK(contains(moves, {3, 6}));
+}
+
+TEST_CASE("PieceRules - legalDestinations מעביר ignoreBlockers הלאה לכלים מחליקים") {
+    Board board(8, 8);
+    auto rook = make(Chess::Color::White, Chess::Kind::Rook, {3, 3});
+    auto friend1 = make(Chess::Color::White, Chess::Kind::Pawn, {3, 5});
+    board.addPiece(rook, {3, 3});
+    board.addPiece(friend1, {3, 5});
+
+    auto moves = PieceRules::legalDestinations(board, *rook, /*ignoreBlockers=*/true);
+    CHECK(contains(moves, {3, 6}));
+}
+
+TEST_CASE("PieceRules - ignoreBlockers לא משפיע על פרש (אין לו חסימת נתיב מלכתחילה)") {
+    Board board(8, 8);
+    auto knight = make(Chess::Color::White, Chess::Kind::Knight, {3, 3});
+    board.addPiece(knight, {3, 3});
+
+    auto withFlag    = PieceRules::legalDestinations(board, *knight, true);
+    auto withoutFlag = PieceRules::legalDestinations(board, *knight, false);
+    CHECK(withFlag.size() == withoutFlag.size());
+}
+
 // ==================== PIECERULES (מנתב) ====================
 
 TEST_CASE("PieceRules - מנתב נכון לצריח") {

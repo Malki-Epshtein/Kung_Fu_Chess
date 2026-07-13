@@ -5,5 +5,5 @@
 
 class PieceRules {
 public:
-    static std::vector<Position> legalDestinations(const Board& board, const Piece& piece);
+    static std::vector<Position> legalDestinations(const Board& board, const Piece& piece, bool ignoreBlockers = false);
 };

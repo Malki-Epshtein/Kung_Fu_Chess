@@ -1,7 +1,8 @@
 #include "BoardPrinter.h"
 #include <vector>
 
-void BoardPrinter::print(const Board& board, std::ostream& out) {
+void BoardPrinter::print(const GameState& state, std::ostream& out) {
+    const Board& board = *state.board;
     for (int r = 0; r < board.getHeight(); ++r) {
         for (int c = 0; c < board.getWidth(); ++c) {
             auto piece = board.getPieceAt(r, c);

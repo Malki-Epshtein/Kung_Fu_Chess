@@ -25,6 +25,9 @@
     <Filter Include="texttests">
       <UniqueIdentifier>{7a2b3c4d-5e6f-4a1b-9c2d-3e4f5a6b7c8d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="app">
+      <UniqueIdentifier>{8b3c4d5e-6f7a-4b2c-9d3e-4f5a6b7c8d9e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="model\Piece.cpp">
@@ -44,6 +47,9 @@
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="app\Application.cpp">
+      <Filter>app</Filter>
     </ClCompile>
     <ClCompile Include="test\test_BoardParser.cpp">
       <Filter>io</Filter>
@@ -88,6 +94,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="realtime\RealTimeArbiter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="realtime\MotionPath.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_RealTimeArbiter.cpp">
@@ -146,6 +155,9 @@
     <ClInclude Include="doctest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="app\Application.h">
+      <Filter>app</Filter>
+    </ClInclude>
     <ClInclude Include="rules\BishopRules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -180,6 +192,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="realtime\Motion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="realtime\MotionPath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="realtime\RealTimeArbiter.h">

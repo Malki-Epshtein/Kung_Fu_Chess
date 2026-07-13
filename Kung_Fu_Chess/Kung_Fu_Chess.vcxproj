@@ -127,6 +127,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="app\Application.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="engine\GameEngine.cpp" />
     <ClCompile Include="input\BoardMapper.cpp" />
     <ClCompile Include="input\Controller.cpp" />
@@ -138,6 +141,7 @@
     <ClCompile Include="model\Board.cpp" />
     <ClCompile Include="model\Piece.cpp" />
     <ClCompile Include="model\Position.cpp" />
+    <ClCompile Include="realtime\MotionPath.cpp" />
     <ClCompile Include="realtime\RealTimeArbiter.cpp" />
     <ClCompile Include="rules\BishopRules.cpp" />
     <ClCompile Include="rules\KingRules.cpp" />
@@ -198,6 +202,7 @@
     <ClCompile Include="view\ImageView.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="app\Application.h" />
     <ClInclude Include="doctest.h" />
     <ClInclude Include="engine\GameEngine.h" />
     <ClInclude Include="engine\MoveResult.h" />
@@ -210,6 +215,7 @@
     <ClInclude Include="model\Piece.h" />
     <ClInclude Include="model\Position.h" />
     <ClInclude Include="realtime\Motion.h" />
+    <ClInclude Include="realtime\MotionPath.h" />
     <ClInclude Include="realtime\RealTimeArbiter.h" />
     <ClInclude Include="rules\BishopRules.h" />
     <ClInclude Include="rules\KingRules.h" />

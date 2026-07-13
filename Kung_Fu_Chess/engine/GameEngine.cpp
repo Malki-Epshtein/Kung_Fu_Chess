@@ -1,5 +1,6 @@
 #include "GameEngine.h"
 #include "../rules/rule_engine.h"
+#include <vector>
 
 bool GameEngine::hasMotionOnPath(Position from, Position to) const {
     for (const auto& m : arbiter.getActiveMotions()) {
@@ -12,51 +13,92 @@ bool GameEngine::hasMotionOnPath(Position from, Position to) const {
 }
 
 MoveResult GameEngine::requestMove(Position from, Position to) {
-    if (game_over)
+    if (state.game_over)
         return { false, "game_over" };
 
-    if (hasMotionOnPath(from, to))
-        return { false, "motion_in_progress" };
+    if (simultaneousMode) {
+        auto piece = state.board->getPiece(from);
+        int  pieceId = piece ? piece->getId() : -1;
 
-    auto validation = RuleEngine::validateMove(*board, from, to);
+        if (arbiter.isPieceBusy(pieceId))
+            return { false, "motion_in_progress" };
+
+        if (arbiter.isPieceCoolingDown(pieceId)) {
+            auto validation = RuleEngine::validateMove(*state.board, from, to, simultaneousMode);
+            if (!validation.is_valid) {
+                premoves.erase(pieceId); // an illegal move cancels any pending premove
+                return { false, validation.reason };
+            }
+            premoves[pieceId] = { from, to };
+            return { true, "queued" };
+        }
+    }
+    else if (hasMotionOnPath(from, to)) {
+        return { false, "motion_in_progress" };
+    }
+
+    auto validation = RuleEngine::validateMove(*state.board, from, to, simultaneousMode);
     if (!validation.is_valid)
         return { false, validation.reason };
 
-    auto piece = board->getPiece(from);
-    arbiter.addMotion(from, to, piece->getId());
+    auto piece = state.board->getPiece(from);
+    if (!arbiter.addMotion(from, to, piece->getId()))
+        return { false, "friendly_blocked" };
     return { true, "ok" };
 }
 
 MoveResult GameEngine::requestJump(Position pos) {
-    if (game_over)
+    if (state.game_over)
         return { false, "game_over" };
 
     if (hasMotionOnPath(pos, pos))
         return { false, "motion_in_progress" };
 
-    auto validation = RuleEngine::validateJump(*board, pos);
+    auto validation = RuleEngine::validateJump(*state.board, pos);
     if (!validation.is_valid)
         return { false, validation.reason };
 
-    auto piece = board->getPiece(pos);
+    auto piece = state.board->getPiece(pos);
     arbiter.addJump(pos, piece->getId());
     return { true, "ok" };
 }
 
 void GameEngine::wait(int ms) {
     if (arbiter.tick(ms))
-        game_over = true;
+        state.game_over = true;
+
+    firePremoves();
+}
+
+void GameEngine::firePremoves() {
+    std::vector<int> readyPieceIds;
+    for (const auto& entry : premoves)
+        if (!arbiter.isPieceBusy(entry.first) && !arbiter.isPieceCoolingDown(entry.first))
+            readyPieceIds.push_back(entry.first);
+
+    for (int pieceId : readyPieceIds) {
+        Premove pm = premoves[pieceId];
+        premoves.erase(pieceId);
+
+        auto validation = RuleEngine::validateMove(*state.board, pm.from, pm.to, simultaneousMode);
+        if (!validation.is_valid)
+            continue; // target became illegal by the time cooldown ended - drop it
+
+        auto piece = state.board->getPiece(pm.from);
+        if (piece)
+            arbiter.addMotion(pm.from, pm.to, piece->getId());
+    }
 }
 
 GameSnapshot GameEngine::snapshot() const {
     GameSnapshot snap;
-    snap.board_width  = board->getWidth();
-    snap.board_height = board->getHeight();
-    snap.game_over    = game_over;
+    snap.board_width  = state.board->getWidth();
+    snap.board_height = state.board->getHeight();
+    snap.game_over    = state.game_over;
 
-    for (int r = 0; r < board->getHeight(); ++r) {
-        for (int c = 0; c < board->getWidth(); ++c) {
-            auto piece = board->getPieceAt(r, c);
+    for (int r = 0; r < state.board->getHeight(); ++r) {
+        for (int c = 0; c < state.board->getWidth(); ++c) {
+            auto piece = state.board->getPieceAt(r, c);
             if (!piece || piece->getKind() == Chess::Kind::None)
                 continue;
             snap.pieces.push_back({ piece->getKind(), piece->getColor(), Position{ r, c }, piece->getState() });
