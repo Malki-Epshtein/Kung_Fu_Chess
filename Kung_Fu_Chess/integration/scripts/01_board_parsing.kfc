@@ -1,0 +1,9 @@
+Board:
+. . .
+. wK .
+. . .
+Commands:
+print board
+. . .
+. wK .
+. . .
