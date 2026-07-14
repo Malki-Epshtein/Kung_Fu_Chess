@@ -37,4 +37,10 @@ public:
     bool isPieceBusy(int piece_id) const;
     bool isPieceCoolingDown(int piece_id) const;
     const std::vector<std::shared_ptr<Piece>>& getCapturedPieces() const { return captured_pieces; }
+
+    // Derives when the piece's current state began, purely from timing data
+    // already tracked for other reasons (active motions, cooldown expiry) -
+    // no new bookkeeping. Falls back to the current clock (harmless for
+    // looping animations) when nothing is tracked, e.g. Idle.
+    int getStateStartMs(int piece_id, Chess::State state) const;
 };

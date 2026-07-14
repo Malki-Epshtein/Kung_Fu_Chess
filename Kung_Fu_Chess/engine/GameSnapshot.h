@@ -8,6 +8,7 @@ struct SnapshotPiece {
     Chess::Color color;
     Position     cell;
     Chess::State state;
+    int          elapsed_in_state_ms;
 };
 
 struct GameSnapshot {

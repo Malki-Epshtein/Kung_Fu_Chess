@@ -103,7 +103,8 @@ GameSnapshot GameEngine::snapshot() const {
             auto piece = state.board->getPieceAt(r, c);
             if (!piece || piece->getKind() == Chess::Kind::None)
                 continue;
-            snap.pieces.push_back({ piece->getKind(), piece->getColor(), Position{ r, c }, piece->getState() });
+            int elapsed = arbiter.getClock() - arbiter.getStateStartMs(piece->getId(), piece->getState());
+            snap.pieces.push_back({ piece->getKind(), piece->getColor(), Position{ r, c }, piece->getState(), elapsed });
         }
     }
     return snap;

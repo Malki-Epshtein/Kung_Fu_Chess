@@ -61,6 +61,27 @@ void RealTimeArbiter::addJump(Position pos, int piece_id) {
         piece->transitionTo(Chess::State::Jump);
 }
 
+int RealTimeArbiter::getStateStartMs(int piece_id, Chess::State state) const {
+    for (const auto& m : active_motions)
+        if (m.piece_id == piece_id)
+            return m.start_time_ms;
+
+    auto it = cooldown_until_ms.find(piece_id);
+    if (it != cooldown_until_ms.end()) {
+        int duration = 0;
+        if (state == Chess::State::ShortRest) duration = SHORT_REST_MS;
+        else if (state == Chess::State::LongRest) duration = LONG_REST_MS;
+        // Idle (and anything else): the tracked timestamp IS the state's own
+        // entry time, refreshed in tick() when the piece becomes Idle.
+        return it->second - duration;
+    }
+
+    // Never touched this game (no motion or rest ever recorded) - treat as
+    // idle since time 0, so its animation still cycles instead of freezing
+    // on frame 0 forever.
+    return 0;
+}
+
 bool RealTimeArbiter::isPieceBusy(int piece_id) const {
     for (const auto& m : active_motions)
         if (m.piece_id == piece_id)
@@ -230,8 +251,13 @@ bool RealTimeArbiter::tick(int ms) {
     for (const auto& entry : cooldown_until_ms) {
         if (entry.second > previous_clock && entry.second <= game_clock_ms) {
             auto piece = board.getPieceById(entry.first);
-            if (piece)
+            if (piece) {
                 piece->transitionTo(Chess::State::Idle);
+                // Refresh the tracked timestamp to "now" so getStateStartMs
+                // has a correct Idle-entry reference instead of the stale
+                // rest-expiry value from before this transition.
+                cooldown_until_ms[entry.first] = game_clock_ms;
+            }
         }
     }
 
