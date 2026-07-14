@@ -6,7 +6,13 @@ namespace {
         if (event != cv::EVENT_LBUTTONDOWN)
             return;
         auto* controller = static_cast<Controller*>(userdata);
-        controller->handleMouseClick(x, y);
+        // The board is now drawn centered, offset right by the left panel's
+        // width (see ImageView::PANEL_WIDTH) - correct raw window coordinates
+        // back to board-local ones here, at the OS input boundary, so
+        // BoardMapper/Controller stay unaware of any rendering layout.
+        // A click landing inside a side panel becomes a negative x, which
+        // Controller's existing bounds check already treats as out-of-board.
+        controller->handleMouseClick(x - ImageView::PANEL_WIDTH, y);
     }
 }
 

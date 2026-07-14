@@ -147,6 +147,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="engine\GameEngine.cpp" />
+    <ClCompile Include="engine\ScoreObserver.cpp" />
+    <ClCompile Include="engine\MoveLogObserver.cpp" />
     <ClCompile Include="input\BoardMapper.cpp" />
     <ClCompile Include="input\Controller.cpp" />
     <ClCompile Include="io\BoardParser.cpp" />
@@ -197,6 +199,14 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="test\test_Controller.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_ScoreObserver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_MoveLogObserver.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -262,6 +272,8 @@
     <ClInclude Include="doctest.h" />
     <ClInclude Include="engine\GameEngine.h" />
     <ClInclude Include="engine\MoveResult.h" />
+    <ClInclude Include="engine\ScoreObserver.h" />
+    <ClInclude Include="engine\MoveLogObserver.h" />
     <ClInclude Include="input\BoardMapper.h" />
     <ClInclude Include="input\Controller.h" />
     <ClInclude Include="io\BoardParser.h" />
@@ -274,6 +286,8 @@
     <ClInclude Include="realtime\Motion.h" />
     <ClInclude Include="realtime\MotionPath.h" />
     <ClInclude Include="realtime\RealTimeArbiter.h" />
+    <ClInclude Include="realtime\CaptureObserver.h" />
+    <ClInclude Include="realtime\MoveObserver.h" />
     <ClInclude Include="rules\BishopRules.h" />
     <ClInclude Include="rules\KingRules.h" />
     <ClInclude Include="rules\KnightRules.h" />

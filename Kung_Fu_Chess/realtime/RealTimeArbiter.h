@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include "Motion.h"
 #include "MotionPath.h"
+#include "CaptureObserver.h"
+#include "MoveObserver.h"
 #include "../model/Board.h"
 
 class RealTimeArbiter {
@@ -16,12 +18,15 @@ private:
     std::vector<Motion>        active_motions;
     std::unordered_map<int,int> cooldown_until_ms;
     std::vector<std::shared_ptr<Piece>> captured_pieces;
+    std::vector<CaptureObserver*> captureObservers;
+    std::vector<MoveObserver*>    moveObservers;
     Board&                     board;
     bool                       collisionEnabled;
 
     // returns false if the motion is fully blocked at its very first step
     bool applyNearMiss(Motion& motion) const;
     void resolveCollisions(int previous_clock, bool& king_captured);
+    void resolveStationaryBlocks(int previous_clock);
     void resolveArrival(const Motion& m, bool& king_captured);
 
 public:
@@ -37,6 +42,9 @@ public:
     bool isPieceBusy(int piece_id) const;
     bool isPieceCoolingDown(int piece_id) const;
     const std::vector<std::shared_ptr<Piece>>& getCapturedPieces() const { return captured_pieces; }
+
+    void addCaptureObserver(CaptureObserver* observer) { captureObservers.push_back(observer); }
+    void addMoveObserver(MoveObserver* observer) { moveObservers.push_back(observer); }
 
     // Derives when the piece's current state began, purely from timing data
     // already tracked for other reasons (active motions, cooldown expiry) -

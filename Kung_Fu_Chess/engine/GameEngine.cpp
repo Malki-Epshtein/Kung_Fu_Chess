@@ -103,8 +103,23 @@ GameSnapshot GameEngine::snapshot() const {
             auto piece = state.board->getPieceAt(r, c);
             if (!piece || piece->getKind() == Chess::Kind::None)
                 continue;
+
+            Position cell{ r, c };
+            Position target = cell;
+            double progress = 0.0;
+
+            for (const auto& m : arbiter.getActiveMotions()) {
+                if (m.piece_id == piece->getId()) {
+                    target = m.to;
+                    int duration = m.arrival_time_ms - m.start_time_ms;
+                    if (duration > 0)
+                        progress = static_cast<double>(arbiter.getClock() - m.start_time_ms) / duration;
+                    break;
+                }
+            }
+
             int elapsed = arbiter.getClock() - arbiter.getStateStartMs(piece->getId(), piece->getState());
-            snap.pieces.push_back({ piece->getKind(), piece->getColor(), Position{ r, c }, piece->getState(), elapsed });
+            snap.pieces.push_back({ piece->getKind(), piece->getColor(), cell, piece->getState(), elapsed, target, progress });
         }
     }
     return snap;

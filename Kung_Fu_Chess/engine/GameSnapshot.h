@@ -9,6 +9,8 @@ struct SnapshotPiece {
     Position     cell;
     Chess::State state;
     int          elapsed_in_state_ms;
+    Position     targetCell;     // destination cell if moving; equals cell otherwise
+    double       travelProgress; // 0.0-1.0 fraction of the move completed; 0 if not moving
 };
 
 struct GameSnapshot {

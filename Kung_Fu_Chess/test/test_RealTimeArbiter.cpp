@@ -288,18 +288,18 @@ TEST_CASE("tick - כשcollisionEnabled כבוי (ברירת מחדל), מסלו�
 TEST_CASE("tick - התנגשות אויבים: מי שהתחיל לזוז קודם מנצח, גם אם הוא איטי יותר ומגיע בפועל מאוחר יותר") {
     Board board(8, 8);
     board.addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {0, 0}), {0, 0});
-    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::Rook, {0, 3}), {0, 3});
+    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::Rook, {1, 4}), {1, 4}); // לא על הנתיב של הלבן
     RealTimeArbiter arbiter(board, /*collisionEnabled=*/true);
 
     arbiter.addMotion({0, 0}, {0, 5}, 1); // לבן: התחיל ב-t=0, יגיע ל-(0,4) ב-t=4000
     arbiter.tick(3000);                  // עכשיו t=3000
 
-    arbiter.addMotion({0, 3}, {0, 4}, 2); // שחור: התחיל מאוחר יותר (t=3000), גם יגיע ל-(0,4) ב-t=4000
+    arbiter.addMotion({1, 4}, {0, 4}, 2); // שחור: התחיל מאוחר יותר (t=3000), גם יגיע ל-(0,4) ב-t=4000
 
     bool kingCaptured = arbiter.tick(1000); // t=4000 - שתי התנועות נפגשות ב-(0,4) בו-זמנית
 
     CHECK_FALSE(kingCaptured);
-    CHECK(board.isCellEmpty({0, 3})); // השחור (התחיל מאוחר) נאכל באמצע הדרך
+    CHECK(board.isCellEmpty({1, 4})); // השחור (התחיל מאוחר) נאכל באמצע הדרך
 
     bool whiteStillActive = false;
     for (const auto& m : arbiter.getActiveMotions())
@@ -310,12 +310,12 @@ TEST_CASE("tick - התנגשות אויבים: מי שהתחיל לזוז קוד
 TEST_CASE("tick - התנגשות אויבים: אם המפסיד הוא מלך, זה נחשב אכילת מלך") {
     Board board(8, 8);
     board.addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {0, 0}), {0, 0});
-    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::King, {0, 3}), {0, 3});
+    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::King, {1, 4}), {1, 4}); // לא על הנתיב של הלבן
     RealTimeArbiter arbiter(board, /*collisionEnabled=*/true);
 
     arbiter.addMotion({0, 0}, {0, 5}, 1);
     arbiter.tick(3000);
-    arbiter.addMotion({0, 3}, {0, 4}, 2); // המלך השחור מתחיל מאוחר יותר - יפסיד
+    arbiter.addMotion({1, 4}, {0, 4}, 2); // המלך השחור מתחיל מאוחר יותר - יפסיד
 
     bool kingCaptured = arbiter.tick(1000);
     CHECK(kingCaptured);
@@ -324,12 +324,12 @@ TEST_CASE("tick - התנגשות אויבים: אם המפסיד הוא מלך, 
 TEST_CASE("tick - התנגשות אויבים: פרש פטור מהתנגשות ועובר דרך התא בלי להיפגע") {
     Board board(8, 8);
     board.addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {0, 0}), {0, 0});
-    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::Knight, {0, 3}), {0, 3});
+    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::Knight, {1, 4}), {1, 4}); // לא על הנתיב של הלבן
     RealTimeArbiter arbiter(board, /*collisionEnabled=*/true);
 
     arbiter.addMotion({0, 0}, {0, 5}, 1);
     arbiter.tick(3000);
-    arbiter.addMotion({0, 3}, {0, 4}, 2); // "פרש" - פטור מכללי ההתנגשות
+    arbiter.addMotion({1, 4}, {0, 4}, 2); // "פרש" - פטור מכללי ההתנגשות, למרות שהתחיל מאוחר יותר
 
     bool kingCaptured = arbiter.tick(1000);
 
@@ -376,6 +376,185 @@ TEST_CASE("addMotion - near-miss: אם הצעד הראשון כבר תפוס ע�
 
     CHECK_FALSE(started);
     CHECK_FALSE(arbiter.isPieceBusy(2)); // לא נוסף שום Motion עבור כלי 2
+}
+
+// ==================== collisionEnabled - חסימה על ידי כלי נייח (לא נע) באמצע נתיב החלקה ====================
+
+TEST_CASE("tick - חסימה נייחת: כלי שמחליק ומגיע לכלי אויב נייח באמצע הנתיב אוכל אותו ועוצר שם") {
+    Board board(8, 8);
+    board.addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {0, 0}), {0, 0});
+    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::Pawn, {0, 3}), {0, 3}); // נייח, לא זז בכלל
+    RealTimeArbiter arbiter(board, /*collisionEnabled=*/true);
+
+    arbiter.addMotion({0, 0}, {0, 5}, 1); // "מבקש" לעבור דרך (0,3) עד ל-(0,5)
+    bool kingCaptured = arbiter.tick(3000); // t=3000: מגיע ל-(0,3), האויב עדיין שם
+
+    CHECK_FALSE(kingCaptured);
+    CHECK(board.getPiece({0, 3})->getKind() == Chess::Kind::Rook); // הצריח עצר כאן, אכל את החייל
+    CHECK(board.getPiece({0, 3})->getColor() == Chess::Color::White);
+    CHECK(board.isCellEmpty({0, 0}));
+    CHECK(board.isCellEmpty({0, 5})); // לא המשיך ליעד המקורי
+    CHECK_FALSE(arbiter.isPieceBusy(1)); // המהלך הסתיים (בנוחה עכשיו)
+}
+
+TEST_CASE("tick - חסימה נייחת: כלי שמחליק ומגיע לכלי ידידותי נייח באמצע הנתיב עוצר משבצת אחת לפניו") {
+    Board board(8, 8);
+    board.addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {0, 0}), {0, 0});
+    board.addPiece(make(2, Chess::Color::White, Chess::Kind::Pawn, {0, 3}), {0, 3}); // נייח, ידידותי
+    RealTimeArbiter arbiter(board, /*collisionEnabled=*/true);
+
+    arbiter.addMotion({0, 0}, {0, 5}, 1);
+    arbiter.tick(3000); // t=3000: מגיע לצומת עם (0,3), הידידותי עדיין שם
+
+    CHECK(board.getPiece({0, 2})->getKind() == Chess::Kind::Rook); // עצר משבצת אחת לפני החוסם
+    CHECK(board.getPiece({0, 3})->getKind() == Chess::Kind::Pawn); // הידידותי נשאר בשלמותו
+    CHECK(board.isCellEmpty({0, 0}));
+    CHECK_FALSE(arbiter.isPieceBusy(1));
+}
+
+TEST_CASE("tick - חסימה נייחת: חסימה כבר בצעד הראשון - הכלי נכשל ולא נתקע במצב Moving") {
+    Board board(8, 8);
+    board.addPiece(make(1, Chess::Color::White, Chess::Kind::Queen, {0, 0}), {0, 0});
+    board.addPiece(make(2, Chess::Color::White, Chess::Kind::Pawn, {0, 1}), {0, 1}); // צמוד, חוסם כבר בצעד הראשון
+    RealTimeArbiter arbiter(board, /*collisionEnabled=*/true);
+
+    arbiter.addMotion({0, 0}, {0, 5}, 1);
+    arbiter.tick(1000); // t=1000: הצעד הראשון עצמו כבר חסום
+
+    CHECK_FALSE(arbiter.isPieceBusy(1));
+    CHECK(arbiter.isPieceCoolingDown(1)); // עדיין "פעלה" - נכנסת לצינון רגיל כמו כל מהלך שנכשל
+    CHECK(board.getPiece({0, 0})->getKind() == Chess::Kind::Queen); // נשארה במקומה
+    CHECK(board.getPiece({0, 0})->getState() == Chess::State::LongRest); // לא תקועה ב-Moving
+    CHECK(board.getPiece({0, 1})->getKind() == Chess::Kind::Pawn); // הידידותי נשאר בשלמותו
+}
+
+TEST_CASE("tick - חסימה נייחת: פרש פטור לגמרי ועובר דרך חוסם נייח בלי להיפגע") {
+    Board board(8, 8);
+    board.addPiece(make(1, Chess::Color::White, Chess::Kind::Knight, {0, 0}), {0, 0});
+    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::Pawn, {0, 1}), {0, 1}); // "בנתיב" הליניארי המדומה
+    RealTimeArbiter arbiter(board, /*collisionEnabled=*/true);
+
+    arbiter.addMotion({0, 0}, {2, 1}, 1); // מהלך פרש טיפוסי
+    arbiter.tick(2000);
+
+    CHECK(board.getPiece({2, 1})->getKind() == Chess::Kind::Knight); // הפרש הגיע ליעד המקורי
+    CHECK(board.getPiece({0, 1})->getKind() == Chess::Kind::Pawn);   // החוסם באמצע לא נפגע כלל
+}
+
+// ==================== Observer pattern - CaptureObserver / MoveObserver ====================
+
+namespace {
+    struct RecordingCaptureObserver : public CaptureObserver {
+        std::vector<int> capturedIds;
+        void onPieceCaptured(const Piece& captured) override {
+            capturedIds.push_back(captured.getId());
+        }
+    };
+
+    struct RecordingMoveObserver : public MoveObserver {
+        struct Move { int piece_id; Position from; Position to; };
+        std::vector<Move> moves;
+        void onMoveCompleted(const Piece& mover, Position from, Position to) override {
+            moves.push_back({ mover.getId(), from, to });
+        }
+    };
+}
+
+TEST_CASE("Observer - מהלך רגיל בלי אכילה משדר onMoveCompleted בלבד") {
+    Board board(8, 8);
+    board.addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    RealTimeArbiter arbiter(board);
+
+    RecordingCaptureObserver captureObs;
+    RecordingMoveObserver moveObs;
+    arbiter.addCaptureObserver(&captureObs);
+    arbiter.addMoveObserver(&moveObs);
+
+    arbiter.addMotion({3, 3}, {3, 4}, 1);
+    arbiter.tick(1000);
+
+    CHECK(captureObs.capturedIds.empty());
+    REQUIRE(moveObs.moves.size() == 1);
+    CHECK(moveObs.moves[0].piece_id == 1);
+    CHECK(moveObs.moves[0].from == Position{3, 3});
+    CHECK(moveObs.moves[0].to == Position{3, 4});
+}
+
+TEST_CASE("Observer - קפיצה במקום לא משדרת onMoveCompleted") {
+    Board board(8, 8);
+    board.addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    RealTimeArbiter arbiter(board);
+
+    RecordingMoveObserver moveObs;
+    arbiter.addMoveObserver(&moveObs);
+
+    arbiter.addJump({3, 3}, 1);
+    arbiter.tick(1000);
+
+    CHECK(moveObs.moves.empty());
+}
+
+TEST_CASE("Observer - אכילה רגילה (נחיתה על יעד תפוס) משדרת onPieceCaptured ו-onMoveCompleted") {
+    Board board(8, 8);
+    board.addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::Pawn, {3, 6}), {3, 6});
+    RealTimeArbiter arbiter(board);
+
+    RecordingCaptureObserver captureObs;
+    RecordingMoveObserver moveObs;
+    arbiter.addCaptureObserver(&captureObs);
+    arbiter.addMoveObserver(&moveObs);
+
+    arbiter.addMotion({3, 3}, {3, 6}, 1);
+    arbiter.tick(3000);
+
+    REQUIRE(captureObs.capturedIds.size() == 1);
+    CHECK(captureObs.capturedIds[0] == 2);
+
+    REQUIRE(moveObs.moves.size() == 1);
+    CHECK(moveObs.moves[0].piece_id == 1);
+    CHECK(moveObs.moves[0].from == Position{3, 3});
+    CHECK(moveObs.moves[0].to == Position{3, 6});
+}
+
+TEST_CASE("Observer - אכילה ע\"י נחיתה על כלי שקפץ (capturedByJump) משדרת onPieceCaptured בלי onMoveCompleted") {
+    Board board(8, 8);
+    board.addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::Pawn, {3, 4}), {3, 4});
+    RealTimeArbiter arbiter(board);
+
+    RecordingCaptureObserver captureObs;
+    RecordingMoveObserver moveObs;
+    arbiter.addCaptureObserver(&captureObs);
+    arbiter.addMoveObserver(&moveObs);
+
+    arbiter.addJump({3, 4}, 2);              // השחור קופץ במקום
+    arbiter.addMotion({3, 3}, {3, 4}, 1);     // הלבן מנסה לזוז לאותה משבצת
+
+    arbiter.tick(1000);
+
+    REQUIRE(captureObs.capturedIds.size() == 1);
+    CHECK(captureObs.capturedIds[0] == 1); // הלבן (המנסה לזוז) נאכל ע"י הקופץ
+    CHECK(moveObs.moves.empty());          // אין מהלך מוצלח - הוא נאכל באמצע הדרך
+}
+
+TEST_CASE("Observer - התנגשות אויבים במסלול משדרת onPieceCaptured עבור המפסיד") {
+    Board board(8, 8);
+    board.addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {0, 0}), {0, 0});
+    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::Rook, {0, 3}), {0, 3});
+    RealTimeArbiter arbiter(board, /*collisionEnabled=*/true);
+
+    RecordingCaptureObserver captureObs;
+    arbiter.addCaptureObserver(&captureObs);
+
+    arbiter.addMotion({0, 0}, {0, 5}, 1); // לבן: התחיל ב-t=0
+    arbiter.tick(3000);
+    arbiter.addMotion({0, 3}, {0, 4}, 2); // שחור: התחיל מאוחר יותר (t=3000)
+
+    arbiter.tick(1000); // t=4000 - השחור (התחיל מאוחר) מפסיד
+
+    REQUIRE(captureObs.capturedIds.size() == 1);
+    CHECK(captureObs.capturedIds[0] == 2);
 }
 
 TEST_CASE("addMotion - near-miss: פרש פטור מהכלל, לא נעצר גם כשמסלולו חוצה כלי ידידותי") {

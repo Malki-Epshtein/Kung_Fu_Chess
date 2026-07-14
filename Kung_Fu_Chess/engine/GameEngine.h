@@ -31,4 +31,10 @@ public:
     void         wait(int ms);
     bool         isGameOver() const { return state.game_over; }
     GameSnapshot snapshot() const;
+
+    // Thin passthrough so callers never need to reach into RealTimeArbiter
+    // directly - keeps the existing dependency shape (GameEngine depends on
+    // RealTimeArbiter; nothing new depends on it).
+    void addCaptureObserver(CaptureObserver* observer) { arbiter.addCaptureObserver(observer); }
+    void addMoveObserver(MoveObserver* observer) { arbiter.addMoveObserver(observer); }
 };

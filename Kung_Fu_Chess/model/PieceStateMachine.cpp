@@ -14,6 +14,7 @@ namespace {
     };
 }
 
+//אם המעבר חוקי
 bool isLegalTransition(Chess::State from, Chess::State to) {
     if (to == Chess::State::Captured)
         return true;
@@ -24,11 +25,12 @@ bool isLegalTransition(Chess::State from, Chess::State to) {
 
     return false;
 }
-
+// הםא הכלי עסוק
 bool isBusyState(Chess::State state) {
     return state == Chess::State::Moving || state == Chess::State::Jump;
 }
 
+//אם הכלי במנוחה
 bool isRestingState(Chess::State state) {
     return state == Chess::State::ShortRest || state == Chess::State::LongRest;
 }

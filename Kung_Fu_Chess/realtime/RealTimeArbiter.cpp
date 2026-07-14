@@ -73,7 +73,12 @@ int RealTimeArbiter::getStateStartMs(int piece_id, Chess::State state) const {
         else if (state == Chess::State::LongRest) duration = LONG_REST_MS;
         // Idle (and anything else): the tracked timestamp IS the state's own
         // entry time, refreshed in tick() when the piece becomes Idle.
-        return it->second - duration;
+        int startMs = it->second - duration;
+        // A state can never have started later than "now" - clamp so a
+        // stale cooldown entry (e.g. left over on a piece that was
+        // captured mid-rest, or a same-tick ordering edge case around a
+        // capture) can never make elapsed_in_state_ms negative downstream.
+        return std::min(startMs, game_clock_ms);
     }
 
     // Never touched this game (no motion or rest ever recorded) - treat as
@@ -146,6 +151,8 @@ void RealTimeArbiter::resolveCollisions(int previous_clock, bool& king_captured)
             king_captured = true;
         piece->transitionTo(Chess::State::Captured);
         captured_pieces.push_back(piece);
+        for (auto* observer : captureObservers)
+            observer->onPieceCaptured(*piece);
         board.removePiece(m.from);
     }
 
@@ -155,6 +162,64 @@ void RealTimeArbiter::resolveCollisions(int previous_clock, bool& king_captured)
             if (!loses[i])
                 survivors.push_back(active_motions[i]);
         active_motions = survivors;
+    }
+}
+
+void RealTimeArbiter::resolveStationaryBlocks(int previous_clock) {
+    // A slide is allowed to be requested through a currently-occupied cell
+    // (the blocker might move away in time), but if that blocker is still
+    // sitting there - not itself mid-motion, that pair is resolveCollisions'
+    // job - when the slide actually reaches it, the slide can't continue
+    // past it after all. Redirect the motion to end at that checkpoint
+    // instead of its originally requested destination, then let the normal
+    // resolveArrival capture/blockedByFriendly logic (already correct for a
+    // final destination) handle it as if that had been the destination all
+    // along.
+    for (size_t i = 0; i < active_motions.size(); ) {
+        Motion& m = active_motions[i];
+        if (m.from == m.to) { ++i; continue; } // jump, no path to block
+
+        auto mover = board.getPiece(m.from);
+        if (!mover || mover->getKind() == Chess::Kind::Knight) {
+            ++i; continue; // knights ignore blockers entirely
+        }
+
+        auto checkpoints = pathCheckpoints(m);
+        bool erased = false;
+        for (size_t idx = 0; idx < checkpoints.size(); ++idx) {
+            const Position& cell = checkpoints[idx].first;
+            int time_ms = checkpoints[idx].second;
+            if (time_ms <= previous_clock || time_ms > game_clock_ms) continue;
+            if (cell == m.to) continue; // final destination - resolveArrival already handles it
+
+            auto blocker = board.getPiece(cell);
+            if (!blocker || blocker->getKind() == Chess::Kind::None) continue;
+            if (isPieceBusy(blocker->getId())) continue; // actively-moving blocker: resolveCollisions' job
+
+            if (blocker->getColor() == mover->getColor()) {
+                if (idx == 0) {
+                    // Blocked before taking even a single step - there's no
+                    // earlier checkpoint to redirect to, so resolve the
+                    // failed move directly here instead of going through
+                    // resolveArrival (m.from == m.to would misread as a jump
+                    // and attempt an illegal Moving -> ShortRest transition).
+                    cooldown_until_ms[m.piece_id] = game_clock_ms + LONG_REST_MS;
+                    mover->transitionTo(Chess::State::LongRest);
+                    active_motions.erase(active_motions.begin() + i);
+                    erased = true;
+                } else {
+                    // Friendly and still there - stop one cell short of it.
+                    m.to = checkpoints[idx - 1].first;
+                    m.arrival_time_ms = checkpoints[idx - 1].second;
+                }
+            } else {
+                // Enemy and still there - captured on the spot, slide ends here.
+                m.to = cell;
+                m.arrival_time_ms = time_ms;
+            }
+            break;
+        }
+        if (!erased) ++i;
     }
 }
 
@@ -188,6 +253,8 @@ void RealTimeArbiter::resolveArrival(const Motion& m, bool& king_captured) {
     if (capturedByJump) {
         piece->transitionTo(Chess::State::Captured);
         captured_pieces.push_back(piece);
+        for (auto* observer : captureObservers)
+            observer->onPieceCaptured(*piece);
         board.removePiece(m.from);
         return;
     }
@@ -212,9 +279,14 @@ void RealTimeArbiter::resolveArrival(const Motion& m, bool& king_captured) {
     if (target && target->getKind() != Chess::Kind::None) {
         target->transitionTo(Chess::State::Captured);
         captured_pieces.push_back(target);
+        for (auto* observer : captureObservers)
+            observer->onPieceCaptured(*target);
     }
 
     board.movePiece(m.from, m.to);
+
+    for (auto* observer : moveObservers)
+        observer->onMoveCompleted(*piece, m.from, m.to);
 
     if (piece->getKind() == Chess::Kind::Pawn) {
         int promotionRow = (piece->getColor() == Chess::Color::White) ? 0 : board.getHeight() - 1;
@@ -228,8 +300,10 @@ bool RealTimeArbiter::tick(int ms) {
     game_clock_ms += ms;
     bool king_captured = false;
 
-    if (collisionEnabled)
+    if (collisionEnabled) {
         resolveCollisions(previous_clock, king_captured);
+        resolveStationaryBlocks(previous_clock);
+    }
 
     // Snapshot of everything arriving this tick, taken before any mutation,
     // so a jump landing this same tick is still visible to the capture check below.
