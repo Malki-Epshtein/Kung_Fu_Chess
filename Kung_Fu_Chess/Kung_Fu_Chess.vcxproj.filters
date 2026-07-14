@@ -33,6 +33,9 @@
     <ClCompile Include="model\Piece.cpp">
       <Filter>model</Filter>
     </ClCompile>
+    <ClCompile Include="model\PieceStateMachine.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
     <ClCompile Include="model\Position.cpp">
       <Filter>model</Filter>
     </ClCompile>
@@ -49,6 +52,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="app\Application.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="app\GraphicalApplication.cpp">
       <Filter>app</Filter>
     </ClCompile>
     <ClCompile Include="test\test_BoardParser.cpp">
@@ -152,6 +158,9 @@
     <ClInclude Include="model\Piece.h">
       <Filter>model</Filter>
     </ClInclude>
+    <ClInclude Include="model\PieceStateMachine.h">
+      <Filter>model</Filter>
+    </ClInclude>
     <ClInclude Include="model\Position.h">
       <Filter>model</Filter>
     </ClInclude>
@@ -159,6 +168,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="app\Application.h">
+      <Filter>app</Filter>
+    </ClInclude>
+    <ClInclude Include="app\GraphicalApplication.h">
       <Filter>app</Filter>
     </ClInclude>
     <ClInclude Include="rules\BishopRules.h">

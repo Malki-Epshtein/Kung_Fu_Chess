@@ -5,7 +5,7 @@
 namespace Chess {
     enum class Color { White, Black, None };
     enum class Kind  { King, Queen, Rook, Bishop, Knight, Pawn, None };
-    enum class State { Idle, Moving, Captured};
+    enum class State { Idle, Moving, Jump, ShortRest, LongRest, Captured};
 }
 
 class Piece {
@@ -29,6 +29,7 @@ public:
 
     void promoteTo(Chess::Kind newKind) { kind = newKind; }
     void setCell(Position pos) { cell = pos; }
+    bool transitionTo(Chess::State newState);
 
     virtual ~Piece() = default;
 };

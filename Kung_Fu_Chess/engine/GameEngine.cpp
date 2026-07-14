@@ -1,5 +1,6 @@
 #include "GameEngine.h"
 #include "../rules/rule_engine.h"
+#include "../model/PieceStateMachine.h"
 #include <vector>
 
 bool GameEngine::hasMotionOnPath(Position from, Position to) const {
@@ -18,18 +19,17 @@ MoveResult GameEngine::requestMove(Position from, Position to) {
 
     if (simultaneousMode) {
         auto piece = state.board->getPiece(from);
-        int  pieceId = piece ? piece->getId() : -1;
 
-        if (arbiter.isPieceBusy(pieceId))
+        if (piece && isBusyState(piece->getState()))
             return { false, "motion_in_progress" };
 
-        if (arbiter.isPieceCoolingDown(pieceId)) {
+        if (piece && isRestingState(piece->getState())) {
             auto validation = RuleEngine::validateMove(*state.board, from, to, simultaneousMode);
             if (!validation.is_valid) {
-                premoves.erase(pieceId); // an illegal move cancels any pending premove
+                premoves.erase(piece->getId()); // an illegal move cancels any pending premove
                 return { false, validation.reason };
             }
-            premoves[pieceId] = { from, to };
+            premoves[piece->getId()] = { from, to };
             return { true, "queued" };
         }
     }
@@ -72,9 +72,11 @@ void GameEngine::wait(int ms) {
 
 void GameEngine::firePremoves() {
     std::vector<int> readyPieceIds;
-    for (const auto& entry : premoves)
-        if (!arbiter.isPieceBusy(entry.first) && !arbiter.isPieceCoolingDown(entry.first))
+    for (const auto& entry : premoves) {
+        auto piece = state.board->getPieceById(entry.first);
+        if (piece && piece->getState() == Chess::State::Idle)
             readyPieceIds.push_back(entry.first);
+    }
 
     for (int pieceId : readyPieceIds) {
         Premove pm = premoves[pieceId];

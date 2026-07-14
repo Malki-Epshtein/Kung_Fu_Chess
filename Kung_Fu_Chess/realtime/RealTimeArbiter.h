@@ -8,11 +8,14 @@
 
 class RealTimeArbiter {
 private:
-    static const int COOLDOWN_MS = 1000;
+    static const int SHORT_REST_MS   = 500;  // rest after a jump
+    static const int LONG_REST_MS    = 1000; // rest after any other action
+    static const int JUMP_DURATION_MS = 1000; // time a jump spends airborne
 
     int                        game_clock_ms = 0;
     std::vector<Motion>        active_motions;
     std::unordered_map<int,int> cooldown_until_ms;
+    std::vector<std::shared_ptr<Piece>> captured_pieces;
     Board&                     board;
     bool                       collisionEnabled;
 
@@ -33,4 +36,5 @@ public:
 
     bool isPieceBusy(int piece_id) const;
     bool isPieceCoolingDown(int piece_id) const;
+    const std::vector<std::shared_ptr<Piece>>& getCapturedPieces() const { return captured_pieces; }
 };

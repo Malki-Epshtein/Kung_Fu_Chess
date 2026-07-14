@@ -27,6 +27,13 @@ std::shared_ptr<Piece> Board::getPiece(Position pos) const {
     return grid[index(pos.row, pos.col)];
 }
 
+std::shared_ptr<Piece> Board::getPieceById(int id) const {
+    for (const auto& piece : grid)
+        if (piece && piece->getId() == id)
+            return piece;
+    return nullptr;
+}
+
 bool Board::isCellEmpty(Position pos) const {
     if (!isWithinBounds(pos)) return false;
     return grid[index(pos.row, pos.col)]->getKind() == Chess::Kind::None;

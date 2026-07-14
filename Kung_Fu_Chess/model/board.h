@@ -18,6 +18,7 @@ public:
     void addPiece(std::shared_ptr<Piece> piece, Position pos);
     void removePiece(Position pos);
     std::shared_ptr<Piece> getPiece(Position pos) const;
+    std::shared_ptr<Piece> getPieceById(int id) const;
 
     bool isCellEmpty(Position pos) const;
     bool isWithinBounds(Position pos) const;

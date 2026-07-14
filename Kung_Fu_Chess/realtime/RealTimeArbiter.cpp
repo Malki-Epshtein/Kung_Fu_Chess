@@ -45,11 +45,20 @@ bool RealTimeArbiter::addMotion(Position from, Position to, int piece_id) {
         return false;
 
     active_motions.push_back(newMotion);
+
+    auto piece = board.getPiece(from);
+    if (piece)
+        piece->transitionTo(Chess::State::Moving);
+
     return true;
 }
 
 void RealTimeArbiter::addJump(Position pos, int piece_id) {
-    active_motions.push_back({ pos, pos, game_clock_ms, game_clock_ms + 1000, piece_id });
+    active_motions.push_back({ pos, pos, game_clock_ms, game_clock_ms + JUMP_DURATION_MS, piece_id });
+
+    auto piece = board.getPiece(pos);
+    if (piece)
+        piece->transitionTo(Chess::State::Jump);
 }
 
 bool RealTimeArbiter::isPieceBusy(int piece_id) const {
@@ -114,6 +123,8 @@ void RealTimeArbiter::resolveCollisions(int previous_clock, bool& king_captured)
         if (!piece) continue;
         if (piece->getKind() == Chess::Kind::King)
             king_captured = true;
+        piece->transitionTo(Chess::State::Captured);
+        captured_pieces.push_back(piece);
         board.removePiece(m.from);
     }
 
@@ -127,10 +138,15 @@ void RealTimeArbiter::resolveCollisions(int previous_clock, bool& king_captured)
 }
 
 void RealTimeArbiter::resolveArrival(const Motion& m, bool& king_captured) {
-    cooldown_until_ms[m.piece_id] = game_clock_ms + COOLDOWN_MS;
+    bool isJump = (m.from == m.to);
+    cooldown_until_ms[m.piece_id] = game_clock_ms + (isJump ? SHORT_REST_MS : LONG_REST_MS);
 
-    if (m.from == m.to)
+    if (isJump) {
+        auto jumper = board.getPiece(m.from);
+        if (jumper && jumper->getId() == m.piece_id)
+            jumper->transitionTo(Chess::State::ShortRest);
         return; // jump landing: the piece never left its cell, nothing to resolve here
+    }
 
     auto piece = board.getPiece(m.from);
     if (!piece || piece->getId() != m.piece_id)
@@ -149,6 +165,8 @@ void RealTimeArbiter::resolveArrival(const Motion& m, bool& king_captured) {
     }
 
     if (capturedByJump) {
+        piece->transitionTo(Chess::State::Captured);
+        captured_pieces.push_back(piece);
         board.removePiece(m.from);
         return;
     }
@@ -162,11 +180,19 @@ void RealTimeArbiter::resolveArrival(const Motion& m, bool& king_captured) {
         target->getColor() == piece->getColor() &&
         piece->getKind() != Chess::Kind::Knight;
 
+    piece->transitionTo(Chess::State::LongRest);
+
     if (blockedByFriendly)
         return;
 
     if (target && target->getKind() == Chess::Kind::King)
         king_captured = true;
+
+    if (target && target->getKind() != Chess::Kind::None) {
+        target->transitionTo(Chess::State::Captured);
+        captured_pieces.push_back(target);
+    }
+
     board.movePiece(m.from, m.to);
 
     if (piece->getKind() == Chess::Kind::Pawn) {
@@ -199,6 +225,14 @@ bool RealTimeArbiter::tick(int ms) {
             it = active_motions.erase(it);
         else
             ++it;
+    }
+
+    for (const auto& entry : cooldown_until_ms) {
+        if (entry.second > previous_clock && entry.second <= game_clock_ms) {
+            auto piece = board.getPieceById(entry.first);
+            if (piece)
+                piece->transitionTo(Chess::State::Idle);
+        }
     }
 
     return king_captured;
