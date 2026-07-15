@@ -1,6 +1,7 @@
 #include "../doctest.h"
 #include "../input/Controller.h"
 #include "../model/Board.h"
+#include "../view/ViewConfig.h"
 #include <memory>
 
 class TestPiece : public Piece {
@@ -21,10 +22,10 @@ static const SnapshotPiece* findAt(const GameSnapshot& snap, Position pos) {
     return nullptr;
 }
 
-// לחיצה על מרכז התא (row, col) בפיקסלים, לפי BoardMapper::CELL_SIZE
+// לחיצה על מרכז התא (row, col) בפיקסלים, לפי ViewConfig::CELL_SIZE
 static void click(Controller& controller, int row, int col) {
-    int x = col * BoardMapper::CELL_SIZE + 50;
-    int y = row * BoardMapper::CELL_SIZE + 50;
+    int x = col * ViewConfig::CELL_SIZE + 50;
+    int y = row * ViewConfig::CELL_SIZE + 50;
     controller.handleMouseClick(x, y);
 }
 
@@ -57,6 +58,21 @@ TEST_CASE("click - קליק ראשון על תא ריק לא בוחר כלום")
 
     engine.wait(3000);
     CHECK(findAt(controller.getSnapshot(), {3, 6}) != nullptr);
+}
+
+// ==================== קליק כפול על אותו כלי - קפיצה ====================
+
+TEST_CASE("click - קליק שני על אותו כלי נבחר שולח קפיצה, לא מהלך") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    GameEngine engine(board);
+    Controller controller(engine);
+
+    click(controller, 3, 3); // בחירת הצריח
+    click(controller, 3, 3); // קליק שני על אותו תא - קפיצה, לא בחירה מחדש/מהלך
+
+    CHECK(findAt(controller.getSnapshot(), {3, 3})->state == Chess::State::Jump);
+    CHECK_FALSE(controller.getSnapshot().has_selection); // הבחירה התאפסה אחרי הקפיצה
 }
 
 // ==================== קליק מחוץ ללוח ====================

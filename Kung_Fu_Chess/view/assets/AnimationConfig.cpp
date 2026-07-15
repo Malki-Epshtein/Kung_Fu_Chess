@@ -1,5 +1,5 @@
 #include "AnimationConfig.h"
-#include "../model/PieceStateMachine.h"
+#include "../../model/PieceStateMachine.h"
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -47,6 +47,7 @@ AnimationConfig loadAnimationConfig(const std::string& path) {
     config.speed_m_per_sec          = std::stod(extractRawValue(json, "speed_m_per_sec"));
     config.next_state_when_finished = stateFromString(extractRawValue(json, "next_state_when_finished"));
     config.frames_per_sec           = std::stoi(extractRawValue(json, "frames_per_sec"));
+    config.frame_count              = std::stoi(extractRawValue(json, "frame_count"));
     config.is_loop                  = extractRawValue(json, "is_loop") == "true";
 
     return config;

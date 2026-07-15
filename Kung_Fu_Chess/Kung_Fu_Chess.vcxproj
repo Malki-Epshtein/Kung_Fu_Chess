@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -248,6 +248,14 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="test\test_AnimationFrameSelector.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_AssetPathBuilder.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="test\test_integration_scripts.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -256,7 +264,22 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="view\AnimationConfig.cpp" />
+    <ClCompile Include="view\assets\AnimationConfig.cpp" />
+    <ClCompile Include="view\assets\AnimationFrameSelector.cpp" />
+    <ClCompile Include="view\assets\AssetsRootConfig.cpp" />
+    <ClCompile Include="view\assets\AssetPathBuilder.cpp" />
+    <ClCompile Include="view\assets\CachingImageLoader.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="view\assets\FileImageLoader.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="view\assets\SpriteRepository.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="view\ImageView.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
@@ -301,8 +324,17 @@
     <ClInclude Include="texttests\ScriptParser.h" />
     <ClInclude Include="texttests\ScriptResult.h" />
     <ClInclude Include="texttests\ScriptRunner.h" />
-    <ClInclude Include="view\AnimationConfig.h" />
+    <ClInclude Include="view\assets\AnimationConfig.h" />
+    <ClInclude Include="view\assets\AnimationFrameSelector.h" />
+    <ClInclude Include="view\assets\AssetsRootConfig.h" />
+    <ClInclude Include="view\assets\AssetPathBuilder.h" />
+    <ClInclude Include="view\assets\IImageLoader.h" />
+    <ClInclude Include="view\assets\FileImageLoader.h" />
+    <ClInclude Include="view\assets\CachingImageLoader.h" />
+    <ClInclude Include="view\assets\ISpriteSource.h" />
+    <ClInclude Include="view\assets\SpriteRepository.h" />
     <ClInclude Include="view\ImageView.h" />
+    <ClInclude Include="view\ViewConfig.h" />
     <ClInclude Include="view\Renderer.h" />
     <ClInclude Include="view\src\img.hpp" />
   </ItemGroup>

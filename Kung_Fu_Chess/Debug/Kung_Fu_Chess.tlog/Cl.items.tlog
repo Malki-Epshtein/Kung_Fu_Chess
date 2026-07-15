@@ -37,6 +37,11 @@ C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\test\test_Sc
 C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\test\test_ScriptRunner.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\test_ScriptRunner.obj
 C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\test\test_PieceStateMachine.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\test_PieceStateMachine.obj
 C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\test\test_AnimationConfig.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\test_AnimationConfig.obj
+C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\test\test_AnimationFrameSelector.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\test_AnimationFrameSelector.obj
+C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\test\test_AssetPathBuilder.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\test_AssetPathBuilder.obj
 C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\test\test_integration_scripts.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\test_integration_scripts.obj
 C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\test\test_rule_engine.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\test_rule_engine.obj
-C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\view\AnimationConfig.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\AnimationConfig.obj
+C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\view\assets\AnimationConfig.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\AnimationConfig.obj
+C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\view\assets\AnimationFrameSelector.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\AnimationFrameSelector.obj
+C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\view\assets\AssetsRootConfig.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\AssetsRootConfig.obj
+C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\view\assets\AssetPathBuilder.cpp;C:\Users\This User\Desktop\בודקמפ\Kung_Fu_Chess\Kung_Fu_Chess\Debug\AssetPathBuilder.obj

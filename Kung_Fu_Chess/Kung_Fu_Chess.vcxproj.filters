@@ -147,10 +147,34 @@
     <ClCompile Include="view\ImageView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="view\assets\AnimationFrameSelector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="view\assets\AssetsRootConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="view\assets\AssetPathBuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="view\assets\FileImageLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="view\assets\CachingImageLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="view\assets\SpriteRepository.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test\test_ImageView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_AnimationConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_AnimationFrameSelector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_AssetPathBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_integration_scripts.cpp">
@@ -255,6 +279,33 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="view\ImageView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\ViewConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\assets\AnimationFrameSelector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\assets\AssetsRootConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\assets\AssetPathBuilder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\assets\IImageLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\assets\FileImageLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\assets\CachingImageLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\assets\ISpriteSource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\assets\SpriteRepository.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="view\Renderer.h">

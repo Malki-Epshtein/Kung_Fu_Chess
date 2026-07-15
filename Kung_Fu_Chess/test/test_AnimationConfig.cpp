@@ -1,5 +1,5 @@
 #include "../doctest.h"
-#include "../view/AnimationConfig.h"
+#include "../view/assets/AnimationConfig.h"
 #include <string>
 
 // Paths are resolved relative to this source file's own location (via
@@ -18,6 +18,7 @@ TEST_CASE("loadAnimationConfig - קורא נכון קובץ config.json אמית
     CHECK(config.speed_m_per_sec == doctest::Approx(1.5));
     CHECK(config.next_state_when_finished == Chess::State::LongRest);
     CHECK(config.frames_per_sec == 12);
+    CHECK(config.frame_count == 5);
     CHECK(config.is_loop == true);
 }
 
@@ -27,6 +28,7 @@ TEST_CASE("loadAnimationConfig - קובץ jump (BB) - is_loop false ומעבר �
     CHECK(config.speed_m_per_sec == doctest::Approx(3.0));
     CHECK(config.next_state_when_finished == Chess::State::ShortRest);
     CHECK(config.frames_per_sec == 8);
+    CHECK(config.frame_count == 5);
     CHECK(config.is_loop == false);
 }
 
@@ -36,6 +38,7 @@ TEST_CASE("loadAnimationConfig - קובץ idle (BB) - מהירות אפס ולו
     CHECK(config.speed_m_per_sec == doctest::Approx(0.0));
     CHECK(config.next_state_when_finished == Chess::State::Idle);
     CHECK(config.frames_per_sec == 6);
+    CHECK(config.frame_count == 5);
     CHECK(config.is_loop == true);
 }
 

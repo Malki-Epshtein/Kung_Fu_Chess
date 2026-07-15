@@ -5,6 +5,7 @@
   },
   "graphics": {
     "frames_per_sec": 12,
+    "frame_count": 5,
     "is_loop": true
   }
 }

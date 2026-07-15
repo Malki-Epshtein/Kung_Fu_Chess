@@ -1,6 +1,7 @@
 {
   "graphics": {
     "frames_per_sec": 6,
+    "frame_count": 5,
     "is_loop": true
   },
   "physics": {

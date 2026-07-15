@@ -1,4 +1,5 @@
 #include "Controller.h"
+#include "../view/ViewConfig.h"
 
 static const SnapshotPiece* findPieceAt(const GameSnapshot& snap, Position pos) {
     for (const auto& p : snap.pieces)
@@ -10,8 +11,8 @@ static const SnapshotPiece* findPieceAt(const GameSnapshot& snap, Position pos) 
 void Controller::handleMouseClick(int x, int y) {
     GameSnapshot snap = engine.snapshot();
 
-    int boardWidthPx  = snap.board_width  * BoardMapper::CELL_SIZE;
-    int boardHeightPx = snap.board_height * BoardMapper::CELL_SIZE;
+    int boardWidthPx  = snap.board_width  * ViewConfig::CELL_SIZE;
+    int boardHeightPx = snap.board_height * ViewConfig::CELL_SIZE;
 
     if (x < 0 || y < 0 || x >= boardWidthPx || y >= boardHeightPx) {
         selectedPos = nullptr;
@@ -23,6 +24,11 @@ void Controller::handleMouseClick(int x, int y) {
     if (selectedPos == nullptr) {
         if (findPieceAt(snap, clickedPos))
             selectedPos = std::make_shared<Position>(clickedPos);
+    }
+    else if (clickedPos == *selectedPos) {
+        // Second click on the already-selected piece itself - jump in place.
+        engine.requestJump(clickedPos);
+        selectedPos = nullptr;
     }
     else {
         const SnapshotPiece* clickedPiece  = findPieceAt(snap, clickedPos);
@@ -43,8 +49,8 @@ void Controller::handleMouseClick(int x, int y) {
 void Controller::handleJump(int x, int y) {
     GameSnapshot snap = engine.snapshot();
 
-    int boardWidthPx  = snap.board_width  * BoardMapper::CELL_SIZE;
-    int boardHeightPx = snap.board_height * BoardMapper::CELL_SIZE;
+    int boardWidthPx  = snap.board_width  * ViewConfig::CELL_SIZE;
+    int boardHeightPx = snap.board_height * ViewConfig::CELL_SIZE;
 
     if (x < 0 || y < 0 || x >= boardWidthPx || y >= boardHeightPx)
         return;
