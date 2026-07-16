@@ -122,3 +122,28 @@ Img Img::clone() const {
     copy.img = img.clone();
     return copy;
 }
+
+void Img::fill_rect(int x, int y, int width, int height,
+                     const cv::Scalar& color, double alpha) {
+    if (img.empty()) {
+        throw std::runtime_error("Image not loaded.");
+    }
+
+    cv::Mat roi = img(cv::Rect(x, y, width, height));
+    cv::Mat overlay(roi.size(), roi.type(), color);
+    cv::addWeighted(overlay, alpha, roi, 1.0 - alpha, 0.0, roi);
+}
+
+void Img::fill_circle(int centerX, int centerY, int radius,
+                       const cv::Scalar& color, double alpha) {
+    if (img.empty()) {
+        throw std::runtime_error("Image not loaded.");
+    }
+
+    // Circle drawn onto a clone, then blended against the original - pixels
+    // outside the circle are identical in both so the blend leaves them
+    // untouched, same effect as fill_rect but for a round region.
+    cv::Mat overlay = img.clone();
+    cv::circle(overlay, cv::Point(centerX, centerY), radius, color, cv::FILLED, cv::LINE_AA);
+    cv::addWeighted(overlay, alpha, img, 1.0 - alpha, 0.0, img);
+}

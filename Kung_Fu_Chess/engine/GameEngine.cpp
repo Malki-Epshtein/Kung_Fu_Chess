@@ -1,6 +1,9 @@
 #include "GameEngine.h"
 #include "../rules/rule_engine.h"
+#include "../rules/PieceRules.h"
 #include "../model/PieceStateMachine.h"
+#include "../realtime/RestDurations.h"
+#include <algorithm>
 #include <vector>
 
 bool GameEngine::hasMotionOnPath(Position from, Position to) const {
@@ -51,14 +54,14 @@ MoveResult GameEngine::requestJump(Position pos) {
     if (state.game_over)
         return { false, "game_over" };
 
-    if (hasMotionOnPath(pos, pos))
+    auto piece = state.board->getPiece(pos);
+    if (piece && arbiter.isPieceBusy(piece->getId()))
         return { false, "motion_in_progress" };
 
     auto validation = RuleEngine::validateJump(*state.board, pos);
     if (!validation.is_valid)
         return { false, validation.reason };
 
-    auto piece = state.board->getPiece(pos);
     arbiter.addJump(pos, piece->getId());
     return { true, "ok" };
 }
@@ -92,6 +95,13 @@ void GameEngine::firePremoves() {
     }
 }
 
+std::vector<Position> GameEngine::legalDestinationsFrom(Position pos) const {
+    auto piece = state.board->getPiece(pos);
+    if (!piece || piece->getColor() == Chess::Color::None)
+        return {};
+    return PieceRules::legalDestinations(*state.board, *piece, simultaneousMode);
+}
+
 GameSnapshot GameEngine::snapshot() const {
     GameSnapshot snap;
     snap.board_width  = state.board->getWidth();
@@ -119,7 +129,14 @@ GameSnapshot GameEngine::snapshot() const {
             }
 
             int elapsed = arbiter.getClock() - arbiter.getStateStartMs(piece->getId(), piece->getState());
-            snap.pieces.push_back({ piece->getKind(), piece->getColor(), cell, piece->getState(), elapsed, target, progress });
+
+            double restProgress = 0.0;
+            if (piece->getState() == Chess::State::ShortRest)
+                restProgress = std::min(1.0, elapsed / static_cast<double>(RestDurations::SHORT_REST_MS));
+            else if (piece->getState() == Chess::State::LongRest)
+                restProgress = std::min(1.0, elapsed / static_cast<double>(RestDurations::LONG_REST_MS));
+
+            snap.pieces.push_back({ piece->getKind(), piece->getColor(), cell, piece->getState(), elapsed, target, progress, restProgress });
         }
     }
     return snap;

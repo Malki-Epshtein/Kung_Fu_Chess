@@ -1,5 +1,7 @@
 #include "Controller.h"
 #include "../view/ViewConfig.h"
+#include "MoveCommand.h"
+#include "JumpCommand.h"
 
 static const SnapshotPiece* findPieceAt(const GameSnapshot& snap, Position pos) {
     for (const auto& p : snap.pieces)
@@ -27,7 +29,7 @@ void Controller::handleMouseClick(int x, int y) {
     }
     else if (clickedPos == *selectedPos) {
         // Second click on the already-selected piece itself - jump in place.
-        engine.requestJump(clickedPos);
+        JumpCommand(clickedPos).execute(engine);
         selectedPos = nullptr;
     }
     else {
@@ -40,7 +42,7 @@ void Controller::handleMouseClick(int x, int y) {
             selectedPos = std::make_shared<Position>(clickedPos);
         }
         else {
-            engine.requestMove(*selectedPos, clickedPos);
+            MoveCommand(*selectedPos, clickedPos).execute(engine);
             selectedPos = nullptr;
         }
     }
@@ -56,7 +58,7 @@ void Controller::handleJump(int x, int y) {
         return;
 
     Position pos = BoardMapper::mapToPosition(x, y);
-    engine.requestJump(pos);
+    JumpCommand(pos).execute(engine);
 }
 
 void Controller::handleWait(int ms) {
@@ -68,6 +70,7 @@ GameSnapshot Controller::getSnapshot() const {
     if (selectedPos != nullptr) {
         snap.has_selection = true;
         snap.selected_cell = *selectedPos;
+        snap.legalMoves = engine.legalDestinationsFrom(*selectedPos);
     }
     return snap;
 }

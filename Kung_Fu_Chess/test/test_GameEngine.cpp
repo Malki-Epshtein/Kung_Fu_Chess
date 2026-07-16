@@ -198,9 +198,9 @@ TEST_CASE("requestMove - מהלך לא-חוקי מבטל premove ממתין") {
     auto queued = engine.requestMove({3, 4}, {3, 6}); // premove לגיטימי בזמן צינון
     CHECK(queued.reason == "queued");
 
-    auto illegal = engine.requestMove({3, 4}, {4, 3}); // יעד ידידותי - לא-חוקי, מבטל את הpremove
+    auto illegal = engine.requestMove({3, 4}, {4, 3}); // אלכסון - לא צורת מהלך חוקית לצריח, מבטל את הpremove
     CHECK_FALSE(illegal.is_accepted);
-    CHECK(illegal.reason == "friendly_destination");
+    CHECK(illegal.reason == "illegal_piece_move");
 
     engine.wait(2000); // מספיק זמן לצינון ולירי premove, אם הוא לא היה מבוטל
     CHECK(findAt(engine.snapshot(), {3, 4}) != nullptr); // נשאר במקומו - הpremove בוטל
@@ -375,6 +375,57 @@ TEST_CASE("הגעה - אכילת מלך מסיימת את המשחק") {
 
     CHECK(engine.isGameOver());
     CHECK(engine.snapshot().game_over);
+}
+
+// ==================== requestJump ====================
+
+TEST_CASE("requestJump - כלי אחר שמחליק ליעד זהה לתא הקפיצה לא חוסם את הקפיצה") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Pawn, {4, 3}), {4, 3});
+    board->addPiece(make(2, Chess::Color::Black, Chess::Kind::Rook, {4, 6}), {4, 6});
+    GameEngine engine(board, /*simultaneousMode=*/true);
+
+    engine.requestMove({4, 6}, {4, 3}); // הצריח מחליק ליעד שהוא בדיוק תא החייל
+
+    auto jumped = engine.requestJump({4, 3});
+    CHECK(jumped.is_accepted);
+    CHECK(jumped.reason == "ok");
+}
+
+TEST_CASE("requestJump - כלי שכבר בתנועה בעצמו נדחה עם motion_in_progress") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Pawn, {4, 3}), {4, 3});
+    GameEngine engine(board, /*simultaneousMode=*/true);
+
+    engine.requestMove({4, 3}, {3, 3});
+
+    auto jumped = engine.requestJump({4, 3});
+    CHECK_FALSE(jumped.is_accepted);
+    CHECK(jumped.reason == "motion_in_progress");
+}
+
+// ==================== legalDestinationsFrom ====================
+
+TEST_CASE("legalDestinationsFrom - מחזיר את יעדי הכלל של הכלי, ישירות מ-PieceRules") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    GameEngine engine(board);
+
+    auto moves = engine.legalDestinationsFrom({3, 3});
+
+    bool found = false;
+    for (const auto& pos : moves)
+        if (pos == Position{3, 6}) found = true;
+    CHECK(found);
+    CHECK(moves.size() == 14); // צריח מהמרכז בלוח ריק
+}
+
+TEST_CASE("legalDestinationsFrom - תא ריק מחזיר רשימה ריקה") {
+    auto board = std::make_shared<Board>(8, 8);
+    GameEngine engine(board);
+
+    auto moves = engine.legalDestinationsFrom({3, 3});
+    CHECK(moves.empty());
 }
 
 // ==================== snapshot ====================

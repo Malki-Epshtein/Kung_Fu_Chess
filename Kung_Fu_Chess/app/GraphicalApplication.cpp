@@ -8,12 +8,14 @@ namespace {
             return;
         auto* controller = static_cast<Controller*>(userdata);
         // The board is now drawn centered, offset right by the left panel's
-        // width (see ViewConfig::PANEL_WIDTH) - correct raw window coordinates
-        // back to board-local ones here, at the OS input boundary, so
+        // width and down by the top frame margin (see ViewConfig::PANEL_WIDTH
+        // / BOARD_MARGIN) - correct raw window coordinates back to
+        // board-local ones here, at the OS input boundary, so
         // BoardMapper/Controller stay unaware of any rendering layout.
-        // A click landing inside a side panel becomes a negative x, which
-        // Controller's existing bounds check already treats as out-of-board.
-        controller->handleMouseClick(x - ViewConfig::PANEL_WIDTH, y);
+        // A click landing inside a side panel or the frame margin becomes a
+        // negative coordinate, which Controller's existing bounds check
+        // already treats as out-of-board.
+        controller->handleMouseClick(x - ViewConfig::PANEL_WIDTH, y - ViewConfig::BOARD_MARGIN);
     }
 }
 

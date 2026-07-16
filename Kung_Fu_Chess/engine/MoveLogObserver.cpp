@@ -1,33 +1,61 @@
 #include "MoveLogObserver.h"
 #include <sstream>
+#include <iomanip>
 
 namespace {
-    std::string kindName(Chess::Kind kind) {
+    // Simplified algebraic notation: no check ("+"), no disambiguation
+    // (e.g. "Nbd7"), no castling/promotion suffix - the project doesn't
+    // implement check detection or castling at all, and disambiguation
+    // would require MoveLogObserver to depend on a live Board, which it's
+    // deliberately free of (Interface Segregation).
+    std::string pieceLetter(Chess::Kind kind) {
         switch (kind) {
-            case Chess::Kind::King:   return "King";
-            case Chess::Kind::Queen:  return "Queen";
-            case Chess::Kind::Rook:   return "Rook";
-            case Chess::Kind::Bishop: return "Bishop";
-            case Chess::Kind::Knight: return "Knight";
-            case Chess::Kind::Pawn:   return "Pawn";
-            default:                  return "";
+            case Chess::Kind::King:   return "K";
+            case Chess::Kind::Queen:  return "Q";
+            case Chess::Kind::Rook:   return "R";
+            case Chess::Kind::Bishop: return "B";
+            case Chess::Kind::Knight: return "N";
+            default:                  return ""; // Pawn (and None)
         }
     }
 
-    std::string colorName(Chess::Color color) {
-        return color == Chess::Color::White ? "White" : "Black";
+    std::string fileLetter(int col) {
+        return std::string(1, static_cast<char>('a' + col));
     }
 }
 
-std::string MoveLogObserver::describe(const Piece& mover, Position from, Position to) {
+std::string MoveLogObserver::describe(const Piece& mover, Position from, Position to, bool wasCapture) const {
     std::ostringstream out;
-    out << colorName(mover.getColor()) << " " << kindName(mover.getKind())
-        << ": " << from << " -> " << to;
+    out << pieceLetter(mover.getKind());
+
+    // A pawn capture shows its origin file even without disambiguation
+    // ("exd5"), a rule of real algebraic notation, not a simplification.
+    if (mover.getKind() == Chess::Kind::Pawn && wasCapture)
+        out << fileLetter(from.col);
+
+    if (wasCapture)
+        out << "x";
+
+    out << fileLetter(to.col) << (boardHeight - to.row);
     return out.str();
 }
 
-void MoveLogObserver::onMoveCompleted(const Piece& mover, Position from, Position to) {
-    std::string entry = describe(mover, from, to);
+std::string MoveLogObserver::formatElapsed() const {
+    auto elapsed = std::chrono::steady_clock::now() - startTime;
+    long long totalMs = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+    long long minutes = totalMs / 60000;
+    long long seconds = (totalMs / 1000) % 60;
+    long long millis  = totalMs % 1000;
+
+    std::ostringstream out;
+    out << std::setfill('0') << std::setw(2) << minutes << ":"
+        << std::setfill('0') << std::setw(2) << seconds << "."
+        << std::setfill('0') << std::setw(3) << millis;
+    return out.str();
+}
+
+void MoveLogObserver::onMoveCompleted(const Piece& mover, Position from, Position to, bool wasCapture) {
+    MoveEntry entry{ formatElapsed(), describe(mover, from, to, wasCapture) };
 
     if (mover.getColor() == Chess::Color::White)
         whiteMoves.push_back(entry);
@@ -35,8 +63,8 @@ void MoveLogObserver::onMoveCompleted(const Piece& mover, Position from, Positio
         blackMoves.push_back(entry);
 }
 
-const std::vector<std::string>& MoveLogObserver::getMoves(Chess::Color color) const {
-    static const std::vector<std::string> empty;
+const std::vector<MoveEntry>& MoveLogObserver::getMoves(Chess::Color color) const {
+    static const std::vector<MoveEntry> empty;
     if (color == Chess::Color::White) return whiteMoves;
     if (color == Chess::Color::Black) return blackMoves;
     return empty;

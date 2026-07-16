@@ -11,6 +11,7 @@ struct SnapshotPiece {
     int          elapsed_in_state_ms;
     Position     targetCell;     // destination cell if moving; equals cell otherwise
     double       travelProgress; // 0.0-1.0 fraction of the move completed; 0 if not moving
+    double       restProgress;   // 0.0-1.0 fraction of ShortRest/LongRest elapsed; 0 otherwise
 };
 
 struct GameSnapshot {
@@ -20,4 +21,5 @@ struct GameSnapshot {
     bool                       game_over;
     bool                       has_selection = false;
     Position                   selected_cell{};
+    std::vector<Position>      legalMoves; // legal destinations for the selected piece; empty if no selection
 };

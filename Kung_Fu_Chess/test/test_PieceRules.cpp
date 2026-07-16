@@ -189,14 +189,14 @@ TEST_CASE("Knight - קופץ מעל כלים") {
     CHECK(moves.size() == 8); // עדיין 8 קפיצות
 }
 
-TEST_CASE("Knight - לא יכול לנחות על ידיד") {
+TEST_CASE("Knight - יכול לנחות על ידיד (כלל 8 - הכלי הידידותי ייאכל בהגעה, זו הדרך היחידה)") {
     Board board(8, 8);
     auto knight = make(Chess::Color::White, Chess::Kind::Knight, {3, 3});
     auto friend1 = make(Chess::Color::White, Chess::Kind::Pawn, {1, 2});
     board.addPiece(knight, {3, 3});
     board.addPiece(friend1, {1, 2});
     auto moves = KnightRules::moves(board, *knight);
-    CHECK_FALSE(contains(moves, {1, 2}));
+    CHECK(contains(moves, {1, 2}));
 }
 
 TEST_CASE("Knight - יכול לאכול אויב") {
@@ -234,6 +234,15 @@ TEST_CASE("King - לא יכול לנחות על ידיד") {
     board.addPiece(make(Chess::Color::White, Chess::Kind::Pawn, {3, 4}), {3, 4});
     auto moves = KingRules::moves(board, *king);
     CHECK_FALSE(contains(moves, {3, 4}));
+}
+
+TEST_CASE("King - עם ignoreBlockers=true כן יכול לבקש משבצת תפוסה בידיד (סעיף 7)") {
+    Board board(8, 8);
+    auto king = make(Chess::Color::White, Chess::Kind::King, {3, 3});
+    board.addPiece(king, {3, 3});
+    board.addPiece(make(Chess::Color::White, Chess::Kind::Pawn, {3, 4}), {3, 4});
+    auto moves = KingRules::moves(board, *king, /*ignoreBlockers=*/true);
+    CHECK(contains(moves, {3, 4}));
 }
 
 TEST_CASE("King - יכול לאכול אויב") {

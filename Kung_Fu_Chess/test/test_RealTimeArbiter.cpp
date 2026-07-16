@@ -452,10 +452,10 @@ namespace {
     };
 
     struct RecordingMoveObserver : public MoveObserver {
-        struct Move { int piece_id; Position from; Position to; };
+        struct Move { int piece_id; Position from; Position to; bool wasCapture; };
         std::vector<Move> moves;
-        void onMoveCompleted(const Piece& mover, Position from, Position to) override {
-            moves.push_back({ mover.getId(), from, to });
+        void onMoveCompleted(const Piece& mover, Position from, Position to, bool wasCapture) override {
+            moves.push_back({ mover.getId(), from, to, wasCapture });
         }
     };
 }
@@ -478,6 +478,7 @@ TEST_CASE("Observer - מהלך רגיל בלי אכילה משדר onMoveComplet
     CHECK(moveObs.moves[0].piece_id == 1);
     CHECK(moveObs.moves[0].from == Position{3, 3});
     CHECK(moveObs.moves[0].to == Position{3, 4});
+    CHECK_FALSE(moveObs.moves[0].wasCapture);
 }
 
 TEST_CASE("Observer - קפיצה במקום לא משדרת onMoveCompleted") {
@@ -515,6 +516,7 @@ TEST_CASE("Observer - אכילה רגילה (נחיתה על יעד תפוס) מ
     CHECK(moveObs.moves[0].piece_id == 1);
     CHECK(moveObs.moves[0].from == Position{3, 3});
     CHECK(moveObs.moves[0].to == Position{3, 6});
+    CHECK(moveObs.moves[0].wasCapture);
 }
 
 TEST_CASE("Observer - אכילה ע\"י נחיתה על כלי שקפץ (capturedByJump) משדרת onPieceCaptured בלי onMoveCompleted") {

@@ -1,36 +1,10 @@
 #include "QueenRules.h"
-
-static void slide(const Board& board, const Piece& piece,
-    int dr, int dc, std::vector<Position>& result, bool ignoreBlockers)
-{
-    int r = piece.getCell().row + dr;
-    int c = piece.getCell().col + dc;
-    while (board.isWithinBounds({ r, c })) {
-        if (board.isCellEmpty({ r, c })) {
-            result.push_back({ r, c });
-        } else if (ignoreBlockers) {
-            result.push_back({ r, c }); // חוסם, אבל ממשיכים "דרכו" (סעיף 7)
-        } else {
-            if (board.getPiece({ r, c })->getColor() != piece.getColor())
-                result.push_back({ r, c });
-            break;
-        }
-        r += dr;
-        c += dc;
-    }
-}
+#include "SlidingPieceRules.h"
 
 std::vector<Position> QueenRules::moves(const Board& board, const Piece& piece, bool ignoreBlockers) {
-    std::vector<Position> result;
-    // כיווני צריח
-    slide(board, piece,  1,  0, result, ignoreBlockers);
-    slide(board, piece, -1,  0, result, ignoreBlockers);
-    slide(board, piece,  0,  1, result, ignoreBlockers);
-    slide(board, piece,  0, -1, result, ignoreBlockers);
-    // כיווני רץ
-    slide(board, piece,  1,  1, result, ignoreBlockers);
-    slide(board, piece,  1, -1, result, ignoreBlockers);
-    slide(board, piece, -1,  1, result, ignoreBlockers);
-    slide(board, piece, -1, -1, result, ignoreBlockers);
-    return result;
+    static const std::vector<std::pair<int, int>> directions = {
+        {1, 0}, {-1, 0}, {0, 1}, {0, -1},   // כיווני צריח
+        {1, 1}, {1, -1}, {-1, 1}, {-1, -1}  // כיווני רץ
+    };
+    return SlidingPieceRules::slide(board, piece, directions, ignoreBlockers);
 }

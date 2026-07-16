@@ -30,6 +30,11 @@ private:
     ScoreObserver   scoreObserver;
     MoveLogObserver moveLogObserver;
 
+    // No text-input UI exists yet, so player names are fixed here for now -
+    // easy to swap for a config-file read later without touching callers.
+    static constexpr const char* WHITE_PLAYER_NAME = "White Player";
+    static constexpr const char* BLACK_PLAYER_NAME = "Black Player";
+
 public:
     GraphicalApplication(std::shared_ptr<Board> board)
         : assetsRoot(readAssetsRoot()),
@@ -38,11 +43,13 @@ public:
           spriteRepository(pathBuilder, cachingImageLoader),
           engine(board, /*simultaneousMode=*/true),
           controller(engine),
-          view(spriteRepository, assetsRoot) {
+          view(spriteRepository, assetsRoot),
+          moveLogObserver(board->getHeight()) {
         engine.addCaptureObserver(&scoreObserver);
         engine.addMoveObserver(&moveLogObserver);
         view.setScoreObserver(&scoreObserver);
         view.setMoveLogObserver(&moveLogObserver);
+        view.setPlayerNames(WHITE_PLAYER_NAME, BLACK_PLAYER_NAME);
     }
 
     void run();

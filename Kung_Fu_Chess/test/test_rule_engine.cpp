@@ -75,6 +75,15 @@ TEST_CASE("friendly_destination - שחור מנסה לדרוס שחור") {
     CHECK(result.reason == "friendly_destination");
 }
 
+TEST_CASE("friendly_destination - פרש חריג: מותר לו לנחות על ידיד (כלל 8 - זו הדרך היחידה להרוג כלי ידידותי)") {
+    Board board(8, 8);
+    board.addPiece(make(Chess::Color::White, Chess::Kind::Knight, {3, 3}), {3, 3});
+    board.addPiece(make(Chess::Color::White, Chess::Kind::Pawn,   {1, 2}), {1, 2});
+    auto result = RuleEngine::validateMove(board, {3, 3}, {1, 2});
+    CHECK(result.is_valid);
+    CHECK(result.reason == "ok");
+}
+
 // ==================== illegal_piece_move ====================
 
 TEST_CASE("illegal_piece_move - צריח מנסה לזוז באלכסון") {
@@ -208,14 +217,34 @@ TEST_CASE("relaxedBlocking=true - צריח חסום עי ידיד יכול לז�
     CHECK(result.reason == "ok");
 }
 
-TEST_CASE("relaxedBlocking=true - friendly_destination עדיין נדחה כרגיל (לא מתרכך)") {
+TEST_CASE("relaxedBlocking=true - friendly_destination מתרכך: היעד עצמו תפוס בידיד אבל אולי יתפנה בזמן") {
     Board board(8, 8);
     board.addPiece(make(Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
     board.addPiece(make(Chess::Color::White, Chess::Kind::Pawn, {3, 4}), {3, 4});
 
     auto result = RuleEngine::validateMove(board, {3, 3}, {3, 4}, /*relaxedBlocking=*/true);
+    CHECK(result.is_valid);
+    CHECK(result.reason == "ok");
+}
+
+TEST_CASE("relaxedBlocking=false (ברירת מחדל) - friendly_destination נדחה כרגיל") {
+    Board board(8, 8);
+    board.addPiece(make(Chess::Color::White, Chess::Kind::Rook, {3, 3}), {3, 3});
+    board.addPiece(make(Chess::Color::White, Chess::Kind::Pawn, {3, 4}), {3, 4});
+
+    auto result = RuleEngine::validateMove(board, {3, 3}, {3, 4}); // בלי relaxedBlocking
     CHECK_FALSE(result.is_valid);
     CHECK(result.reason == "friendly_destination");
+}
+
+TEST_CASE("relaxedBlocking=true - מלך יכול לבקש מהלך למשבצת סמוכה שתפוסה כרגע בידיד") {
+    Board board(8, 8);
+    board.addPiece(make(Chess::Color::White, Chess::Kind::King, {3, 3}), {3, 3});
+    board.addPiece(make(Chess::Color::White, Chess::Kind::Pawn, {3, 4}), {3, 4});
+
+    auto result = RuleEngine::validateMove(board, {3, 3}, {3, 4}, /*relaxedBlocking=*/true);
+    CHECK(result.is_valid);
+    CHECK(result.reason == "ok");
 }
 
 TEST_CASE("relaxedBlocking=false (ברירת מחדל) - צריח חסום עי ידיד עדיין נדחה כמו קודם") {

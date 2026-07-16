@@ -5,5 +5,5 @@
 
 class KingRules {
 public:
-    static std::vector<Position> moves(const Board& board, const Piece& piece);
+    static std::vector<Position> moves(const Board& board, const Piece& piece, bool ignoreBlockers = false);
 };

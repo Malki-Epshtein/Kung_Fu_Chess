@@ -151,6 +151,8 @@
     <ClCompile Include="engine\MoveLogObserver.cpp" />
     <ClCompile Include="input\BoardMapper.cpp" />
     <ClCompile Include="input\Controller.cpp" />
+    <ClCompile Include="input\MoveCommand.cpp" />
+    <ClCompile Include="input\JumpCommand.cpp" />
     <ClCompile Include="io\BoardParser.cpp" />
     <ClCompile Include="io\BoardPrinter.cpp" />
     <ClCompile Include="main.cpp">
@@ -162,6 +164,8 @@
     <ClCompile Include="model\Position.cpp" />
     <ClCompile Include="realtime\MotionPath.cpp" />
     <ClCompile Include="realtime\RealTimeArbiter.cpp" />
+    <ClCompile Include="realtime\CollisionResolver.cpp" />
+    <ClCompile Include="realtime\ArrivalResolver.cpp" />
     <ClCompile Include="rules\BishopRules.cpp" />
     <ClCompile Include="rules\KingRules.cpp" />
     <ClCompile Include="rules\KnightRules.cpp" />
@@ -169,6 +173,7 @@
     <ClCompile Include="rules\PieceRules.cpp" />
     <ClCompile Include="rules\QueenRules.cpp" />
     <ClCompile Include="rules\RookRules.cpp" />
+    <ClCompile Include="rules\SlidingPieceRules.cpp" />
     <ClCompile Include="rules\rule_engine.cpp" />
     <ClCompile Include="texttests\ScriptParser.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -256,6 +261,26 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="test\test_CollisionResolver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_ArrivalResolver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_SlidingPieceRules.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_MoveCommand.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_JumpCommand.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="test\test_integration_scripts.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -299,6 +324,9 @@
     <ClInclude Include="engine\MoveLogObserver.h" />
     <ClInclude Include="input\BoardMapper.h" />
     <ClInclude Include="input\Controller.h" />
+    <ClInclude Include="input\Command.h" />
+    <ClInclude Include="input\MoveCommand.h" />
+    <ClInclude Include="input\JumpCommand.h" />
     <ClInclude Include="io\BoardParser.h" />
     <ClInclude Include="io\BoardPrinter.h" />
     <ClInclude Include="model\Board.h" />
@@ -309,6 +337,9 @@
     <ClInclude Include="realtime\Motion.h" />
     <ClInclude Include="realtime\MotionPath.h" />
     <ClInclude Include="realtime\RealTimeArbiter.h" />
+    <ClInclude Include="realtime\CollisionResolver.h" />
+    <ClInclude Include="realtime\ArrivalResolver.h" />
+    <ClInclude Include="realtime\RestDurations.h" />
     <ClInclude Include="realtime\CaptureObserver.h" />
     <ClInclude Include="realtime\MoveObserver.h" />
     <ClInclude Include="rules\BishopRules.h" />
@@ -319,6 +350,7 @@
     <ClInclude Include="rules\PieceRules.h" />
     <ClInclude Include="rules\QueenRules.h" />
     <ClInclude Include="rules\RookRules.h" />
+    <ClInclude Include="rules\SlidingPieceRules.h" />
     <ClInclude Include="rules\rule_engine.h" />
     <ClInclude Include="texttests\ScriptCommand.h" />
     <ClInclude Include="texttests\ScriptParser.h" />

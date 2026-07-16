@@ -66,6 +66,31 @@ public:
      */
     Img clone() const;
 
+    /**
+     * Fill a rectangular region with a semi-transparent color, blended
+     * over the existing pixels underneath (e.g. a state-highlight overlay
+     * on a board cell).
+     *
+     * @param x, y Top-left corner of the rectangle
+     * @param width, height Rectangle size in pixels
+     * @param color Fill color (BGR or BGRA)
+     * @param alpha Opacity of the fill, 0 (invisible) to 1 (solid)
+     */
+    void fill_rect(int x, int y, int width, int height,
+                    const cv::Scalar& color, double alpha = 0.4);
+
+    /**
+     * Fill a circle with a semi-transparent color, blended over the
+     * existing pixels underneath (e.g. a legal-move marker on a board cell).
+     *
+     * @param centerX, centerY Circle center
+     * @param radius Circle radius in pixels
+     * @param color Fill color (BGR or BGRA)
+     * @param alpha Opacity of the fill, 0 (invisible) to 1 (solid)
+     */
+    void fill_circle(int centerX, int centerY, int radius,
+                      const cv::Scalar& color, double alpha = 0.4);
+
 private:
     cv::Mat img;
 }; 

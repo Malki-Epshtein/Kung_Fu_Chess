@@ -12,7 +12,7 @@ std::vector<Position> PieceRules::legalDestinations(const Board& board, const Pi
         case Chess::Kind::Bishop: return BishopRules::moves(board, piece, ignoreBlockers);
         case Chess::Kind::Queen:  return QueenRules::moves(board, piece, ignoreBlockers);
         case Chess::Kind::Knight: return KnightRules::moves(board, piece);
-        case Chess::Kind::King:   return KingRules::moves(board, piece);
+        case Chess::Kind::King:   return KingRules::moves(board, piece, ignoreBlockers);
         case Chess::Kind::Pawn:   return PawnRules::moves(board, piece);
         default:                  return {};
     }

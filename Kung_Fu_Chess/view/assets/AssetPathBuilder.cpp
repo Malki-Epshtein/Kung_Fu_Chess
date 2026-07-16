@@ -14,8 +14,8 @@ namespace {
             case Chess::Kind::Pawn:   kindChar = 'P'; break;
             default: throw std::invalid_argument("No sprite folder for this piece kind");
         }
-        char colorChar = (color == Chess::Color::White) ? 'W' : 'B';
-        return std::string(1, kindChar) + std::string(1, colorChar);
+        char colorChar = (color == Chess::Color::White) ? 'w' : 'b';
+        return std::string(1, colorChar) + std::string(1, kindChar);
     }
 }
 

@@ -1,6 +1,6 @@
 #include "KingRules.h"
 
-std::vector<Position> KingRules::moves(const Board& board, const Piece& piece) {
+std::vector<Position> KingRules::moves(const Board& board, const Piece& piece, bool ignoreBlockers) {
     std::vector<Position> result;
     int r = piece.getCell().row;
     int c = piece.getCell().col;
@@ -9,7 +9,7 @@ std::vector<Position> KingRules::moves(const Board& board, const Piece& piece) {
             if (dr == 0 && dc == 0) continue;
             Position to{ r + dr, c + dc };
             if (!board.isWithinBounds(to)) continue;
-            if (!board.isCellEmpty(to) &&
+            if (!ignoreBlockers && !board.isCellEmpty(to) &&
                 board.getPiece(to)->getColor() == piece.getColor()) continue;
             result.push_back(to);
         }

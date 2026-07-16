@@ -17,6 +17,8 @@ private:
     ISpriteSource&          spriteSource;
     const ScoreObserver*    scoreObserver = nullptr;
     const MoveLogObserver*  moveLogObserver = nullptr;
+    std::string             whitePlayerName;
+    std::string             blackPlayerName;
 
 public:
     // Both constructor-injected: rendering is meaningless without a sprite
@@ -34,6 +36,10 @@ public:
     // observers, so they're wired in after construction instead.
     void setScoreObserver(const ScoreObserver* observer) { scoreObserver = observer; }
     void setMoveLogObserver(const MoveLogObserver* observer) { moveLogObserver = observer; }
+    void setPlayerNames(std::string white, std::string black) {
+        whitePlayerName = std::move(white);
+        blackPlayerName = std::move(black);
+    }
 
     void render(const GameSnapshot& snapshot) override;
 };

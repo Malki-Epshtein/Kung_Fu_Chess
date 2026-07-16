@@ -31,6 +31,7 @@ public:
     void         wait(int ms);
     bool         isGameOver() const { return state.game_over; }
     GameSnapshot snapshot() const;
+    std::vector<Position> legalDestinationsFrom(Position pos) const;
 
     // Thin passthrough so callers never need to reach into RealTimeArbiter
     // directly - keeps the existing dependency shape (GameEngine depends on

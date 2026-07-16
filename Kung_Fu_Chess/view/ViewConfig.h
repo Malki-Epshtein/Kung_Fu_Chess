@@ -11,4 +11,7 @@ namespace ViewConfig {
     constexpr int BOARD_WIDTH_PX    = 800;
     constexpr int CELL_SIZE         = 100;
     constexpr int GAME_MS_PER_FRAME = 30;
+    // Vertical strip above AND below the board reserved for the frame/
+    // coordinate labels, so they never have to overlap the board itself.
+    constexpr int BOARD_MARGIN      = 30;
 }

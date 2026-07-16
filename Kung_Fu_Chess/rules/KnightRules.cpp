@@ -11,8 +11,6 @@ std::vector<Position> KnightRules::moves(const Board& board, const Piece& piece)
     for (auto& j : jumps) {
         Position to{ r + j[0], c + j[1] };
         if (!board.isWithinBounds(to)) continue;
-        if (!board.isCellEmpty(to) &&
-            board.getPiece(to)->getColor() == piece.getColor()) continue;
         result.push_back(to);
     }
     return result;

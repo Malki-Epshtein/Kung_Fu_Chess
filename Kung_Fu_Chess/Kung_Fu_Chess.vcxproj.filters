@@ -87,10 +87,19 @@
     <ClCompile Include="rules\RookRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rules\SlidingPieceRules.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test\test_PieceRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="input\Controller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="input\MoveCommand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="input\JumpCommand.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="input\BoardMapper.cpp">
@@ -103,6 +112,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="realtime\RealTimeArbiter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="realtime\CollisionResolver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="realtime\ArrivalResolver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="realtime\MotionPath.cpp">
@@ -177,6 +192,21 @@
     <ClCompile Include="test\test_AssetPathBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test\test_CollisionResolver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_ArrivalResolver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_SlidingPieceRules.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_MoveCommand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_JumpCommand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test\test_integration_scripts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -236,7 +266,19 @@
     <ClInclude Include="rules\RookRules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="rules\SlidingPieceRules.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="input\Controller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="input\Command.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="input\MoveCommand.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="input\JumpCommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="input\BoardMapper.h">
@@ -252,6 +294,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="realtime\MotionPath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="realtime\CollisionResolver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="realtime\ArrivalResolver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="realtime\RestDurations.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="realtime\RealTimeArbiter.h">
