@@ -1,5 +1,5 @@
-#include "../doctest.h"
-#include "../model/Position.h"
+﻿#include "../doctest.h"
+#include "../shared/model/Position.h"
 
 TEST_CASE("Position - שני מיקומים עם אותה שורה ועמודה שווים") {
     Position a = { 2, 3 };

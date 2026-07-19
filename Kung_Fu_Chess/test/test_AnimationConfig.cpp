@@ -1,5 +1,5 @@
-#include "../doctest.h"
-#include "../view/assets/AnimationConfig.h"
+﻿#include "../doctest.h"
+#include "../client/view/assets/AnimationConfig.h"
 #include <string>
 
 // Paths are resolved relative to this source file's own location (via
@@ -9,7 +9,7 @@
 static std::string configPath(const std::string& relativePath) {
     std::string file = __FILE__; // .../test/test_AnimationConfig.cpp
     std::string dir = file.substr(0, file.find_last_of("/\\")); // .../test
-    return dir + "/../view/img/" + relativePath;
+    return dir + "/../client/view/img/" + relativePath;
 }
 
 TEST_CASE("loadAnimationConfig - קורא נכון קובץ config.json אמיתי (wP/move)") {

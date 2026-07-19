@@ -1,7 +1,7 @@
-#include "../doctest.h"
-#include "../io/BoardPrinter.h"
-#include "../model/Board.h"
-#include "../model/GameState.h"
+﻿#include "../doctest.h"
+#include "../server/io/BoardPrinter.h"
+#include "../shared/model/Board.h"
+#include "../shared/model/GameState.h"
 #include <sstream>
 #include <memory>
 

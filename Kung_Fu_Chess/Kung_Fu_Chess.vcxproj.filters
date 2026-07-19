@@ -30,22 +30,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="model\Piece.cpp">
+    <ClCompile Include="shared\model\Piece.cpp">
       <Filter>model</Filter>
     </ClCompile>
-    <ClCompile Include="model\PieceStateMachine.cpp">
+    <ClCompile Include="shared\model\PieceStateMachine.cpp">
       <Filter>model</Filter>
     </ClCompile>
     <ClCompile Include="test\test_PieceStateMachine.cpp">
       <Filter>model</Filter>
     </ClCompile>
-    <ClCompile Include="model\Position.cpp">
+    <ClCompile Include="shared\model\Position.cpp">
       <Filter>model</Filter>
     </ClCompile>
     <ClCompile Include="test\test_position.cpp">
       <Filter>model</Filter>
     </ClCompile>
-    <ClCompile Include="model\Board.cpp">
+    <ClCompile Include="shared\model\Board.cpp">
       <Filter>model</Filter>
     </ClCompile>
     <ClCompile Include="test\test_board.cpp">
@@ -54,10 +54,10 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="app\Application.cpp">
+    <ClCompile Include="server\app\Application.cpp">
       <Filter>app</Filter>
     </ClCompile>
-    <ClCompile Include="app\GraphicalApplication.cpp">
+    <ClCompile Include="client\app\GraphicalApplication.cpp">
       <Filter>app</Filter>
     </ClCompile>
     <ClCompile Include="test\test_BoardParser.cpp">
@@ -66,79 +66,79 @@
     <ClCompile Include="test\test_BoardPrinter.cpp">
       <Filter>io</Filter>
     </ClCompile>
-    <ClCompile Include="rules\BishopRules.cpp">
+    <ClCompile Include="server\rules\BishopRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rules\KingRules.cpp">
+    <ClCompile Include="server\rules\KingRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rules\KnightRules.cpp">
+    <ClCompile Include="server\rules\KnightRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rules\PawnRules.cpp">
+    <ClCompile Include="server\rules\PawnRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rules\PieceRules.cpp">
+    <ClCompile Include="server\rules\PieceRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rules\QueenRules.cpp">
+    <ClCompile Include="server\rules\QueenRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rules\RookRules.cpp">
+    <ClCompile Include="server\rules\RookRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rules\SlidingPieceRules.cpp">
+    <ClCompile Include="server\rules\SlidingPieceRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_PieceRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="input\Controller.cpp">
+    <ClCompile Include="client\input\Controller.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="input\MoveCommand.cpp">
+    <ClCompile Include="server\input\MoveCommand.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="input\JumpCommand.cpp">
+    <ClCompile Include="server\input\JumpCommand.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="input\BoardMapper.cpp">
+    <ClCompile Include="client\input\BoardMapper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rules\rule_engine.cpp">
+    <ClCompile Include="server\rules\rule_engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_rule_engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="realtime\RealTimeArbiter.cpp">
+    <ClCompile Include="server\realtime\RealTimeArbiter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="realtime\CollisionResolver.cpp">
+    <ClCompile Include="server\realtime\CollisionResolver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="realtime\ArrivalResolver.cpp">
+    <ClCompile Include="server\realtime\ArrivalResolver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="realtime\MotionPath.cpp">
+    <ClCompile Include="server\realtime\MotionPath.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_RealTimeArbiter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="engine\GameEngine.cpp">
+    <ClCompile Include="server\engine\GameEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_GameEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="engine\ScoreObserver.cpp">
+    <ClCompile Include="server\engine\ScoreObserver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_ScoreObserver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="engine\MoveLogObserver.cpp">
+    <ClCompile Include="server\engine\MoveLogObserver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_MoveLogObserver.cpp">
@@ -153,31 +153,31 @@
     <ClCompile Include="test\doctest_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="io\BoardParser.cpp">
+    <ClCompile Include="server\io\BoardParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="io\BoardPrinter.cpp">
+    <ClCompile Include="server\io\BoardPrinter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\ImageView.cpp">
+    <ClCompile Include="client\view\ImageView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\assets\AnimationFrameSelector.cpp">
+    <ClCompile Include="client\view\assets\AnimationFrameSelector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\assets\AssetsRootConfig.cpp">
+    <ClCompile Include="client\view\assets\AssetsRootConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\assets\AssetPathBuilder.cpp">
+    <ClCompile Include="client\view\assets\AssetPathBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\assets\FileImageLoader.cpp">
+    <ClCompile Include="client\view\assets\FileImageLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\assets\CachingImageLoader.cpp">
+    <ClCompile Include="client\view\assets\CachingImageLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\assets\SpriteRepository.cpp">
+    <ClCompile Include="client\view\assets\SpriteRepository.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_ImageView.cpp">
@@ -224,142 +224,142 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="model\Board.h">
+    <ClInclude Include="shared\model\Board.h">
       <Filter>model</Filter>
     </ClInclude>
-    <ClInclude Include="model\Piece.h">
+    <ClInclude Include="shared\model\Piece.h">
       <Filter>model</Filter>
     </ClInclude>
-    <ClInclude Include="model\PieceStateMachine.h">
+    <ClInclude Include="shared\model\PieceStateMachine.h">
       <Filter>model</Filter>
     </ClInclude>
-    <ClInclude Include="model\Position.h">
+    <ClInclude Include="shared\model\Position.h">
       <Filter>model</Filter>
     </ClInclude>
     <ClInclude Include="doctest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="app\Application.h">
+    <ClInclude Include="server\app\Application.h">
       <Filter>app</Filter>
     </ClInclude>
-    <ClInclude Include="app\GraphicalApplication.h">
+    <ClInclude Include="client\app\GraphicalApplication.h">
       <Filter>app</Filter>
     </ClInclude>
-    <ClInclude Include="rules\BishopRules.h">
+    <ClInclude Include="server\rules\BishopRules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rules\KingRules.h">
+    <ClInclude Include="server\rules\KingRules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rules\KnightRules.h">
+    <ClInclude Include="server\rules\KnightRules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rules\PawnRules.h">
+    <ClInclude Include="server\rules\PawnRules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rules\PieceRules.h">
+    <ClInclude Include="server\rules\PieceRules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rules\QueenRules.h">
+    <ClInclude Include="server\rules\QueenRules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rules\RookRules.h">
+    <ClInclude Include="server\rules\RookRules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rules\SlidingPieceRules.h">
+    <ClInclude Include="server\rules\SlidingPieceRules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="input\Controller.h">
+    <ClInclude Include="client\input\Controller.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="input\Command.h">
+    <ClInclude Include="server\input\Command.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="input\MoveCommand.h">
+    <ClInclude Include="server\input\MoveCommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="input\JumpCommand.h">
+    <ClInclude Include="server\input\JumpCommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="input\BoardMapper.h">
+    <ClInclude Include="client\input\BoardMapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rules\rule_engine.h">
+    <ClInclude Include="server\rules\rule_engine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rules\MoveValidation.h">
+    <ClInclude Include="server\rules\MoveValidation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="realtime\Motion.h">
+    <ClInclude Include="server\realtime\Motion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="realtime\MotionPath.h">
+    <ClInclude Include="server\realtime\MotionPath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="realtime\CollisionResolver.h">
+    <ClInclude Include="server\realtime\CollisionResolver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="realtime\ArrivalResolver.h">
+    <ClInclude Include="server\realtime\ArrivalResolver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="realtime\RestDurations.h">
+    <ClInclude Include="server\realtime\RestDurations.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="realtime\RealTimeArbiter.h">
+    <ClInclude Include="server\realtime\RealTimeArbiter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="model\GameState.h">
+    <ClInclude Include="shared\model\GameState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="engine\GameEngine.h">
+    <ClInclude Include="server\engine\GameEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="engine\ScoreObserver.h">
+    <ClInclude Include="server\engine\ScoreObserver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="engine\MoveLogObserver.h">
+    <ClInclude Include="server\engine\MoveLogObserver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="engine\MoveResult.h">
+    <ClInclude Include="server\engine\MoveResult.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="io\BoardParser.h">
+    <ClInclude Include="server\io\BoardParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="io\BoardPrinter.h">
+    <ClInclude Include="server\io\BoardPrinter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\ImageView.h">
+    <ClInclude Include="client\view\ImageView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\ViewConfig.h">
+    <ClInclude Include="client\view\ViewConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\assets\AnimationFrameSelector.h">
+    <ClInclude Include="client\view\assets\AnimationFrameSelector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\assets\AssetsRootConfig.h">
+    <ClInclude Include="client\view\assets\AssetsRootConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\assets\AssetPathBuilder.h">
+    <ClInclude Include="client\view\assets\AssetPathBuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\assets\IImageLoader.h">
+    <ClInclude Include="client\view\assets\IImageLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\assets\FileImageLoader.h">
+    <ClInclude Include="client\view\assets\FileImageLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\assets\CachingImageLoader.h">
+    <ClInclude Include="client\view\assets\CachingImageLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\assets\ISpriteSource.h">
+    <ClInclude Include="client\view\assets\ISpriteSource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\assets\SpriteRepository.h">
+    <ClInclude Include="client\view\assets\SpriteRepository.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\Renderer.h">
+    <ClInclude Include="client\view\Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="texttests\ScriptCommand.h">

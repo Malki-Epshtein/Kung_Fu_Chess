@@ -1,6 +1,6 @@
-#include "../doctest.h"
-#include "../rules/SlidingPieceRules.h"
-#include "../model/Board.h"
+﻿#include "../doctest.h"
+#include "../server/rules/SlidingPieceRules.h"
+#include "../shared/model/Board.h"
 #include <memory>
 #include <algorithm>
 

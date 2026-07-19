@@ -1,5 +1,5 @@
-#include "../doctest.h"
-#include "../engine/ScoreObserver.h"
+﻿#include "../doctest.h"
+#include "../server/engine/ScoreObserver.h"
 
 namespace {
     class TestPiece : public Piece {

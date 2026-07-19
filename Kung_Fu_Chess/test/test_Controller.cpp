@@ -1,7 +1,7 @@
-#include "../doctest.h"
-#include "../input/Controller.h"
-#include "../model/Board.h"
-#include "../view/ViewConfig.h"
+﻿#include "../doctest.h"
+#include "../client/input/Controller.h"
+#include "../shared/model/Board.h"
+#include "../client/view/ViewConfig.h"
 #include <memory>
 
 class TestPiece : public Piece {
@@ -148,6 +148,25 @@ TEST_CASE("click - קליק שני על כלי מאותו צבע מחליף את
     CHECK(findAt(controller.getSnapshot(), {0, 0}) != nullptr);
     CHECK(findAt(controller.getSnapshot(), {0, 2}) == nullptr);
     CHECK(findAt(controller.getSnapshot(), {2, 4}) != nullptr);
+}
+
+TEST_CASE("click - קליק שני על כלי ידידותי כשפרש נבחר שולח מהלך (כלל 8), לא מחליף בחירה") {
+    auto board = std::make_shared<Board>(8, 8);
+    board->addPiece(make(1, Chess::Color::White, Chess::Kind::Knight, {3, 3}), {3, 3});
+    board->addPiece(make(2, Chess::Color::White, Chess::Kind::Pawn,   {1, 2}), {1, 2});
+    GameEngine engine(board);
+    Controller controller(engine);
+
+    click(controller, 3, 3); // בחירת הפרש
+    click(controller, 1, 2); // קליק על הרגלי הידידותי - שולח מהלך פרש, לא בוחר את הרגלי
+
+    engine.wait(2000); // מרחק צ'ביישב 2 => 2000ms
+
+    CHECK(findAt(controller.getSnapshot(), {3, 3}) == nullptr); // הפרש עזב את מקורו
+    auto snap = controller.getSnapshot();
+    auto* atTarget = findAt(snap, {1, 2});
+    REQUIRE(atTarget != nullptr);
+    CHECK(atTarget->kind == Chess::Kind::Knight); // הפרש תפס את המקום, הרגלי נאכל
 }
 
 // ==================== קליק שני על כלי אויב - שולח מהלך אכילה רגיל ====================

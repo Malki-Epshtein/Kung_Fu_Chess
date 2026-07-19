@@ -74,12 +74,15 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty;$(ProjectDir)ThirdParty\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -88,29 +91,33 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty;$(ProjectDir)ThirdParty\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)OpenCV_451\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)OpenCV_451\include;$(ProjectDir)ThirdParty;$(ProjectDir)ThirdParty\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)OpenCV_451\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world451d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world451d.lib;ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(ProjectDir)OpenCV_451\bin\opencv_world451d.dll" "$(OutDir)"</Command>
@@ -122,9 +129,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)OpenCV_451\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)OpenCV_451\include;$(ProjectDir)ThirdParty;$(ProjectDir)ThirdParty\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -132,49 +140,54 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)OpenCV_451\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world451.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world451.lib;ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(ProjectDir)OpenCV_451\bin\opencv_world451.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="app\Application.cpp">
+    <ClCompile Include="server\app\Application.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="app\GraphicalApplication.cpp">
+    <ClCompile Include="client\app\GraphicalApplication.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="engine\GameEngine.cpp" />
-    <ClCompile Include="engine\ScoreObserver.cpp" />
-    <ClCompile Include="engine\MoveLogObserver.cpp" />
-    <ClCompile Include="input\BoardMapper.cpp" />
-    <ClCompile Include="input\Controller.cpp" />
-    <ClCompile Include="input\MoveCommand.cpp" />
-    <ClCompile Include="input\JumpCommand.cpp" />
-    <ClCompile Include="io\BoardParser.cpp" />
-    <ClCompile Include="io\BoardPrinter.cpp" />
+    <ClCompile Include="server\engine\GameEngine.cpp" />
+    <ClCompile Include="server\engine\ScoreObserver.cpp" />
+    <ClCompile Include="server\engine\MoveLogObserver.cpp" />
+    <ClCompile Include="client\input\BoardMapper.cpp" />
+    <ClCompile Include="client\input\Controller.cpp" />
+    <ClCompile Include="server\input\MoveCommand.cpp" />
+    <ClCompile Include="server\input\JumpCommand.cpp" />
+    <ClCompile Include="server\io\BoardParser.cpp" />
+    <ClCompile Include="server\io\BoardPrinter.cpp" />
     <ClCompile Include="main.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="model\Board.cpp" />
-    <ClCompile Include="model\Piece.cpp" />
-    <ClCompile Include="model\PieceStateMachine.cpp" />
-    <ClCompile Include="model\Position.cpp" />
-    <ClCompile Include="realtime\MotionPath.cpp" />
-    <ClCompile Include="realtime\RealTimeArbiter.cpp" />
-    <ClCompile Include="realtime\CollisionResolver.cpp" />
-    <ClCompile Include="realtime\ArrivalResolver.cpp" />
-    <ClCompile Include="rules\BishopRules.cpp" />
-    <ClCompile Include="rules\KingRules.cpp" />
-    <ClCompile Include="rules\KnightRules.cpp" />
-    <ClCompile Include="rules\PawnRules.cpp" />
-    <ClCompile Include="rules\PieceRules.cpp" />
-    <ClCompile Include="rules\QueenRules.cpp" />
-    <ClCompile Include="rules\RookRules.cpp" />
-    <ClCompile Include="rules\SlidingPieceRules.cpp" />
-    <ClCompile Include="rules\rule_engine.cpp" />
+    <ClCompile Include="shared\model\Board.cpp" />
+    <ClCompile Include="shared\model\Piece.cpp" />
+    <ClCompile Include="shared\model\PieceStateMachine.cpp" />
+    <ClCompile Include="shared\model\Position.cpp" />
+    <ClCompile Include="server\realtime\MotionPath.cpp" />
+    <ClCompile Include="server\realtime\RealTimeArbiter.cpp" />
+    <ClCompile Include="server\realtime\CollisionResolver.cpp" />
+    <ClCompile Include="server\realtime\ArrivalResolver.cpp" />
+    <ClCompile Include="server\rules\BishopRules.cpp" />
+    <ClCompile Include="server\rules\KingRules.cpp" />
+    <ClCompile Include="server\rules\KnightRules.cpp" />
+    <ClCompile Include="server\rules\PawnRules.cpp" />
+    <ClCompile Include="server\rules\PieceRules.cpp" />
+    <ClCompile Include="server\rules\QueenRules.cpp" />
+    <ClCompile Include="server\rules\RookRules.cpp" />
+    <ClCompile Include="server\rules\SlidingPieceRules.cpp" />
+    <ClCompile Include="server\rules\rule_engine.cpp" />
+    <ClCompile Include="shared\protocol\MessageCodec.cpp" />
+    <ClCompile Include="server\net\WsServer.cpp" />
+    <ClCompile Include="server\server_main.cpp" />
+    <ClCompile Include="client\net\WsClient.cpp" />
+    <ClCompile Include="client\client_main.cpp" />
     <ClCompile Include="texttests\ScriptParser.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -289,86 +302,97 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="view\assets\AnimationConfig.cpp" />
-    <ClCompile Include="view\assets\AnimationFrameSelector.cpp" />
-    <ClCompile Include="view\assets\AssetsRootConfig.cpp" />
-    <ClCompile Include="view\assets\AssetPathBuilder.cpp" />
-    <ClCompile Include="view\assets\CachingImageLoader.cpp">
+    <ClCompile Include="test\test_MessageCodec.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="client\view\assets\AnimationConfig.cpp" />
+    <ClCompile Include="client\view\assets\AnimationFrameSelector.cpp" />
+    <ClCompile Include="client\view\assets\AssetsRootConfig.cpp" />
+    <ClCompile Include="client\view\assets\AssetPathBuilder.cpp" />
+    <ClCompile Include="client\view\assets\CachingImageLoader.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="view\assets\FileImageLoader.cpp">
+    <ClCompile Include="client\view\assets\FileImageLoader.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="view\assets\SpriteRepository.cpp">
+    <ClCompile Include="client\view\assets\SpriteRepository.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="view\ImageView.cpp">
+    <ClCompile Include="client\view\ImageView.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="view\src\img.cpp">
+    <ClCompile Include="client\view\src\img.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="app\Application.h" />
-    <ClInclude Include="app\GraphicalApplication.h" />
+    <ClInclude Include="server\app\Application.h" />
+    <ClInclude Include="client\app\GraphicalApplication.h" />
     <ClInclude Include="doctest.h" />
-    <ClInclude Include="engine\GameEngine.h" />
-    <ClInclude Include="engine\MoveResult.h" />
-    <ClInclude Include="engine\ScoreObserver.h" />
-    <ClInclude Include="engine\MoveLogObserver.h" />
-    <ClInclude Include="input\BoardMapper.h" />
-    <ClInclude Include="input\Controller.h" />
-    <ClInclude Include="input\Command.h" />
-    <ClInclude Include="input\MoveCommand.h" />
-    <ClInclude Include="input\JumpCommand.h" />
-    <ClInclude Include="io\BoardParser.h" />
-    <ClInclude Include="io\BoardPrinter.h" />
-    <ClInclude Include="model\Board.h" />
-    <ClInclude Include="model\GameState.h" />
-    <ClInclude Include="model\Piece.h" />
-    <ClInclude Include="model\PieceStateMachine.h" />
-    <ClInclude Include="model\Position.h" />
-    <ClInclude Include="realtime\Motion.h" />
-    <ClInclude Include="realtime\MotionPath.h" />
-    <ClInclude Include="realtime\RealTimeArbiter.h" />
-    <ClInclude Include="realtime\CollisionResolver.h" />
-    <ClInclude Include="realtime\ArrivalResolver.h" />
-    <ClInclude Include="realtime\RestDurations.h" />
-    <ClInclude Include="realtime\CaptureObserver.h" />
-    <ClInclude Include="realtime\MoveObserver.h" />
-    <ClInclude Include="rules\BishopRules.h" />
-    <ClInclude Include="rules\KingRules.h" />
-    <ClInclude Include="rules\KnightRules.h" />
-    <ClInclude Include="rules\MoveValidation.h" />
-    <ClInclude Include="rules\PawnRules.h" />
-    <ClInclude Include="rules\PieceRules.h" />
-    <ClInclude Include="rules\QueenRules.h" />
-    <ClInclude Include="rules\RookRules.h" />
-    <ClInclude Include="rules\SlidingPieceRules.h" />
-    <ClInclude Include="rules\rule_engine.h" />
+    <ClInclude Include="server\engine\GameEngine.h" />
+    <ClInclude Include="shared\engine\GameSnapshot.h" />
+    <ClInclude Include="shared\protocol\Message.h" />
+    <ClInclude Include="shared\protocol\MessageCodec.h" />
+    <ClInclude Include="server\net\WsServer.h" />
+    <ClInclude Include="server\server_main.h" />
+    <ClInclude Include="client\net\WsClient.h" />
+    <ClInclude Include="client\client_main.h" />
+    <ClInclude Include="server\engine\MoveResult.h" />
+    <ClInclude Include="server\engine\ScoreObserver.h" />
+    <ClInclude Include="server\engine\MoveLogObserver.h" />
+    <ClInclude Include="client\input\BoardMapper.h" />
+    <ClInclude Include="client\input\Controller.h" />
+    <ClInclude Include="server\input\Command.h" />
+    <ClInclude Include="server\input\MoveCommand.h" />
+    <ClInclude Include="server\input\JumpCommand.h" />
+    <ClInclude Include="server\io\BoardParser.h" />
+    <ClInclude Include="server\io\BoardPrinter.h" />
+    <ClInclude Include="shared\model\Board.h" />
+    <ClInclude Include="shared\model\GameState.h" />
+    <ClInclude Include="shared\model\Piece.h" />
+    <ClInclude Include="shared\model\PieceStateMachine.h" />
+    <ClInclude Include="shared\model\Position.h" />
+    <ClInclude Include="server\realtime\Motion.h" />
+    <ClInclude Include="server\realtime\MotionPath.h" />
+    <ClInclude Include="server\realtime\RealTimeArbiter.h" />
+    <ClInclude Include="server\realtime\CollisionResolver.h" />
+    <ClInclude Include="server\realtime\ArrivalResolver.h" />
+    <ClInclude Include="server\realtime\RestDurations.h" />
+    <ClInclude Include="server\realtime\CaptureObserver.h" />
+    <ClInclude Include="server\realtime\MoveObserver.h" />
+    <ClInclude Include="server\rules\BishopRules.h" />
+    <ClInclude Include="server\rules\KingRules.h" />
+    <ClInclude Include="server\rules\KnightRules.h" />
+    <ClInclude Include="server\rules\MoveValidation.h" />
+    <ClInclude Include="server\rules\PawnRules.h" />
+    <ClInclude Include="server\rules\PieceRules.h" />
+    <ClInclude Include="server\rules\QueenRules.h" />
+    <ClInclude Include="server\rules\RookRules.h" />
+    <ClInclude Include="server\rules\SlidingPieceRules.h" />
+    <ClInclude Include="server\rules\rule_engine.h" />
     <ClInclude Include="texttests\ScriptCommand.h" />
     <ClInclude Include="texttests\ScriptParser.h" />
     <ClInclude Include="texttests\ScriptResult.h" />
     <ClInclude Include="texttests\ScriptRunner.h" />
-    <ClInclude Include="view\assets\AnimationConfig.h" />
-    <ClInclude Include="view\assets\AnimationFrameSelector.h" />
-    <ClInclude Include="view\assets\AssetsRootConfig.h" />
-    <ClInclude Include="view\assets\AssetPathBuilder.h" />
-    <ClInclude Include="view\assets\IImageLoader.h" />
-    <ClInclude Include="view\assets\FileImageLoader.h" />
-    <ClInclude Include="view\assets\CachingImageLoader.h" />
-    <ClInclude Include="view\assets\ISpriteSource.h" />
-    <ClInclude Include="view\assets\SpriteRepository.h" />
-    <ClInclude Include="view\ImageView.h" />
-    <ClInclude Include="view\ViewConfig.h" />
-    <ClInclude Include="view\Renderer.h" />
-    <ClInclude Include="view\src\img.hpp" />
+    <ClInclude Include="client\view\assets\AnimationConfig.h" />
+    <ClInclude Include="client\view\assets\AnimationFrameSelector.h" />
+    <ClInclude Include="client\view\assets\AssetsRootConfig.h" />
+    <ClInclude Include="client\view\assets\AssetPathBuilder.h" />
+    <ClInclude Include="client\view\assets\IImageLoader.h" />
+    <ClInclude Include="client\view\assets\FileImageLoader.h" />
+    <ClInclude Include="client\view\assets\CachingImageLoader.h" />
+    <ClInclude Include="client\view\assets\ISpriteSource.h" />
+    <ClInclude Include="client\view\assets\SpriteRepository.h" />
+    <ClInclude Include="client\view\ImageView.h" />
+    <ClInclude Include="client\view\ViewConfig.h" />
+    <ClInclude Include="client\view\Renderer.h" />
+    <ClInclude Include="client\view\src\img.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

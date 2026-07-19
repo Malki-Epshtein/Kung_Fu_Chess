@@ -1,8 +1,8 @@
-#include "../doctest.h"
+﻿#include "../doctest.h"
 #include <sstream>
-#include "../io/BoardParser.h"
-#include "../io/BoardPrinter.h"
-#include "../model/GameState.h"
+#include "../server/io/BoardParser.h"
+#include "../server/io/BoardPrinter.h"
+#include "../shared/model/GameState.h"
 
 // TEST_CASE("valid rectangular board - print board") {
 //     std::stringstream ss(

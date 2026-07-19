@@ -1,5 +1,5 @@
-#include "../doctest.h"
-#include "../view/assets/AssetPathBuilder.h"
+﻿#include "../doctest.h"
+#include "../client/view/assets/AssetPathBuilder.h"
 
 TEST_CASE("AssetPathBuilder - configPath בונה נתיב לפי תיקיית צבע/כלי/מצב") {
     AssetPathBuilder builder("assets");

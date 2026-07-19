@@ -1,5 +1,5 @@
-#include "../doctest.h"
-#include "../engine/MoveLogObserver.h"
+﻿#include "../doctest.h"
+#include "../server/engine/MoveLogObserver.h"
 
 namespace {
     class TestPiece : public Piece {

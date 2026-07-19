@@ -1,13 +1,13 @@
-#include "../doctest.h"
-#include "../rules/PieceRules.h"
-#include "../rules/RookRules.h"
-#include "../rules/BishopRules.h"
-#include "../rules/QueenRules.h"
-#include "../rules/KnightRules.h"
-#include "../rules/KingRules.h"
-#include "../rules/PawnRules.h"
-#include "../model/Board.h"
-#include "../model/Piece.h"
+﻿#include "../doctest.h"
+#include "../server/rules/PieceRules.h"
+#include "../server/rules/RookRules.h"
+#include "../server/rules/BishopRules.h"
+#include "../server/rules/QueenRules.h"
+#include "../server/rules/KnightRules.h"
+#include "../server/rules/KingRules.h"
+#include "../server/rules/PawnRules.h"
+#include "../shared/model/Board.h"
+#include "../shared/model/Piece.h"
 #include <algorithm>
 
 // כלי עזר לטסטים

@@ -1,6 +1,6 @@
-#include "../doctest.h"
+﻿#include "../doctest.h"
 #include <memory>
-#include "../model/Board.h"
+#include "../shared/model/Board.h"
 
 // כלי קונקרטי לצורך הטסטים
 class TestPiece : public Piece {

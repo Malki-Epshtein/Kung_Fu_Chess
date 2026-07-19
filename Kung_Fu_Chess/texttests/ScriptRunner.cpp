@@ -1,9 +1,9 @@
-#include "ScriptRunner.h"
+﻿#include "ScriptRunner.h"
 #include "ScriptParser.h"
-#include "../io/BoardParser.h"
-#include "../io/BoardPrinter.h"
-#include "../engine/GameEngine.h"
-#include "../input/Controller.h"
+#include "../server/io/BoardParser.h"
+#include "../server/io/BoardPrinter.h"
+#include "../server/engine/GameEngine.h"
+#include "../client/input/Controller.h"
 #include <sstream>
 
 ScriptResult ScriptRunner::run(std::istream& input) {

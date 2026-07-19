@@ -1,5 +1,5 @@
-#include "../doctest.h"
-#include "../model/PieceStateMachine.h"
+﻿#include "../doctest.h"
+#include "../shared/model/PieceStateMachine.h"
 
 TEST_CASE("isLegalTransition - Idle יכול לעבור ל-Moving או Jump") {
     CHECK(isLegalTransition(Chess::State::Idle, Chess::State::Moving));

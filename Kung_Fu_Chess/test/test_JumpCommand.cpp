@@ -1,7 +1,7 @@
-#include "../doctest.h"
-#include "../input/JumpCommand.h"
-#include "../engine/GameEngine.h"
-#include "../model/Board.h"
+﻿#include "../doctest.h"
+#include "../server/input/JumpCommand.h"
+#include "../server/engine/GameEngine.h"
+#include "../shared/model/Board.h"
 #include <memory>
 
 class TestPiece : public Piece {

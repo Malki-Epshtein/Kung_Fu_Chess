@@ -1,5 +1,5 @@
-#include "../doctest.h"
-#include "../view/assets/AnimationFrameSelector.h"
+﻿#include "../doctest.h"
+#include "../client/view/assets/AnimationFrameSelector.h"
 
 TEST_CASE("selectAnimationFrame - זמן חלוף 0 מחזיר תמיד את הפריים הראשון") {
     CHECK(selectAnimationFrame(0, 6, true, 5) == 0);

@@ -1,5 +1,5 @@
-#include "../doctest.h"
-#include "../input/BoardMapper.h"
+﻿#include "../doctest.h"
+#include "../client/input/BoardMapper.h"
 
 // ==================== מיפוי עמודה (x) ====================
 

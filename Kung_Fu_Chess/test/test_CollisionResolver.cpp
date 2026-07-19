@@ -1,6 +1,6 @@
-#include "../doctest.h"
-#include "../realtime/CollisionResolver.h"
-#include "../model/Board.h"
+﻿#include "../doctest.h"
+#include "../server/realtime/CollisionResolver.h"
+#include "../shared/model/Board.h"
 #include <memory>
 
 class TestPiece : public Piece {

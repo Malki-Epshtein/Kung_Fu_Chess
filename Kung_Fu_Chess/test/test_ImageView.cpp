@@ -1,6 +1,6 @@
-#include "../doctest.h"
-#include "../view/ImageView.h"
-#include "../engine/GameSnapshot.h"
+﻿#include "../doctest.h"
+#include "../client/view/ImageView.h"
+#include "../shared/engine/GameSnapshot.h"
 
 // בדיקת עשן (smoke test) בלבד - איטרציה 9 דורשת שהיא תצייר לוח פשוט
 // בלי לשנות את מצב המשחק. ספריית הציור עצמה עדיין לא נבחרה (ראו

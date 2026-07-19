@@ -1,0 +1,11 @@
+﻿#pragma once
+#include "../../shared/model/Piece.h"
+#include "../../shared/model/Position.h"
+
+// One focused interface (Interface Segregation) - anyone who only cares
+// about completed moves implements just this, nothing else.
+class MoveObserver {
+public:
+    virtual void onMoveCompleted(const Piece& mover, Position from, Position to, bool wasCapture) = 0;
+    virtual ~MoveObserver() = default;
+};

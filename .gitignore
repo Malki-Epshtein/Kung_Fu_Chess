@@ -13,3 +13,9 @@ bin/
 obj/
 x64/
 x86/
+
+# Unused side .vcxproj skeletons (not part of the build; superseded by the
+# server/client/shared folders inside Kung_Fu_Chess/) - anchored to repo
+# root so this doesn't match the in-use nested server/ and shared/ folders.
+/Server/
+/Shared/
