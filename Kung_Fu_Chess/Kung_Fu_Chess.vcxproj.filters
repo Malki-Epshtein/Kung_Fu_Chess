@@ -261,11 +261,11 @@
     <ClCompile Include="client\input\Controller.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="server\input\MoveCommand.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="server\app\logic\MoveCommand.cpp">
+      <Filter>app\logic</Filter>
     </ClCompile>
-    <ClCompile Include="server\input\JumpCommand.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="server\app\logic\JumpCommand.cpp">
+      <Filter>app\logic</Filter>
     </ClCompile>
     <ClCompile Include="client\input\BoardMapper.cpp">
       <Filter>Source Files</Filter>
@@ -539,14 +539,14 @@
     <ClInclude Include="client\input\Controller.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="server\input\Command.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="server\app\logic\Command.h">
+      <Filter>app\logic</Filter>
     </ClInclude>
-    <ClInclude Include="server\input\MoveCommand.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="server\app\logic\MoveCommand.h">
+      <Filter>app\logic</Filter>
     </ClInclude>
-    <ClInclude Include="server\input\JumpCommand.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="server\app\logic\JumpCommand.h">
+      <Filter>app\logic</Filter>
     </ClInclude>
     <ClInclude Include="client\input\BoardMapper.h">
       <Filter>Header Files</Filter>

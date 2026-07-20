@@ -4,7 +4,7 @@
 
 // One incoming protocol message type, encapsulated as an object instead
 // of a branch in a growing if/else chain - the same Command pattern this
-// project already uses for game actions (see server/input/Command.h and
+// project already uses for game actions (see server/app/logic/Command.h and
 // MoveCommand/JumpCommand), applied here to network message routing
 // instead of GameEngine actions. Each concrete handler takes exactly the
 // dependencies it needs (constructor injection), so it's unit-testable

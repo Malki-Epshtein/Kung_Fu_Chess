@@ -157,8 +157,8 @@
     <ClCompile Include="client\input\BoardMapper.cpp" />
     <ClCompile Include="client\app\HomeScreen.cpp" />
     <ClCompile Include="client\input\Controller.cpp" />
-    <ClCompile Include="server\input\MoveCommand.cpp" />
-    <ClCompile Include="server\input\JumpCommand.cpp" />
+    <ClCompile Include="server\app\logic\MoveCommand.cpp" />
+    <ClCompile Include="server\app\logic\JumpCommand.cpp" />
     <ClCompile Include="server\io\BoardParser.cpp" />
     <ClCompile Include="server\io\BoardPrinter.cpp" />
     <ClCompile Include="shared\model\Board.cpp" />
@@ -470,9 +470,9 @@
     <ClInclude Include="client\input\BoardMapper.h" />
     <ClInclude Include="client\app\HomeScreen.h" />
     <ClInclude Include="client\input\Controller.h" />
-    <ClInclude Include="server\input\Command.h" />
-    <ClInclude Include="server\input\MoveCommand.h" />
-    <ClInclude Include="server\input\JumpCommand.h" />
+    <ClInclude Include="server\app\logic\Command.h" />
+    <ClInclude Include="server\app\logic\MoveCommand.h" />
+    <ClInclude Include="server\app\logic\JumpCommand.h" />
     <ClInclude Include="server\io\BoardParser.h" />
     <ClInclude Include="server\io\BoardPrinter.h" />
     <ClInclude Include="shared\model\Board.h" />

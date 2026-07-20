@@ -1,5 +1,5 @@
 ﻿#include "../doctest.h"
-#include "../server/input/JumpCommand.h"
+#include "../server/app/logic/JumpCommand.h"
 #include "../server/engine/GameEngine.h"
 #include "../shared/model/Board.h"
 #include <memory>

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "Command.h"
-#include "../../shared/model/Position.h"
+#include "../../../shared/model/Position.h"
 
 class MoveCommand : public Command {
 private:
