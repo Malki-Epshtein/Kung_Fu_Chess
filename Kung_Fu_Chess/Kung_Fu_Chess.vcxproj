@@ -187,6 +187,15 @@
     <ClCompile Include="server\app\GameSession.cpp" />
     <ClCompile Include="server\app\NetworkBroadcaster.cpp" />
     <ClCompile Include="server\app\SessionRegistry.cpp" />
+    <ClCompile Include="server\db\UserRepository.cpp" />
+    <ClCompile Include="ThirdParty\sqlite3.c">
+      <!-- Vendored file (not our code): uses the deprecated GetVersionEx
+           Windows API internally for OS-version detection. The project's
+           SDLCheck turns that deprecation warning into a hard error -
+           disabled here, scoped to just this one file. -->
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
     <ClCompile Include="server\net\WsServer.cpp" />
     <ClCompile Include="server\app\CommandDispatcher.cpp" />
     <ClCompile Include="server\server_main.cpp" />
@@ -333,6 +342,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="test\test_UserRepository.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="test\test_ClickResolver.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -375,6 +388,9 @@
     <ClInclude Include="server\app\GameSession.h" />
     <ClInclude Include="server\app\NetworkBroadcaster.h" />
     <ClInclude Include="server\app\SessionRegistry.h" />
+    <ClInclude Include="server\db\UserRepository.h" />
+    <ClInclude Include="ThirdParty\sqlite3.h" />
+    <ClInclude Include="ThirdParty\sqlite3ext.h" />
     <ClInclude Include="server\net\WsServer.h" />
     <ClInclude Include="server\app\CommandDispatcher.h" />
     <ClInclude Include="server\server_main.h" />
