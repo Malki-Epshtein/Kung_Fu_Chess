@@ -1,4 +1,3 @@
-#include "server_main.h"
 #include "net/WsServer.h"
 #include "app/SessionRegistry.h"
 #include "app/StartingBoard.h"
@@ -11,7 +10,7 @@ namespace {
     constexpr const char* kUserDbPath = "users.db";
 }
 
-int server_main(int /*argc*/, char** /*argv*/) {
+int main(int /*argc*/, char** /*argv*/) {
     std::cout << "[server] starting on port " << kPort << std::endl;
     try {
         EventBus bus;

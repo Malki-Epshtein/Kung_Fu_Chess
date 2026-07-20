@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{35993a07-703a-4208-b7e6-5ec3c0605855}</ProjectGuid>
+    <RootNamespace>KfcClient</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <!-- Server.vcxproj and Client.vcxproj sit in the same folder as
+         Kung_Fu_Chess.vcxproj (so their relative source paths match), which
+         means their default intermediate directory would collide (both
+         write to the same vc143.pdb). Give each project its own. -->
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)OpenCV_451\include;$(ProjectDir)ThirdParty;$(ProjectDir)ThirdParty\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)OpenCV_451\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_world451d.lib;ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(ProjectDir)OpenCV_451\bin\opencv_world451d.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)OpenCV_451\include;$(ProjectDir)ThirdParty;$(ProjectDir)ThirdParty\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)OpenCV_451\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_world451.lib;ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(ProjectDir)OpenCV_451\bin\opencv_world451.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="client\client_main.cpp" />
+    <ClCompile Include="client\app\GraphicalApplication.cpp" />
+    <ClCompile Include="client\input\BoardMapper.cpp" />
+    <ClCompile Include="client\input\Controller.cpp" />
+    <ClCompile Include="client\net\WsClient.cpp" />
+    <ClCompile Include="client\app\LoginFlow.cpp" />
+    <ClCompile Include="client\view\assets\AnimationConfig.cpp" />
+    <ClCompile Include="client\view\assets\AnimationFrameSelector.cpp" />
+    <ClCompile Include="client\view\assets\AssetsRootConfig.cpp" />
+    <ClCompile Include="client\view\assets\AssetPathBuilder.cpp" />
+    <ClCompile Include="client\view\assets\CachingImageLoader.cpp" />
+    <ClCompile Include="client\view\assets\FileImageLoader.cpp" />
+    <ClCompile Include="client\view\assets\SpriteRepository.cpp" />
+    <ClCompile Include="client\view\ImageView.cpp" />
+    <ClCompile Include="client\view\src\img.cpp" />
+    <ClCompile Include="server\engine\ScoreObserver.cpp" />
+    <ClCompile Include="server\engine\MoveLogObserver.cpp" />
+    <ClCompile Include="shared\model\Board.cpp" />
+    <ClCompile Include="shared\model\Piece.cpp" />
+    <ClCompile Include="shared\model\PieceStateMachine.cpp" />
+    <ClCompile Include="shared\model\Position.cpp" />
+    <ClCompile Include="shared\protocol\MessageCodec.cpp" />
+    <ClCompile Include="shared\bus\EventBus.cpp" />
+    <ClCompile Include="shared\input\ClickResolver.cpp" />
+    <ClCompile Include="shared\protocol\GameSnapshotCodec.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="client\app\GraphicalApplication.h" />
+    <ClInclude Include="client\net\WsClient.h" />
+    <ClInclude Include="client\app\LoginFlow.h" />
+    <ClInclude Include="client\input\BoardMapper.h" />
+    <ClInclude Include="client\input\Controller.h" />
+    <ClInclude Include="client\view\assets\AnimationConfig.h" />
+    <ClInclude Include="client\view\assets\AnimationFrameSelector.h" />
+    <ClInclude Include="client\view\assets\AssetsRootConfig.h" />
+    <ClInclude Include="client\view\assets\AssetPathBuilder.h" />
+    <ClInclude Include="client\view\assets\IImageLoader.h" />
+    <ClInclude Include="client\view\assets\FileImageLoader.h" />
+    <ClInclude Include="client\view\assets\CachingImageLoader.h" />
+    <ClInclude Include="client\view\assets\ISpriteSource.h" />
+    <ClInclude Include="client\view\assets\SpriteRepository.h" />
+    <ClInclude Include="client\view\ImageView.h" />
+    <ClInclude Include="client\view\ViewConfig.h" />
+    <ClInclude Include="client\view\Renderer.h" />
+    <ClInclude Include="client\view\src\img.hpp" />
+    <ClInclude Include="server\engine\MoveResult.h" />
+    <ClInclude Include="server\engine\ScoreObserver.h" />
+    <ClInclude Include="server\engine\MoveLogObserver.h" />
+    <ClInclude Include="shared\engine\GameSnapshot.h" />
+    <ClInclude Include="shared\protocol\Message.h" />
+    <ClInclude Include="shared\protocol\MessageCodec.h" />
+    <ClInclude Include="shared\bus\EventBus.h" />
+    <ClInclude Include="shared\input\ClickResolver.h" />
+    <ClInclude Include="shared\protocol\GameSnapshotCodec.h" />
+    <ClInclude Include="shared\model\Board.h" />
+    <ClInclude Include="shared\model\GameState.h" />
+    <ClInclude Include="shared\model\Piece.h" />
+    <ClInclude Include="shared\model\PieceStateMachine.h" />
+    <ClInclude Include="shared\model\Position.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{dda78b5d-e785-4338-8a23-ae01e9d9f3cf}</ProjectGuid>
+    <RootNamespace>KfcServer</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <!-- Server.vcxproj and Client.vcxproj sit in the same folder as
+         Kung_Fu_Chess.vcxproj (so their relative source paths match), which
+         means their default intermediate directory would collide (both
+         write to the same vc143.pdb). Give each project its own. -->
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty;$(ProjectDir)ThirdParty\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty;$(ProjectDir)ThirdParty\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="server\server_main.cpp" />
+    <ClCompile Include="server\engine\GameEngine.cpp" />
+    <ClCompile Include="server\engine\ScoreObserver.cpp" />
+    <ClCompile Include="server\engine\MoveLogObserver.cpp" />
+    <ClCompile Include="server\input\MoveCommand.cpp" />
+    <ClCompile Include="server\input\JumpCommand.cpp" />
+    <ClCompile Include="server\io\BoardParser.cpp" />
+    <ClCompile Include="server\io\BoardPrinter.cpp" />
+    <ClCompile Include="server\realtime\MotionPath.cpp" />
+    <ClCompile Include="server\realtime\RealTimeArbiter.cpp" />
+    <ClCompile Include="server\realtime\CollisionResolver.cpp" />
+    <ClCompile Include="server\realtime\ArrivalResolver.cpp" />
+    <ClCompile Include="server\rules\BishopRules.cpp" />
+    <ClCompile Include="server\rules\KingRules.cpp" />
+    <ClCompile Include="server\rules\KnightRules.cpp" />
+    <ClCompile Include="server\rules\PawnRules.cpp" />
+    <ClCompile Include="server\rules\PieceRules.cpp" />
+    <ClCompile Include="server\rules\QueenRules.cpp" />
+    <ClCompile Include="server\rules\RookRules.cpp" />
+    <ClCompile Include="server\rules\SlidingPieceRules.cpp" />
+    <ClCompile Include="server\rules\rule_engine.cpp" />
+    <ClCompile Include="server\app\GameSession.cpp" />
+    <ClCompile Include="server\app\NetworkBroadcaster.cpp" />
+    <ClCompile Include="server\app\SessionRegistry.cpp" />
+    <ClCompile Include="server\app\CommandDispatcher.cpp" />
+    <ClCompile Include="server\app\StartingBoard.cpp" />
+    <ClCompile Include="server\db\UserRepository.cpp" />
+    <ClCompile Include="server\net\WsServer.cpp" />
+    <ClCompile Include="ThirdParty\sqlite3.c">
+      <!-- Vendored file (not our code): uses the deprecated GetVersionEx
+           Windows API internally for OS-version detection. The project's
+           SDLCheck turns that deprecation warning into a hard error -
+           disabled here, scoped to just this one file. -->
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="shared\model\Board.cpp" />
+    <ClCompile Include="shared\model\Piece.cpp" />
+    <ClCompile Include="shared\model\PieceStateMachine.cpp" />
+    <ClCompile Include="shared\model\Position.cpp" />
+    <ClCompile Include="shared\protocol\MessageCodec.cpp" />
+    <ClCompile Include="shared\bus\EventBus.cpp" />
+    <ClCompile Include="shared\input\ClickResolver.cpp" />
+    <ClCompile Include="shared\protocol\GameSnapshotCodec.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="server\engine\GameEngine.h" />
+    <ClInclude Include="server\engine\MoveResult.h" />
+    <ClInclude Include="server\engine\ScoreObserver.h" />
+    <ClInclude Include="server\engine\MoveLogObserver.h" />
+    <ClInclude Include="server\app\GameSession.h" />
+    <ClInclude Include="server\app\NetworkBroadcaster.h" />
+    <ClInclude Include="server\app\SessionRegistry.h" />
+    <ClInclude Include="server\app\CommandDispatcher.h" />
+    <ClInclude Include="server\app\StartingBoard.h" />
+    <ClInclude Include="server\db\UserRepository.h" />
+    <ClInclude Include="server\net\WsServer.h" />
+    <ClInclude Include="server\input\Command.h" />
+    <ClInclude Include="server\input\MoveCommand.h" />
+    <ClInclude Include="server\input\JumpCommand.h" />
+    <ClInclude Include="server\io\BoardParser.h" />
+    <ClInclude Include="server\io\BoardPrinter.h" />
+    <ClInclude Include="server\realtime\Motion.h" />
+    <ClInclude Include="server\realtime\MotionPath.h" />
+    <ClInclude Include="server\realtime\RealTimeArbiter.h" />
+    <ClInclude Include="server\realtime\CollisionResolver.h" />
+    <ClInclude Include="server\realtime\ArrivalResolver.h" />
+    <ClInclude Include="server\realtime\RestDurations.h" />
+    <ClInclude Include="server\realtime\CaptureObserver.h" />
+    <ClInclude Include="server\realtime\MoveObserver.h" />
+    <ClInclude Include="server\rules\BishopRules.h" />
+    <ClInclude Include="server\rules\KingRules.h" />
+    <ClInclude Include="server\rules\KnightRules.h" />
+    <ClInclude Include="server\rules\MoveValidation.h" />
+    <ClInclude Include="server\rules\PawnRules.h" />
+    <ClInclude Include="server\rules\PieceRules.h" />
+    <ClInclude Include="server\rules\QueenRules.h" />
+    <ClInclude Include="server\rules\RookRules.h" />
+    <ClInclude Include="server\rules\SlidingPieceRules.h" />
+    <ClInclude Include="server\rules\rule_engine.h" />
+    <ClInclude Include="ThirdParty\sqlite3.h" />
+    <ClInclude Include="ThirdParty\sqlite3ext.h" />
+    <ClInclude Include="shared\engine\GameSnapshot.h" />
+    <ClInclude Include="shared\protocol\Message.h" />
+    <ClInclude Include="shared\protocol\MessageCodec.h" />
+    <ClInclude Include="shared\bus\EventBus.h" />
+    <ClInclude Include="shared\input\ClickResolver.h" />
+    <ClInclude Include="shared\protocol\GameSnapshotCodec.h" />
+    <ClInclude Include="shared\model\Board.h" />
+    <ClInclude Include="shared\model\GameState.h" />
+    <ClInclude Include="shared\model\Piece.h" />
+    <ClInclude Include="shared\model\PieceStateMachine.h" />
+    <ClInclude Include="shared\model\Position.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

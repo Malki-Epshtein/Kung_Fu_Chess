@@ -51,9 +51,6 @@
     <ClCompile Include="test\test_board.cpp">
       <Filter>model</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="server\app\Application.cpp">
       <Filter>app</Filter>
     </ClCompile>

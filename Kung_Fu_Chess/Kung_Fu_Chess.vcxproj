@@ -160,9 +160,6 @@
     <ClCompile Include="server\input\JumpCommand.cpp" />
     <ClCompile Include="server\io\BoardParser.cpp" />
     <ClCompile Include="server\io\BoardPrinter.cpp" />
-    <ClCompile Include="main.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="shared\model\Board.cpp" />
     <ClCompile Include="shared\model\Piece.cpp" />
     <ClCompile Include="shared\model\PieceStateMachine.cpp" />
@@ -199,7 +196,6 @@
     <ClCompile Include="server\net\WsServer.cpp" />
     <ClCompile Include="server\app\CommandDispatcher.cpp" />
     <ClCompile Include="server\app\StartingBoard.cpp" />
-    <ClCompile Include="server\server_main.cpp" />
     <ClCompile Include="client\net\WsClient.cpp" />
     <ClCompile Include="client\app\LoginFlow.cpp" />
     <ClCompile Include="texttests\ScriptParser.cpp">
@@ -396,7 +392,6 @@
     <ClInclude Include="server\net\WsServer.h" />
     <ClInclude Include="server\app\CommandDispatcher.h" />
     <ClInclude Include="server\app\StartingBoard.h" />
-    <ClInclude Include="server\server_main.h" />
     <ClInclude Include="client\net\WsClient.h" />
     <ClInclude Include="client\app\LoginFlow.h" />
     <ClInclude Include="server\engine\MoveResult.h" />
