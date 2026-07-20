@@ -14,9 +14,5 @@ class UserRepository;
 // bus) to every connected client.
 class WsServer {
 public:
-    // Stage E2: exactly one room, auto-created by the caller under this
-    // name - real multi-room creation/joining arrives in Stage G.
-    static constexpr const char* kDefaultRoomName = "default";
-
     void run(uint16_t port, SessionRegistry& registry, EventBus& bus, UserRepository& users, int tickMs = 30);
 };

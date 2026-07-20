@@ -1,6 +1,5 @@
 #include "net/WsServer.h"
 #include "app/session/SessionRegistry.h"
-#include "app/logic/StartingBoard.h"
 #include "db/UserRepository.h"
 #include "../shared/bus/EventBus.h"
 #include <iostream>
@@ -15,7 +14,6 @@ int main(int /*argc*/, char** /*argv*/) {
     try {
         EventBus bus;
         SessionRegistry registry;
-        registry.createRoom(WsServer::kDefaultRoomName, makeStartingBoard(), bus, /*simultaneousMode=*/true);
         UserRepository users(kUserDbPath);
         WsServer server;
         server.run(kPort, registry, bus, users);

@@ -28,6 +28,30 @@
     <Filter Include="app">
       <UniqueIdentifier>{8b3c4d5e-6f7a-4b2c-9d3e-4f5a6b7c8d9e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="app\session">
+      <UniqueIdentifier>{3b65abfa-724c-482b-b299-81c411f50448}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="app\networking">
+      <UniqueIdentifier>{e91583ff-6e01-4279-ba11-66dc90b98975}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="app\logic">
+      <UniqueIdentifier>{41413a52-d19e-4a0e-928d-3110ad0bd16c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="net">
+      <UniqueIdentifier>{29d91015-7449-4c96-bd85-f5462ab9a81d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="db">
+      <UniqueIdentifier>{e9731dab-7e8c-422b-9538-7282ba7d7f36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="protocol">
+      <UniqueIdentifier>{1c836b7d-0d34-491e-be13-907d466bd049}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="bus">
+      <UniqueIdentifier>{65f39567-f437-4a88-8cf7-0a2815d0ea33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty">
+      <UniqueIdentifier>{70ca25eb-5e03-4dec-b467-a57c502d53da}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="shared\model\Piece.cpp">
@@ -51,11 +75,104 @@
     <ClCompile Include="test\test_board.cpp">
       <Filter>model</Filter>
     </ClCompile>
-    <ClCompile Include="server\app\Application.cpp">
-      <Filter>app</Filter>
-    </ClCompile>
     <ClCompile Include="client\app\GraphicalApplication.cpp">
       <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="client\app\HomeScreen.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="client\app\LoginFlow.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\session\GameSession.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\session\SessionRegistry.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\session\ClientSessionRegistry.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_GameSession.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_SessionRegistry.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_ClientSessionRegistry.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\networking\NetworkBroadcaster.cpp">
+      <Filter>app\networking</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_NetworkBroadcaster.cpp">
+      <Filter>app\networking</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\logic\CommandDispatcher.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\logic\Matchmaker.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\logic\StartingBoard.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_CommandDispatcher.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_Matchmaker.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="server\net\WsServer.cpp">
+      <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="client\net\WsClient.cpp">
+      <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="client\net\BlockingRequest.cpp">
+      <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="server\db\UserRepository.cpp">
+      <Filter>db</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_UserRepository.cpp">
+      <Filter>db</Filter>
+    </ClCompile>
+    <ClCompile Include="shared\protocol\MessageCodec.cpp">
+      <Filter>protocol</Filter>
+    </ClCompile>
+    <ClCompile Include="shared\protocol\GameSnapshotCodec.cpp">
+      <Filter>protocol</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_MessageCodec.cpp">
+      <Filter>protocol</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_GameSnapshotCodec.cpp">
+      <Filter>protocol</Filter>
+    </ClCompile>
+    <ClCompile Include="shared\bus\EventBus.cpp">
+      <Filter>bus</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_EventBus.cpp">
+      <Filter>bus</Filter>
+    </ClCompile>
+    <ClCompile Include="shared\input\ClickResolver.cpp">
+      <Filter>input</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_ClickResolver.cpp">
+      <Filter>input</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_HomeScreen.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="client\view\assets\AnimationConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="client\view\src\img.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\sqlite3.c">
+      <Filter>ThirdParty</Filter>
     </ClCompile>
     <ClCompile Include="test\test_BoardParser.cpp">
       <Filter>io</Filter>
@@ -236,11 +353,83 @@
     <ClInclude Include="doctest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="server\app\Application.h">
-      <Filter>app</Filter>
-    </ClInclude>
     <ClInclude Include="client\app\GraphicalApplication.h">
       <Filter>app</Filter>
+    </ClInclude>
+    <ClInclude Include="client\app\HomeScreen.h">
+      <Filter>app</Filter>
+    </ClInclude>
+    <ClInclude Include="client\app\LoginFlow.h">
+      <Filter>app</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\session\GameSession.h">
+      <Filter>app\session</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\session\SessionRegistry.h">
+      <Filter>app\session</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\session\ClientSession.h">
+      <Filter>app\session</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\session\ClientSessionRegistry.h">
+      <Filter>app\session</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\networking\NetworkBroadcaster.h">
+      <Filter>app\networking</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\logic\CommandDispatcher.h">
+      <Filter>app\logic</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\logic\Matchmaker.h">
+      <Filter>app\logic</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\logic\StartingBoard.h">
+      <Filter>app\logic</Filter>
+    </ClInclude>
+    <ClInclude Include="server\net\WsServer.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="client\net\WsClient.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="client\net\BlockingRequest.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="server\db\UserRepository.h">
+      <Filter>db</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\protocol\Message.h">
+      <Filter>protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\protocol\MessageCodec.h">
+      <Filter>protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\protocol\GameSnapshotCodec.h">
+      <Filter>protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\bus\EventBus.h">
+      <Filter>bus</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\input\ClickResolver.h">
+      <Filter>input</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\engine\GameSnapshot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="server\realtime\CaptureObserver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="server\realtime\MoveObserver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="client\view\assets\AnimationConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\sqlite3.h">
+      <Filter>ThirdParty</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\sqlite3ext.h">
+      <Filter>ThirdParty</Filter>
     </ClInclude>
     <ClInclude Include="server\rules\BishopRules.h">
       <Filter>Header Files</Filter>
