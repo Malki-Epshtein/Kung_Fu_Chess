@@ -1,5 +1,6 @@
 #include "HomeScreenView.h"
 #include "HomeScreen.h"
+#include "RoomDialog.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <string>
@@ -15,19 +16,21 @@ namespace {
                     cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 0), 2);
     }
 
+    // Set on the mouse callback, consumed by the loop in runHomeScreen()
+    // below - deliberately NOT acted on inside the callback itself.
+    // showRoomDialog() runs its own nested Win32 message loop, and calling
+    // it from inside OpenCV's own mouse-event dispatch nests two message
+    // loops on the same thread, which is fragile (observed: the dialog
+    // closing itself immediately). Deferring the actual handling to a
+    // clean point between cv::waitKey() calls avoids that entirely.
+    HomeScreenChoice g_pendingChoice = HomeScreenChoice::None;
+
     void onHomeMouseEvent(int event, int x, int y, int /*flags*/, void* /*userdata*/) {
         if (event != cv::EVENT_LBUTTONDOWN)
             return;
-        switch (HomeScreen::hitTest(x, y)) {
-            case HomeScreenChoice::Play:
-                std::cout << "[client] Home: Play clicked" << std::endl;
-                break;
-            case HomeScreenChoice::Room:
-                std::cout << "[client] Home: Room clicked" << std::endl;
-                break;
-            case HomeScreenChoice::None:
-                break;
-        }
+        HomeScreenChoice choice = HomeScreen::hitTest(x, y);
+        if (choice != HomeScreenChoice::None)
+            g_pendingChoice = choice;
     }
 }
 
@@ -40,6 +43,7 @@ void runHomeScreen() {
     drawButton(canvas, HomeScreen::playButtonBounds(), "Play");
     drawButton(canvas, HomeScreen::roomButtonBounds(), "Room");
 
+    g_pendingChoice = HomeScreenChoice::None;
     while (true) {
         cv::imshow(kHomeWindowName, canvas);
         int key = cv::waitKey(30);
@@ -51,6 +55,15 @@ void runHomeScreen() {
         if (visible < 1) {
             std::cout << "[client] Home screen closed: window no longer visible" << std::endl;
             break;
+        }
+
+        if (g_pendingChoice == HomeScreenChoice::Play) {
+            std::cout << "[client] Home: Play clicked" << std::endl;
+            g_pendingChoice = HomeScreenChoice::None;
+        } else if (g_pendingChoice == HomeScreenChoice::Room) {
+            std::cout << "[client] Home: Room clicked" << std::endl;
+            g_pendingChoice = HomeScreenChoice::None;
+            showRoomDialog();
         }
     }
     cv::destroyWindow(kHomeWindowName);

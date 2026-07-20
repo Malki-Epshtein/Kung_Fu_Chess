@@ -72,6 +72,11 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
     for (const std::string& roomName : registry.roomNames())
         attachBroadcaster(roomName);
 
+    // Room ids handed out by CreateRoom (see the message handler below) -
+    // a plain incrementing counter, so a generated id can never collide
+    // with an existing room.
+    int nextRoomId = 1;
+
     server.set_open_handler([](websocketpp::connection_hdl) {
         // No room assignment happens here anymore (Stage G): a connection
         // stays roomless until it explicitly sends CreateRoom or JoinRoom.
@@ -92,7 +97,7 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
         if (!roomName.empty() && (role == Chess::Color::White || role == Chess::Color::Black))
             registry.startDisconnectCountdown(roomName, role, server.get_io_service());
     });
-    server.set_message_handler([&server, &registry, &users, &bus, &attachBroadcaster](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
+    server.set_message_handler([&server, &registry, &users, &bus, &attachBroadcaster, &nextRoomId](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
         const std::string& text = msg->get_payload();
         Chess::Color senderRole = registry.roleOf(hdl);
 
@@ -111,21 +116,22 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
                            << " for '" << username << "': " << result.message << std::endl;
                 reply = { {"success", result.success}, {"message", result.message}, {"elo", result.elo} };
             } else if (decoded.type == MessageType::CreateRoom) {
-                std::string name = decoded.payload.at("name").get<std::string>();
-                if (registry.roomExists(name)) {
-                    reply = { {"success", false}, {"message", "room already exists"} };
-                } else {
-                    registry.createRoom(name, makeStartingBoard(), bus, /*simultaneousMode=*/true);
-                    attachBroadcaster(name);
-                    // The creator becomes the room's first occupant (White) -
-                    // otherwise they'd have to immediately send a separate
-                    // JoinRoom right after creating it.
-                    registry.joinRoom(name, hdl);
-                    Chess::Color role = registry.roleOf(hdl);
-                    std::cout << "[server] room '" << name << "' created, creator assigned role: "
-                               << roleName(role) << std::endl;
-                    reply = { {"success", true}, {"message", "room created"}, {"role", roleName(role)} };
-                }
+                // Per the KamaTech slide: Create ignores whatever the
+                // client typed and always gets a freshly server-generated
+                // id (an ever-increasing counter, so it can never collide
+                // with an existing room) - Join is what uses a
+                // client-typed id, below.
+                std::string name = std::to_string(nextRoomId++);
+                registry.createRoom(name, makeStartingBoard(), bus, /*simultaneousMode=*/true);
+                attachBroadcaster(name);
+                // The creator becomes the room's first occupant (White) -
+                // otherwise they'd have to immediately send a separate
+                // JoinRoom right after creating it.
+                registry.joinRoom(name, hdl);
+                Chess::Color role = registry.roleOf(hdl);
+                std::cout << "[server] room '" << name << "' created, creator assigned role: "
+                           << roleName(role) << std::endl;
+                reply = { {"success", true}, {"message", "room created"}, {"role", roleName(role)}, {"roomName", name} };
             } else if (decoded.type == MessageType::JoinRoom) {
                 std::string name = decoded.payload.at("name").get<std::string>();
                 if (!registry.roomExists(name)) {
@@ -135,7 +141,7 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
                     Chess::Color role = registry.roleOf(hdl);
                     std::cout << "[server] joined room '" << name << "', assigned role: "
                                << roleName(role) << std::endl;
-                    reply = { {"success", true}, {"message", "joined room"}, {"role", roleName(role)} };
+                    reply = { {"success", true}, {"message", "joined room"}, {"role", roleName(role)}, {"roomName", name} };
                 }
             } else {
                 const std::string* roomName = registry.roomOf(hdl);
