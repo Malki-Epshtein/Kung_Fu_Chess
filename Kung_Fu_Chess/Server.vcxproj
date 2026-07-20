@@ -109,6 +109,7 @@
     <ClCompile Include="server\app\GameSession.cpp" />
     <ClCompile Include="server\app\NetworkBroadcaster.cpp" />
     <ClCompile Include="server\app\SessionRegistry.cpp" />
+    <ClCompile Include="server\app\ClientSessionRegistry.cpp" />
     <ClCompile Include="server\app\CommandDispatcher.cpp" />
     <ClCompile Include="server\app\StartingBoard.cpp" />
     <ClCompile Include="server\db\UserRepository.cpp" />
@@ -138,6 +139,8 @@
     <ClInclude Include="server\app\GameSession.h" />
     <ClInclude Include="server\app\NetworkBroadcaster.h" />
     <ClInclude Include="server\app\SessionRegistry.h" />
+    <ClInclude Include="server\app\ClientSession.h" />
+    <ClInclude Include="server\app\ClientSessionRegistry.h" />
     <ClInclude Include="server\app\CommandDispatcher.h" />
     <ClInclude Include="server\app\StartingBoard.h" />
     <ClInclude Include="server\db\UserRepository.h" />

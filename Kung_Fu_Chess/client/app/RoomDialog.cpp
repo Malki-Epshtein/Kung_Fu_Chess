@@ -28,6 +28,15 @@ namespace {
         return result;
     }
 
+    std::wstring utf8ToWide(const std::string& utf8) {
+        if (utf8.empty())
+            return {};
+        int size = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), static_cast<int>(utf8.size()), nullptr, 0);
+        std::wstring result(size, L'\0');
+        MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), static_cast<int>(utf8.size()), result.data(), size);
+        return result;
+    }
+
     std::string readEditText(HWND editHwnd) {
         int len = GetWindowTextLengthW(editHwnd);
         if (len <= 0)
@@ -164,4 +173,8 @@ RoomDialogResult showRoomDialog() {
     std::cout << "[client] Room dialog result: " << actionName(result.action)
                << " name='" << result.roomName << "'" << std::endl;
     return result;
+}
+
+void showRoomError(const std::string& message) {
+    MessageBoxW(nullptr, utf8ToWide(message).c_str(), L"Room error", MB_OK | MB_ICONWARNING);
 }

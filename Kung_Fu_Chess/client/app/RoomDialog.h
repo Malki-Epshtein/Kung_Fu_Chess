@@ -14,3 +14,10 @@ struct RoomDialogResult {
 // G2c). OpenCV has no real text-input widget, hence a real Win32 window
 // here instead of drawing this on the OpenCV canvas.
 RoomDialogResult showRoomDialog();
+
+// Shows a native error popup (e.g. "room not found", "room already
+// exists") - the server-side rejection already happens correctly; this is
+// what actually surfaces it to the user instead of only the console log.
+// Isolated here (not in HomeScreenView.cpp) because it needs <windows.h>,
+// which conflicts with OpenCV's own headers if included in the same file.
+void showRoomError(const std::string& message);

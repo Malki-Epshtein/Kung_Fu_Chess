@@ -4,6 +4,7 @@
 #include "../app/CommandDispatcher.h"
 #include "../app/GameSession.h"
 #include "../app/SessionRegistry.h"
+#include "../app/ClientSessionRegistry.h"
 #include "../app/NetworkBroadcaster.h"
 #include "../app/StartingBoard.h"
 #include "../db/UserRepository.h"
@@ -29,6 +30,8 @@ namespace {
             case MessageType::Login:      return "LOGIN";
             case MessageType::CreateRoom: return "CREATE_ROOM";
             case MessageType::JoinRoom:   return "JOIN_ROOM";
+            case MessageType::FindGame:   return "FIND_GAME";
+            case MessageType::GameFound:  return "GAME_FOUND";
         }
         return "UNKNOWN";
     }
@@ -72,12 +75,18 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
     for (const std::string& roomName : registry.roomNames())
         attachBroadcaster(roomName);
 
+    // Per-connection identity (username, ELO), remembered from that
+    // connection's own successful LOGIN - matchmaking (FindGame, below)
+    // reads this rather than trusting a client-reported ELO, so a client
+    // can't just claim whatever ELO it wants to game the ±100 match window.
+    ClientSessionRegistry clientSessions;
+
     server.set_open_handler([](websocketpp::connection_hdl) {
         // No room assignment happens here anymore (Stage G): a connection
         // stays roomless until it explicitly sends CreateRoom or JoinRoom.
         std::cout << "[server] client connected" << std::endl;
     });
-    server.set_close_handler([&registry, &server](websocketpp::connection_hdl hdl) {
+    server.set_close_handler([&registry, &server, &clientSessions](websocketpp::connection_hdl hdl) {
         // Capture the room name before leave() erases the association.
         std::string roomName;
         if (const std::string* name = registry.roomOf(hdl))
@@ -86,13 +95,15 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
         Chess::Color role = registry.leave(hdl);
         std::cout << "[server] client disconnected (was " << roleName(role) << ")" << std::endl;
 
+        clientSessions.onDisconnect(hdl);
+
         // Disconnect grace-period countdown (Stage D, owned by the registry
         // since Stage E3): started when a seated player (White/Black)
         // disconnects, never for a spectator.
         if (!roomName.empty() && (role == Chess::Color::White || role == Chess::Color::Black))
             registry.startDisconnectCountdown(roomName, role, server.get_io_service());
     });
-    server.set_message_handler([&server, &registry, &users, &bus, &attachBroadcaster](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
+    server.set_message_handler([&server, &registry, &users, &bus, &attachBroadcaster, &clientSessions](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
         const std::string& text = msg->get_payload();
         Chess::Color senderRole = registry.roleOf(hdl);
 
@@ -109,6 +120,8 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
                 LoginResult result = users.login(username, password);
                 std::cout << "[server] login " << (result.success ? "OK" : "FAILED")
                            << " for '" << username << "': " << result.message << std::endl;
+                if (result.success)
+                    clientSessions.onLogin(hdl, username, result.elo);
                 reply = { {"success", result.success}, {"message", result.message}, {"elo", result.elo} };
             } else if (decoded.type == MessageType::CreateRoom) {
                 std::string name = decoded.payload.at("name").get<std::string>();

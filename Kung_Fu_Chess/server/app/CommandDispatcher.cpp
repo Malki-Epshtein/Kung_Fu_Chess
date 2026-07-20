@@ -67,6 +67,15 @@ DispatchResult CommandDispatcher::dispatch(const Message& message, GameEngine& e
                 // dispatch (they act on the SessionRegistry, not on a
                 // specific room's GameEngine).
                 return { false, "room messages must be handled before dispatch" };
+            case MessageType::FindGame:
+                // Same reasoning again: WsServer intercepts this to run
+                // matchmaking (it acts on a waiting pool, not a GameEngine).
+                return { false, "FindGame must be handled before dispatch" };
+            case MessageType::GameFound:
+                // Server->client only (see Message.h) - a client should
+                // never send this; this case only exists so the switch
+                // stays exhaustive.
+                return { false, "GameFound is server-to-client only" };
         }
         return { false, "unknown message type" };
     } catch (const std::exception& e) {

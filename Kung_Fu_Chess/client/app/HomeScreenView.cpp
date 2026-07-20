@@ -45,7 +45,9 @@ namespace {
         nlohmann::json reply = sendAndWaitForReply(client, request);
 
         if (!reply.value("success", false)) {
-            std::cout << "[client] Room request failed: " << reply.value("message", "") << std::endl;
+            std::string message = reply.value("message", "");
+            std::cout << "[client] Room request failed: " << message << std::endl;
+            showRoomError(message);
             return {};
         }
         return reply.value("roomName", roomName);
