@@ -1,6 +1,7 @@
 #include "server_main.h"
 #include "net/WsServer.h"
 #include "app/SessionRegistry.h"
+#include "db/UserRepository.h"
 #include "io/BoardParser.h"
 #include "../shared/bus/EventBus.h"
 #include <iostream>
@@ -8,6 +9,7 @@
 
 namespace {
     constexpr uint16_t kPort = 9002;
+    constexpr const char* kUserDbPath = "users.db";
 
     std::shared_ptr<Board> startingBoard() {
         std::istringstream boardText(
@@ -32,8 +34,9 @@ int server_main(int /*argc*/, char** /*argv*/) {
         EventBus bus;
         SessionRegistry registry;
         registry.createRoom(WsServer::kDefaultRoomName, startingBoard(), bus, /*simultaneousMode=*/true);
+        UserRepository users(kUserDbPath);
         WsServer server;
-        server.run(kPort, registry, bus);
+        server.run(kPort, registry, bus, users);
     } catch (const std::exception& e) {
         std::cerr << "[server] failed to start: " << e.what()
                    << " (is port " << kPort << " already in use by another instance?)" << std::endl;

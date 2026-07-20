@@ -5,6 +5,7 @@
 #include "../app/GameSession.h"
 #include "../app/SessionRegistry.h"
 #include "../app/NetworkBroadcaster.h"
+#include "../db/UserRepository.h"
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 #include <asio/steady_timer.hpp>
@@ -24,6 +25,7 @@ namespace {
             case MessageType::Move:     return "MOVE";
             case MessageType::Jump:     return "JUMP";
             case MessageType::Snapshot: return "SNAPSHOT";
+            case MessageType::Login:    return "LOGIN";
         }
         return "UNKNOWN";
     }
@@ -37,7 +39,7 @@ namespace {
     }
 }
 
-void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, int tickMs) {
+void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, UserRepository& users, int tickMs) {
     WsppServer server;
     server.clear_access_channels(websocketpp::log::alevel::all);
     server.clear_error_channels(websocketpp::log::elevel::all);
@@ -67,26 +69,36 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, int 
         if (!roomName.empty() && (role == Chess::Color::White || role == Chess::Color::Black))
             registry.startDisconnectCountdown(roomName, role, server.get_io_service());
     });
-    server.set_message_handler([&server, &registry](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
+    server.set_message_handler([&server, &registry, &users](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
         const std::string& text = msg->get_payload();
         Chess::Color senderRole = registry.roleOf(hdl);
 
         nlohmann::json reply;
         try {
-            const std::string* roomName = registry.roomOf(hdl);
-            GameSession* gameSession = roomName ? registry.room(*roomName) : nullptr;
-            if (!gameSession)
-                throw std::runtime_error("connection is not in a room");
-
             Message decoded = MessageCodec::decode(text);
             std::cout << "[server] received " << typeName(decoded.type) << " from " << roleName(senderRole)
                        << ": " << text << std::endl;
 
-            DispatchResult result = CommandDispatcher::dispatch(decoded, gameSession->engine(), senderRole);
-            std::cout << "[server] dispatch " << (result.success ? "OK" : "FAILED")
-                       << ": " << result.message << std::endl;
+            if (decoded.type == MessageType::Login) {
+                // Identity operation - never touches a room/GameEngine.
+                std::string username = decoded.payload.at("username").get<std::string>();
+                std::string password = decoded.payload.at("password").get<std::string>();
+                LoginResult result = users.login(username, password);
+                std::cout << "[server] login " << (result.success ? "OK" : "FAILED")
+                           << " for '" << username << "': " << result.message << std::endl;
+                reply = { {"success", result.success}, {"message", result.message}, {"elo", result.elo} };
+            } else {
+                const std::string* roomName = registry.roomOf(hdl);
+                GameSession* gameSession = roomName ? registry.room(*roomName) : nullptr;
+                if (!gameSession)
+                    throw std::runtime_error("connection is not in a room");
 
-            reply = { {"success", result.success}, {"message", result.message}, {"role", roleName(senderRole)} };
+                DispatchResult result = CommandDispatcher::dispatch(decoded, gameSession->engine(), senderRole);
+                std::cout << "[server] dispatch " << (result.success ? "OK" : "FAILED")
+                           << ": " << result.message << std::endl;
+
+                reply = { {"success", result.success}, {"message", result.message}, {"role", roleName(senderRole)} };
+            }
         } catch (const std::exception& e) {
             std::cout << "[server] received non-protocol text: " << text
                        << " (decode failed: " << e.what() << ")" << std::endl;

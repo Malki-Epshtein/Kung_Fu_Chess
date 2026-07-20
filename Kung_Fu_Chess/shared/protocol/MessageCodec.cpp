@@ -8,6 +8,7 @@ namespace {
         { MessageType::Move,     "MOVE"     },
         { MessageType::Jump,     "JUMP"     },
         { MessageType::Snapshot, "SNAPSHOT" },
+        { MessageType::Login,    "LOGIN"    },
     };
 
     MessageType nameToType(const std::string& name) {

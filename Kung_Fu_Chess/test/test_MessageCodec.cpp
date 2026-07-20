@@ -25,7 +25,7 @@ TEST_CASE("MessageCodec - הודעת HELLO ללא payload מפוענחת עם pa
 }
 
 TEST_CASE("MessageCodec - כל סוגי ההודעות עוברים round-trip") {
-    for (MessageType type : { MessageType::Hello, MessageType::Move, MessageType::Jump, MessageType::Snapshot }) {
+    for (MessageType type : { MessageType::Hello, MessageType::Move, MessageType::Jump, MessageType::Snapshot, MessageType::Login }) {
         Message original;
         original.type = type;
         Message decoded = MessageCodec::decode(MessageCodec::encode(original));

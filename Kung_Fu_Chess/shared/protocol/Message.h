@@ -5,7 +5,8 @@ enum class MessageType {
     Hello,
     Move,
     Jump,
-    Snapshot
+    Snapshot,
+    Login
 };
 
 struct Message {

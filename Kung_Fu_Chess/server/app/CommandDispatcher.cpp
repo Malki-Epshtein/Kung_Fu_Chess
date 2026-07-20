@@ -56,6 +56,11 @@ DispatchResult CommandDispatcher::dispatch(const Message& message, GameEngine& e
                 return { true, "hello acknowledged" };
             case MessageType::Snapshot:
                 return { false, "clients may not send SNAPSHOT messages" };
+            case MessageType::Login:
+                // WsServer intercepts LOGIN before it ever reaches here
+                // (it's an identity operation, not a GameEngine action) -
+                // this case only exists so the switch stays exhaustive.
+                return { false, "login must be handled before dispatch" };
         }
         return { false, "unknown message type" };
     } catch (const std::exception& e) {
