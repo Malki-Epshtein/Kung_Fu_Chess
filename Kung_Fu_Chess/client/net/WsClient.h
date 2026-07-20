@@ -19,6 +19,7 @@ public:
     void connect(const std::string& host, uint16_t port);
     void send(const std::string& text);
     void setOnMessage(std::function<void(const std::string&)> handler);
+    void setOnOpen(std::function<void()> handler);
 
 private:
     struct Impl;

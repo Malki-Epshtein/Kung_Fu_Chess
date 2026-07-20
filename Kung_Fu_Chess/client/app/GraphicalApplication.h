@@ -7,9 +7,11 @@
 #include "../view/assets/FileImageLoader.h"
 #include "../view/assets/CachingImageLoader.h"
 #include "../view/assets/AssetsRootConfig.h"
+#include "LoginFlow.h"
 #include "../../shared/engine/GameSnapshot.h"
 #include <cstdint>
 #include <mutex>
+#include <stdexcept>
 
 class GraphicalApplication {
 private:
@@ -58,8 +60,18 @@ public:
           spriteRepository(pathBuilder, cachingImageLoader),
           controller(latestSnapshot, [this](const std::string& text) { client.send(text); }),
           view(spriteRepository, assetsRoot) {
-        client.setOnMessage([this](const std::string& text) { onMessage(text); });
         client.connect(SERVER_HOST, SERVER_PORT);
+
+        // Shell login handshake (Stage F4) happens over this same
+        // connection, before the game's own onMessage handler is installed
+        // below - a separate login-only connection would grab a
+        // White/Black seat and then immediately disconnect from it,
+        // corrupting join-order role assignment on the server.
+        LoginResult login = runLoginFlow(client);
+        if (!login.success)
+            throw std::runtime_error("login failed, exiting");
+
+        client.setOnMessage([this](const std::string& text) { onMessage(text); });
         view.setPlayerNames(WHITE_PLAYER_NAME, BLACK_PLAYER_NAME);
     }
 

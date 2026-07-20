@@ -200,6 +200,7 @@
     <ClCompile Include="server\app\CommandDispatcher.cpp" />
     <ClCompile Include="server\server_main.cpp" />
     <ClCompile Include="client\net\WsClient.cpp" />
+    <ClCompile Include="client\app\LoginFlow.cpp" />
     <ClCompile Include="texttests\ScriptParser.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -395,6 +396,7 @@
     <ClInclude Include="server\app\CommandDispatcher.h" />
     <ClInclude Include="server\server_main.h" />
     <ClInclude Include="client\net\WsClient.h" />
+    <ClInclude Include="client\app\LoginFlow.h" />
     <ClInclude Include="server\engine\MoveResult.h" />
     <ClInclude Include="server\engine\ScoreObserver.h" />
     <ClInclude Include="server\engine\MoveLogObserver.h" />

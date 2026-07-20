@@ -10,6 +10,7 @@ struct WsClient::Impl {
     WsppClient                              client;
     websocketpp::connection_hdl             hdl;
     std::function<void(const std::string&)> onMessage;
+    std::function<void()>                   onOpen;
     bool                                    connected = false;
     std::thread                             networkThread;
 
@@ -36,6 +37,8 @@ void WsClient::connect(const std::string& host, uint16_t port) {
         impl->hdl = hdl;
         impl->connected = true;
         std::cout << "[client] connected" << std::endl;
+        if (impl->onOpen)
+            impl->onOpen();
     });
     client.set_message_handler([this](websocketpp::connection_hdl, Impl::WsppClient::message_ptr msg) {
         if (impl->onMessage)
@@ -80,4 +83,8 @@ void WsClient::send(const std::string& text) {
 
 void WsClient::setOnMessage(std::function<void(const std::string&)> handler) {
     impl->onMessage = std::move(handler);
+}
+
+void WsClient::setOnOpen(std::function<void()> handler) {
+    impl->onOpen = std::move(handler);
 }
