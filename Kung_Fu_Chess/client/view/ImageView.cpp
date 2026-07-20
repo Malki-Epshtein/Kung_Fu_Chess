@@ -221,6 +221,12 @@ void ImageView::render(const GameSnapshot& snapshot) {
         frame.put_text(message, textX, textY, 1.0);
     }
 
+    // Stage G2c: which room this is, in the window's top-left corner - a
+    // fixed spot that never overlaps the centered game-over/disconnect
+    // messages below.
+    if (!roomName.empty())
+        frame.put_text("Room: " + roomName, 10, 20, 0.6, cv::Scalar(255, 255, 255));
+
     // Stage D: disconnect grace-period countdown, shown across the top of
     // the board so it never overlaps the centered game-over message above.
     if (disconnectActive) {

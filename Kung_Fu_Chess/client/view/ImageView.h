@@ -21,6 +21,7 @@ private:
     std::string             blackPlayerName;
     bool                    disconnectActive = false;
     std::string             disconnectMessage;
+    std::string             roomName;
 
 public:
     // Both constructor-injected: rendering is meaningless without a sprite
@@ -48,6 +49,10 @@ public:
         disconnectActive = active;
         disconnectMessage = std::move(message);
     }
+    // Stage G2c: the room this client just created/joined - shown so
+    // everyone in the room can confirm they're in the right one. Empty
+    // (the default) draws nothing extra.
+    void setRoomName(std::string name) { roomName = std::move(name); }
 
     void render(const GameSnapshot& snapshot) override;
 };

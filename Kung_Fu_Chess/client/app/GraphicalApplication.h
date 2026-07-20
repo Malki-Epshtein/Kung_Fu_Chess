@@ -8,6 +8,7 @@
 #include "../view/assets/CachingImageLoader.h"
 #include "../view/assets/AssetsRootConfig.h"
 #include "LoginFlow.h"
+#include "HomeScreenView.h"
 #include "../../shared/engine/GameSnapshot.h"
 #include <cstdint>
 #include <mutex>
@@ -71,7 +72,11 @@ public:
         if (!login.success)
             throw std::runtime_error("login failed, exiting");
 
-        client.setOnMessage([this](const std::string& text) { onMessage(text); });
+        // The game's own onMessage handler is installed later, in run() -
+        // only once a room has actually been joined via the Home screen.
+        // Until then, runHomeScreen() below needs the connection free to
+        // run its own blocking CreateRoom/JoinRoom request/reply exchange
+        // (same reasoning as login, just above).
         view.setPlayerNames(WHITE_PLAYER_NAME, BLACK_PLAYER_NAME);
     }
 

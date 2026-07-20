@@ -67,10 +67,21 @@ void GraphicalApplication::onMessage(const std::string& text) {
 }
 
 void GraphicalApplication::run() {
-    // Stage G2a: shown first, closes on ESC/window-close - Play/Room don't
-    // lead anywhere yet (G2b/G2c), so this is purely additive: everything
-    // below runs exactly as it did before, once the Home screen closes.
-    runHomeScreen();
+    // Shown first; blocks until a room is actually created/joined (Play
+    // isn't wired to anything yet - Stage H) or the user closes the
+    // window, which quits the app the same way closing the game window
+    // does today - there's nothing useful to show without a room.
+    HomeScreenResult home = runHomeScreen(client);
+    if (!home.joinedRoom) {
+        std::cout << "[client] exiting: Home screen closed without joining a room" << std::endl;
+        return;
+    }
+    view.setRoomName(home.roomName);
+
+    // Only installed now that a room is actually joined - runHomeScreen()
+    // needed the connection free for its own blocking CreateRoom/JoinRoom
+    // exchange (same reasoning as LoginFlow, in the constructor).
+    client.setOnMessage([this](const std::string& text) { onMessage(text); });
 
     cv::namedWindow(ViewConfig::WINDOW_NAME);
     cv::setMouseCallback(ViewConfig::WINDOW_NAME, onMouseEvent, &controller);

@@ -101,6 +101,7 @@
     <ClCompile Include="client\input\BoardMapper.cpp" />
     <ClCompile Include="client\input\Controller.cpp" />
     <ClCompile Include="client\net\WsClient.cpp" />
+    <ClCompile Include="client\net\BlockingRequest.cpp" />
     <ClCompile Include="client\app\LoginFlow.cpp" />
     <ClCompile Include="client\view\assets\AnimationConfig.cpp" />
     <ClCompile Include="client\view\assets\AnimationFrameSelector.cpp" />
@@ -128,6 +129,7 @@
     <ClInclude Include="client\app\HomeScreenView.h" />
     <ClInclude Include="client\app\RoomDialog.h" />
     <ClInclude Include="client\net\WsClient.h" />
+    <ClInclude Include="client\net\BlockingRequest.h" />
     <ClInclude Include="client\app\LoginFlow.h" />
     <ClInclude Include="client\input\BoardMapper.h" />
     <ClInclude Include="client\input\Controller.h" />

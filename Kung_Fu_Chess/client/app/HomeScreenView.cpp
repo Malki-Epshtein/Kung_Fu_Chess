@@ -1,20 +1,14 @@
 #include "HomeScreenView.h"
 #include "HomeScreen.h"
 #include "RoomDialog.h"
+#include "../net/BlockingRequest.h"
+#include "../../shared/protocol/Message.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <string>
 
 namespace {
     constexpr const char* kHomeWindowName = "Kung Fu Chess - Home";
-
-    void drawButton(cv::Mat& canvas, const ButtonBounds& bounds, const std::string& label) {
-        cv::Rect rect(bounds.x, bounds.y, bounds.width, bounds.height);
-        cv::rectangle(canvas, rect, cv::Scalar(200, 200, 200), cv::FILLED);
-        cv::rectangle(canvas, rect, cv::Scalar(80, 80, 80), 2);
-        cv::putText(canvas, label, cv::Point(bounds.x + 20, bounds.y + bounds.height / 2 + 8),
-                    cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 0), 2);
-    }
 
     // Set on the mouse callback, consumed by the loop in runHomeScreen()
     // below - deliberately NOT acted on inside the callback itself.
@@ -25,6 +19,14 @@ namespace {
     // clean point between cv::waitKey() calls avoids that entirely.
     HomeScreenChoice g_pendingChoice = HomeScreenChoice::None;
 
+    void drawButton(cv::Mat& canvas, const ButtonBounds& bounds, const std::string& label) {
+        cv::Rect rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        cv::rectangle(canvas, rect, cv::Scalar(200, 200, 200), cv::FILLED);
+        cv::rectangle(canvas, rect, cv::Scalar(80, 80, 80), 2);
+        cv::putText(canvas, label, cv::Point(bounds.x + 20, bounds.y + bounds.height / 2 + 8),
+                    cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 0), 2);
+    }
+
     void onHomeMouseEvent(int event, int x, int y, int /*flags*/, void* /*userdata*/) {
         if (event != cv::EVENT_LBUTTONDOWN)
             return;
@@ -32,9 +34,25 @@ namespace {
         if (choice != HomeScreenChoice::None)
             g_pendingChoice = choice;
     }
+
+    // Sends CreateRoom/JoinRoom for `roomName` and blocks for the reply.
+    // Empty on failure (message logged); non-empty is the room name to
+    // display, taken from the server's reply rather than echoing back
+    // whatever was typed, since the two can differ in principle.
+    std::string sendRoomRequest(WsClient& client, RoomDialogResult::Action action, const std::string& roomName) {
+        MessageType type = (action == RoomDialogResult::Action::Create) ? MessageType::CreateRoom : MessageType::JoinRoom;
+        Message request{ type, { {"name", roomName} } };
+        nlohmann::json reply = sendAndWaitForReply(client, request);
+
+        if (!reply.value("success", false)) {
+            std::cout << "[client] Room request failed: " << reply.value("message", "") << std::endl;
+            return {};
+        }
+        return reply.value("roomName", roomName);
+    }
 }
 
-void runHomeScreen() {
+HomeScreenResult runHomeScreen(WsClient& client) {
     cv::namedWindow(kHomeWindowName);
     cv::setMouseCallback(kHomeWindowName, onHomeMouseEvent, nullptr);
     std::cout << "[client] Home screen opened" << std::endl;
@@ -43,6 +61,7 @@ void runHomeScreen() {
     drawButton(canvas, HomeScreen::playButtonBounds(), "Play");
     drawButton(canvas, HomeScreen::roomButtonBounds(), "Room");
 
+    HomeScreenResult result;
     g_pendingChoice = HomeScreenChoice::None;
     while (true) {
         cv::imshow(kHomeWindowName, canvas);
@@ -63,8 +82,25 @@ void runHomeScreen() {
         } else if (g_pendingChoice == HomeScreenChoice::Room) {
             std::cout << "[client] Home: Room clicked" << std::endl;
             g_pendingChoice = HomeScreenChoice::None;
-            showRoomDialog();
+
+            RoomDialogResult dialogResult = showRoomDialog();
+            // Cancel, or Create/Join with nothing typed, is a no-op back
+            // to the Home screen - matches the plan's Cancel/empty-field
+            // behavior exactly.
+            if (dialogResult.action == RoomDialogResult::Action::Cancel || dialogResult.roomName.empty())
+                continue;
+
+            std::string joinedName = sendRoomRequest(client, dialogResult.action, dialogResult.roomName);
+            if (!joinedName.empty()) {
+                result.joinedRoom = true;
+                result.roomName   = joinedName;
+                break;
+            }
+            // Failure (e.g. "room already exists") already logged inside
+            // sendRoomRequest() - stay on the Home screen so the user can
+            // try again via the Room button.
         }
     }
     cv::destroyWindow(kHomeWindowName);
+    return result;
 }
