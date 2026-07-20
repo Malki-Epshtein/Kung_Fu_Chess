@@ -110,6 +110,42 @@ TEST_CASE("SessionRegistry - roomNames מחזיר את כל החדרים הקי�
     CHECK(names.size() == 2);
 }
 
+TEST_CASE("SessionRegistry - connectionsInRoom מחזיר את כל החיבורים של החדר") {
+    SessionRegistry registry;
+    EventBus bus;
+    registry.createRoom("room-a", makeBoard(), bus);
+
+    std::shared_ptr<int> a, b;
+    auto hdlA = handleFrom(a);
+    auto hdlB = handleFrom(b);
+    registry.joinRoom("room-a", hdlA);
+    registry.joinRoom("room-a", hdlB);
+
+    auto connections = registry.connectionsInRoom("room-a");
+    CHECK(connections.size() == 2);
+}
+
+TEST_CASE("SessionRegistry - connectionsInRoom לא כולל חיבורים של חדר אחר") {
+    SessionRegistry registry;
+    EventBus bus;
+    registry.createRoom("room-a", makeBoard(), bus);
+    registry.createRoom("room-b", makeBoard(), bus);
+
+    std::shared_ptr<int> a, b;
+    auto hdlA = handleFrom(a);
+    auto hdlB = handleFrom(b);
+    registry.joinRoom("room-a", hdlA);
+    registry.joinRoom("room-b", hdlB);
+
+    auto connections = registry.connectionsInRoom("room-a");
+    CHECK(connections.size() == 1);
+}
+
+TEST_CASE("SessionRegistry - connectionsInRoom מחזיר רשימה ריקה לחדר שלא קיים") {
+    SessionRegistry registry;
+    CHECK(registry.connectionsInRoom("no-such-room").empty());
+}
+
 TEST_CASE("SessionRegistry - חדרים שונים מנהלים תפקידים בנפרד") {
     SessionRegistry registry;
     EventBus bus;

@@ -5,6 +5,7 @@
 #include "../app/GameSession.h"
 #include "../app/SessionRegistry.h"
 #include "../app/NetworkBroadcaster.h"
+#include "../app/StartingBoard.h"
 #include "../db/UserRepository.h"
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
@@ -12,20 +13,22 @@
 #include <chrono>
 #include <functional>
 #include <iostream>
-#include <set>
+#include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace {
     using WsppServer = websocketpp::server<websocketpp::config::asio>;
-    using ConnectionSet = std::set<websocketpp::connection_hdl, std::owner_less<websocketpp::connection_hdl>>;
 
     const char* typeName(MessageType type) {
         switch (type) {
-            case MessageType::Hello:    return "HELLO";
-            case MessageType::Move:     return "MOVE";
-            case MessageType::Jump:     return "JUMP";
-            case MessageType::Snapshot: return "SNAPSHOT";
-            case MessageType::Login:    return "LOGIN";
+            case MessageType::Hello:      return "HELLO";
+            case MessageType::Move:       return "MOVE";
+            case MessageType::Jump:       return "JUMP";
+            case MessageType::Snapshot:   return "SNAPSHOT";
+            case MessageType::Login:      return "LOGIN";
+            case MessageType::CreateRoom: return "CREATE_ROOM";
+            case MessageType::JoinRoom:   return "JOIN_ROOM";
         }
         return "UNKNOWN";
     }
@@ -45,16 +48,36 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
     server.clear_error_channels(websocketpp::log::elevel::all);
     server.init_asio();
 
-    ConnectionSet connections;
+    // One NetworkBroadcaster per room, each subscribed only to that room's
+    // own topic (GameSession::snapshotTopic(roomName)) and sending only to
+    // that room's own connections - this is what keeps two rooms' snapshots
+    // from leaking into each other once more than one room exists (Stage G).
+    std::unordered_map<std::string, std::unique_ptr<NetworkBroadcaster>> broadcasters;
+    auto attachBroadcaster = [&server, &registry, &bus, &broadcasters](const std::string& roomName) {
+        broadcasters[roomName] = std::make_unique<NetworkBroadcaster>(
+            bus, GameSession::snapshotTopic(roomName),
+            [&server, &registry, roomName](const std::string& text) {
+                for (const auto& hdl : registry.connectionsInRoom(roomName)) {
+                    websocketpp::lib::error_code ec;
+                    server.send(hdl, text, websocketpp::frame::opcode::text, ec);
+                    if (ec)
+                        std::cout << "[server] broadcast send failed: " << ec.message() << std::endl;
+                }
+            });
+    };
+    // Any room that already existed when run() was called (e.g. the
+    // startup default room created by server_main.cpp) needs its
+    // broadcaster attached up front - rooms created later via CreateRoom
+    // get theirs attached at creation time, below.
+    for (const std::string& roomName : registry.roomNames())
+        attachBroadcaster(roomName);
 
-    server.set_open_handler([&connections, &registry](websocketpp::connection_hdl hdl) {
-        connections.insert(hdl);
-        registry.joinRoom(WsServer::kDefaultRoomName, hdl);
-        std::cout << "[server] client connected, assigned role: " << roleName(registry.roleOf(hdl)) << std::endl;
+    server.set_open_handler([](websocketpp::connection_hdl) {
+        // No room assignment happens here anymore (Stage G): a connection
+        // stays roomless until it explicitly sends CreateRoom or JoinRoom.
+        std::cout << "[server] client connected" << std::endl;
     });
-    server.set_close_handler([&connections, &registry, &server](websocketpp::connection_hdl hdl) {
-        connections.erase(hdl);
-
+    server.set_close_handler([&registry, &server](websocketpp::connection_hdl hdl) {
         // Capture the room name before leave() erases the association.
         std::string roomName;
         if (const std::string* name = registry.roomOf(hdl))
@@ -69,7 +92,7 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
         if (!roomName.empty() && (role == Chess::Color::White || role == Chess::Color::Black))
             registry.startDisconnectCountdown(roomName, role, server.get_io_service());
     });
-    server.set_message_handler([&server, &registry, &users](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
+    server.set_message_handler([&server, &registry, &users, &bus, &attachBroadcaster](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
         const std::string& text = msg->get_payload();
         Chess::Color senderRole = registry.roleOf(hdl);
 
@@ -87,6 +110,33 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
                 std::cout << "[server] login " << (result.success ? "OK" : "FAILED")
                            << " for '" << username << "': " << result.message << std::endl;
                 reply = { {"success", result.success}, {"message", result.message}, {"elo", result.elo} };
+            } else if (decoded.type == MessageType::CreateRoom) {
+                std::string name = decoded.payload.at("name").get<std::string>();
+                if (registry.roomExists(name)) {
+                    reply = { {"success", false}, {"message", "room already exists"} };
+                } else {
+                    registry.createRoom(name, makeStartingBoard(), bus, /*simultaneousMode=*/true);
+                    attachBroadcaster(name);
+                    // The creator becomes the room's first occupant (White) -
+                    // otherwise they'd have to immediately send a separate
+                    // JoinRoom right after creating it.
+                    registry.joinRoom(name, hdl);
+                    Chess::Color role = registry.roleOf(hdl);
+                    std::cout << "[server] room '" << name << "' created, creator assigned role: "
+                               << roleName(role) << std::endl;
+                    reply = { {"success", true}, {"message", "room created"}, {"role", roleName(role)} };
+                }
+            } else if (decoded.type == MessageType::JoinRoom) {
+                std::string name = decoded.payload.at("name").get<std::string>();
+                if (!registry.roomExists(name)) {
+                    reply = { {"success", false}, {"message", "room not found"} };
+                } else {
+                    registry.joinRoom(name, hdl);
+                    Chess::Color role = registry.roleOf(hdl);
+                    std::cout << "[server] joined room '" << name << "', assigned role: "
+                               << roleName(role) << std::endl;
+                    reply = { {"success", true}, {"message", "joined room"}, {"role", roleName(role)} };
+                }
             } else {
                 const std::string* roomName = registry.roomOf(hdl);
                 GameSession* gameSession = roomName ? registry.room(*roomName) : nullptr;
@@ -109,31 +159,17 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
         std::cout << "[server] replied: " << reply.dump() << std::endl;
     });
 
-    // Subscribes itself to the bus for as long as this function runs; on
-    // each published snapshot, sends the serialized text to every
-    // currently-connected client. One room today (Stage E2), so "everyone"
-    // is exactly that room's occupants - real per-room filtering arrives
-    // with real multi-room support in Stage G.
-    NetworkBroadcaster broadcaster(bus, [&server, &connections](const std::string& text) {
-        for (const auto& hdl : connections) {
-            websocketpp::lib::error_code ec;
-            server.send(hdl, text, websocketpp::frame::opcode::text, ec);
-            if (ec)
-                std::cout << "[server] broadcast send failed: " << ec.message() << std::endl;
-        }
-    });
-
     // Drives every room's GameSession::tick on a periodic asio timer, on
     // the same thread as the message handlers above - no locking needed,
-    // single writer. One room today; iterating the registry means this
-    // already scales to many without changing again later.
+    // single writer. Iterating the registry means this scales to however
+    // many rooms currently exist without changing again later.
     asio::steady_timer timer(server.get_io_service());
     std::function<void(const asio::error_code&)> onTick = [&](const asio::error_code& ec) {
         if (ec)
             return;
         for (const std::string& roomName : registry.roomNames()) {
             if (GameSession* gameSession = registry.room(roomName))
-                gameSession->tick(tickMs);
+                gameSession->tick(tickMs);//לכח אחד מפעילה את השעון
         }
         timer.expires_after(std::chrono::milliseconds(tickMs));
         timer.async_wait(onTick);

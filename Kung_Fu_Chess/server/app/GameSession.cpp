@@ -22,5 +22,5 @@ void GameSession::tick(int ms) {
             {"secondsRemaining", disconnectStatus_.secondsRemaining},
         };
     }
-    bus_.publish(kSnapshotTopic, payload);
+    bus_.publish(snapshotTopic(roomName_), payload);
 }

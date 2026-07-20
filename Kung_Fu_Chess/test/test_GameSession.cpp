@@ -6,11 +6,11 @@
 TEST_CASE("GameSession - tick מפרסם snapshot לנושא הנכון על ה-bus") {
     auto board = std::make_shared<Board>(8, 8);
     EventBus bus;
-    GameSession session(board, bus);
+    GameSession session(board, bus, "room-a");
 
     nlohmann::json received;
     bool called = false;
-    bus.subscribe(GameSession::kSnapshotTopic, [&](const nlohmann::json& data) {
+    bus.subscribe(GameSession::snapshotTopic("room-a"), [&](const nlohmann::json& data) {
         called = true;
         received = data;
     });
@@ -25,7 +25,7 @@ TEST_CASE("GameSession - tick מפרסם snapshot לנושא הנכון על ה-
 TEST_CASE("GameSession - חושף את ה-engine שלה לשימוש חיצוני (למשל CommandDispatcher)") {
     auto board = std::make_shared<Board>(8, 8);
     EventBus bus;
-    GameSession session(board, bus);
+    GameSession session(board, bus, "room-a");
 
     CHECK_FALSE(session.engine().isGameOver());
 }
@@ -35,10 +35,10 @@ TEST_CASE("GameSession - חושף את ה-engine שלה לשימוש חיצונ�
 TEST_CASE("GameSession - ללא ניתוק פעיל, השידור לא מכיל מפתח disconnect") {
     auto board = std::make_shared<Board>(8, 8);
     EventBus bus;
-    GameSession session(board, bus);
+    GameSession session(board, bus, "room-a");
 
     nlohmann::json received;
-    bus.subscribe(GameSession::kSnapshotTopic, [&](const nlohmann::json& data) { received = data; });
+    bus.subscribe(GameSession::snapshotTopic("room-a"), [&](const nlohmann::json& data) { received = data; });
 
     session.tick(30);
 
@@ -48,11 +48,11 @@ TEST_CASE("GameSession - ללא ניתוק פעיל, השידור לא מכיל 
 TEST_CASE("GameSession - ניתוק פעיל מתווסף לשידור הרגיל") {
     auto board = std::make_shared<Board>(8, 8);
     EventBus bus;
-    GameSession session(board, bus);
+    GameSession session(board, bus, "room-a");
     session.setDisconnectStatus({ true, Chess::Color::White, 17 });
 
     nlohmann::json received;
-    bus.subscribe(GameSession::kSnapshotTopic, [&](const nlohmann::json& data) { received = data; });
+    bus.subscribe(GameSession::snapshotTopic("room-a"), [&](const nlohmann::json& data) { received = data; });
 
     session.tick(30);
 

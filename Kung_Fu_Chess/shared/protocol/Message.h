@@ -6,7 +6,9 @@ enum class MessageType {
     Move,
     Jump,
     Snapshot,
-    Login
+    Login,
+    CreateRoom,
+    JoinRoom
 };
 
 struct Message {

@@ -61,6 +61,12 @@ DispatchResult CommandDispatcher::dispatch(const Message& message, GameEngine& e
                 // (it's an identity operation, not a GameEngine action) -
                 // this case only exists so the switch stays exhaustive.
                 return { false, "login must be handled before dispatch" };
+            case MessageType::CreateRoom:
+            case MessageType::JoinRoom:
+                // Same reasoning as LOGIN: WsServer intercepts these before
+                // dispatch (they act on the SessionRegistry, not on a
+                // specific room's GameEngine).
+                return { false, "room messages must be handled before dispatch" };
         }
         return { false, "unknown message type" };
     } catch (const std::exception& e) {

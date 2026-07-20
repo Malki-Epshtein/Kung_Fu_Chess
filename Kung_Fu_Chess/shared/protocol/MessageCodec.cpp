@@ -9,6 +9,8 @@ namespace {
         { MessageType::Jump,     "JUMP"     },
         { MessageType::Snapshot, "SNAPSHOT" },
         { MessageType::Login,    "LOGIN"    },
+        { MessageType::CreateRoom, "CREATE_ROOM" },
+        { MessageType::JoinRoom,   "JOIN_ROOM"   },
     };
 
     MessageType nameToType(const std::string& name) {

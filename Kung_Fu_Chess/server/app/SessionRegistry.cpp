@@ -21,7 +21,7 @@ bool SessionRegistry::createRoom(const std::string& name, std::shared_ptr<Board>
         return false;
 
     Room room;
-    room.session = std::make_unique<GameSession>(board, bus, simultaneousMode);
+    room.session = std::make_unique<GameSession>(board, bus, name, simultaneousMode);
     rooms_.emplace(name, std::move(room));
     return true;
 }
@@ -75,6 +75,17 @@ Chess::Color SessionRegistry::leave(ConnectionHandle hdl) {
     }
     connectionRoom_.erase(roomIt);
     return role;
+}
+
+std::vector<SessionRegistry::ConnectionHandle> SessionRegistry::connectionsInRoom(const std::string& name) const {
+    std::vector<ConnectionHandle> result;
+    auto it = rooms_.find(name);
+    if (it == rooms_.end())
+        return result;
+    result.reserve(it->second.roles.size());
+    for (const auto& [hdl, role] : it->second.roles)
+        result.push_back(hdl);
+    return result;
 }
 
 const std::string* SessionRegistry::roomOf(ConnectionHandle hdl) const {

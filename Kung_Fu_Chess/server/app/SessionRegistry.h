@@ -44,6 +44,11 @@ public:
     // caller (disconnect handling) knows whether to start a countdown.
     Chess::Color leave(ConnectionHandle hdl);
 
+    // Every connection currently in room `name` (players and spectators
+    // alike) - empty if the room doesn't exist. Used to scope broadcasts to
+    // just that room's occupants (Stage G).
+    std::vector<ConnectionHandle> connectionsInRoom(const std::string& name) const;
+
     // Which room (if any) a connection belongs to; nullptr if none.
     const std::string* roomOf(ConnectionHandle hdl) const;
 
@@ -59,10 +64,10 @@ public:
 private:
     struct Room {
         std::unique_ptr<GameSession> session;
-        std::map<ConnectionHandle, Chess::Color, std::owner_less<ConnectionHandle>> roles;
+        std::map<ConnectionHandle, Chess::Color, std::owner_less<ConnectionHandle>> roles;//את כל המשתמשים פלוס הלקוחות
         int connectionCount = 0;
     };
 
     std::unordered_map<std::string, Room> rooms_;
-    std::map<ConnectionHandle, std::string, std::owner_less<ConnectionHandle>> connectionRoom_;
+    std::map<ConnectionHandle, std::string, std::owner_less<ConnectionHandle>> connectionRoom_;//לבדוק באיזה חדר נמצא המתשמש הספציפי שלי עשכיו
 };
