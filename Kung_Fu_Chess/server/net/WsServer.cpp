@@ -5,6 +5,7 @@
 #include "../app/GameSession.h"
 #include "../app/SessionRegistry.h"
 #include "../app/ClientSessionRegistry.h"
+#include "../app/Matchmaker.h"
 #include "../app/NetworkBroadcaster.h"
 #include "../app/StartingBoard.h"
 #include "../db/UserRepository.h"
@@ -81,12 +82,18 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
     // can't just claim whatever ELO it wants to game the ±100 match window.
     ClientSessionRegistry clientSessions;
 
+    // Stage H: waiting pool for FindGame, and the counter behind
+    // matchmaking-created rooms' ids (prefixed so they can never collide
+    // with a user-typed Create/Join room name).
+    Matchmaker matchmaker;
+    int        nextMatchId = 1;
+
     server.set_open_handler([](websocketpp::connection_hdl) {
         // No room assignment happens here anymore (Stage G): a connection
         // stays roomless until it explicitly sends CreateRoom or JoinRoom.
         std::cout << "[server] client connected" << std::endl;
     });
-    server.set_close_handler([&registry, &server, &clientSessions](websocketpp::connection_hdl hdl) {
+    server.set_close_handler([&registry, &server, &clientSessions, &matchmaker](websocketpp::connection_hdl hdl) {
         // Capture the room name before leave() erases the association.
         std::string roomName;
         if (const std::string* name = registry.roomOf(hdl))
@@ -96,6 +103,7 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
         std::cout << "[server] client disconnected (was " << roleName(role) << ")" << std::endl;
 
         clientSessions.onDisconnect(hdl);
+        matchmaker.remove(hdl); // no-op if it wasn't waiting for a match
 
         // Disconnect grace-period countdown (Stage D, owned by the registry
         // since Stage E3): started when a seated player (White/Black)
@@ -103,7 +111,7 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
         if (!roomName.empty() && (role == Chess::Color::White || role == Chess::Color::Black))
             registry.startDisconnectCountdown(roomName, role, server.get_io_service());
     });
-    server.set_message_handler([&server, &registry, &users, &bus, &attachBroadcaster, &clientSessions](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
+    server.set_message_handler([&server, &registry, &users, &bus, &attachBroadcaster, &clientSessions, &matchmaker, &nextMatchId](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
         const std::string& text = msg->get_payload();
         Chess::Color senderRole = registry.roleOf(hdl);
 
@@ -149,6 +157,60 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
                     std::cout << "[server] joined room '" << name << "', assigned role: "
                                << roleName(role) << std::endl;
                     reply = { {"success", true}, {"message", "joined room"}, {"role", roleName(role)}, {"roomName", name} };
+                }
+            } else if (decoded.type == MessageType::FindGame) {
+                const ClientSession* session = clientSessions.sessionFor(hdl);
+                if (!session) {
+                    reply = { {"success", false}, {"message", "must be logged in to find a game"} };
+                } else {
+                    auto opponent = matchmaker.findMatch(session->elo);
+                    if (opponent) {
+                        matchmaker.remove(*opponent);
+                        std::string name = "match-" + std::to_string(nextMatchId++);
+                        registry.createRoom(name, makeStartingBoard(), bus, /*simultaneousMode=*/true);
+                        attachBroadcaster(name);
+                        registry.joinRoom(name, *opponent); // was waiting first -> White
+                        registry.joinRoom(name, hdl);        // just matched -> Black
+
+                        // The opponent isn't expecting a reply right now - this
+                        // is the first server->client PUSH in the protocol
+                        // (see Message.h), sent unprompted outside the normal
+                        // reply flow below.
+                        Message opponentMsg{ MessageType::GameFound,
+                            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry.roleOf(*opponent))} } };
+                        websocketpp::lib::error_code ec;
+                        server.send(*opponent, MessageCodec::encode(opponentMsg), websocketpp::frame::opcode::text, ec);
+                        if (ec)
+                            std::cout << "[server] GameFound push failed: " << ec.message() << std::endl;
+
+                        // The sender DOES get the normal reply flow below,
+                        // but shaped as the same GameFound envelope so both
+                        // players receive an identical message shape.
+                        Message senderMsg{ MessageType::GameFound,
+                            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry.roleOf(hdl))} } };
+                        reply = nlohmann::json::parse(MessageCodec::encode(senderMsg));
+                        std::cout << "[server] matched '" << name << "' via FindGame" << std::endl;
+                    } else {
+                        matchmaker.addToPool(hdl, session->elo);
+                        reply = { {"success", true}, {"message", "searching for opponent"} };
+
+                        // 60s search timeout - same asio::steady_timer
+                        // pattern as the Stage D disconnect countdown.
+                        // isWaiting() tells a real timeout apart from
+                        // "already matched by someone else's FindGame in
+                        // the meantime, this firing is now moot".
+                        auto timer = std::make_shared<asio::steady_timer>(server.get_io_service());
+                        timer->expires_after(std::chrono::seconds(60));
+                        timer->async_wait([&server, &matchmaker, hdl, timer](const asio::error_code& ec) {
+                            if (ec || !matchmaker.isWaiting(hdl))
+                                return;
+                            matchmaker.remove(hdl);
+                            Message timeoutMsg{ MessageType::GameFound, { {"success", false}, {"message", "no players available"} } };
+                            websocketpp::lib::error_code sendEc;
+                            server.send(hdl, MessageCodec::encode(timeoutMsg), websocketpp::frame::opcode::text, sendEc);
+                            std::cout << "[server] FindGame timed out, no match found" << std::endl;
+                        });
+                    }
                 }
             } else {
                 const std::string* roomName = registry.roomOf(hdl);

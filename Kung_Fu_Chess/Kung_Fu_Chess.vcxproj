@@ -186,6 +186,7 @@
     <ClCompile Include="server\app\NetworkBroadcaster.cpp" />
     <ClCompile Include="server\app\SessionRegistry.cpp" />
     <ClCompile Include="server\app\ClientSessionRegistry.cpp" />
+    <ClCompile Include="server\app\Matchmaker.cpp" />
     <ClCompile Include="server\db\UserRepository.cpp" />
     <ClCompile Include="ThirdParty\sqlite3.c">
       <!-- Vendored file (not our code): uses the deprecated GetVersionEx
@@ -351,6 +352,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="test\test_Matchmaker.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="test\test_UserRepository.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -399,6 +404,7 @@
     <ClInclude Include="server\app\SessionRegistry.h" />
     <ClInclude Include="server\app\ClientSession.h" />
     <ClInclude Include="server\app\ClientSessionRegistry.h" />
+    <ClInclude Include="server\app\Matchmaker.h" />
     <ClInclude Include="server\db\UserRepository.h" />
     <ClInclude Include="ThirdParty\sqlite3.h" />
     <ClInclude Include="ThirdParty\sqlite3ext.h" />
