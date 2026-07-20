@@ -24,6 +24,10 @@ Release/
 *.lastbuildstate
 *.FileListAbsolute.txt
 
+# Editor-local, machine-specific (e.g. hardcoded absolute toolchain
+# paths) - not useful to anyone else who clones the repo.
+.vscode/
+
 # Runtime-generated SQLite user database (Stage F) - created fresh by
 # UserRepository on first run; never commit real account/password data.
 users.db
