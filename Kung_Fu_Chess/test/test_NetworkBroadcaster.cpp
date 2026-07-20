@@ -1,6 +1,6 @@
 #include "../doctest.h"
-#include "../server/app/NetworkBroadcaster.h"
-#include "../server/app/GameSession.h"
+#include "../server/app/networking/NetworkBroadcaster.h"
+#include "../server/app/session/GameSession.h"
 
 TEST_CASE("NetworkBroadcaster - שולח את ה-snapshot המפורסם דרך ה-sender שלו") {
     EventBus bus;

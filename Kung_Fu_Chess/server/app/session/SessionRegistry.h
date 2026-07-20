@@ -1,7 +1,7 @@
 #pragma once
 #include "GameSession.h"
-#include "../../shared/bus/EventBus.h"
-#include "../../shared/model/Piece.h"
+#include "../../../shared/bus/EventBus.h"
+#include "../../../shared/model/Piece.h"
 #include <websocketpp/common/connection_hdl.hpp>
 #include <asio/io_context.hpp>
 #include <map>

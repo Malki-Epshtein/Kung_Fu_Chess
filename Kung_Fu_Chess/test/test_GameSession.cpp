@@ -1,5 +1,5 @@
 #include "../doctest.h"
-#include "../server/app/GameSession.h"
+#include "../server/app/session/GameSession.h"
 #include "../shared/model/Board.h"
 #include <memory>
 

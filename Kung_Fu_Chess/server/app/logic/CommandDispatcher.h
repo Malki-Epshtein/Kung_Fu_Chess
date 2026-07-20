@@ -1,7 +1,7 @@
 #pragma once
-#include "../../shared/protocol/Message.h"
-#include "../../shared/model/Piece.h"
-#include "../engine/GameEngine.h"
+#include "../../../shared/protocol/Message.h"
+#include "../../../shared/model/Piece.h"
+#include "../../engine/GameEngine.h"
 #include <string>
 
 struct DispatchResult {

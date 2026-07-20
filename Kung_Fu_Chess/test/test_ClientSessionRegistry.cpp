@@ -1,5 +1,5 @@
 #include "../doctest.h"
-#include "../server/app/ClientSessionRegistry.h"
+#include "../server/app/session/ClientSessionRegistry.h"
 #include <memory>
 
 namespace {

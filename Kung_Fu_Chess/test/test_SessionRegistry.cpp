@@ -1,5 +1,5 @@
 #include "../doctest.h"
-#include "../server/app/SessionRegistry.h"
+#include "../server/app/session/SessionRegistry.h"
 #include "../shared/model/Board.h"
 #include <memory>
 

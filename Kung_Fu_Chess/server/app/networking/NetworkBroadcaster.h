@@ -1,5 +1,5 @@
 #pragma once
-#include "../../shared/bus/EventBus.h"
+#include "../../../shared/bus/EventBus.h"
 #include <functional>
 #include <string>
 

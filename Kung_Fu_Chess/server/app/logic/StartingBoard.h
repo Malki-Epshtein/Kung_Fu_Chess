@@ -1,5 +1,5 @@
 #pragma once
-#include "../../shared/model/Board.h"
+#include "../../../shared/model/Board.h"
 #include <memory>
 
 // The standard starting position, used to seed every new room (the

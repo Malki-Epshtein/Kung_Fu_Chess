@@ -1,5 +1,5 @@
 #include "../doctest.h"
-#include "../server/app/Matchmaker.h"
+#include "../server/app/logic/Matchmaker.h"
 #include <memory>
 
 namespace {

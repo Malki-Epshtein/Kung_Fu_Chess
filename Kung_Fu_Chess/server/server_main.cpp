@@ -1,6 +1,6 @@
 #include "net/WsServer.h"
-#include "app/SessionRegistry.h"
-#include "app/StartingBoard.h"
+#include "app/session/SessionRegistry.h"
+#include "app/logic/StartingBoard.h"
 #include "db/UserRepository.h"
 #include "../shared/bus/EventBus.h"
 #include <iostream>

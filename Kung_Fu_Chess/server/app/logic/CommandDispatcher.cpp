@@ -1,7 +1,7 @@
 #include "CommandDispatcher.h"
-#include "../input/MoveCommand.h"
-#include "../input/JumpCommand.h"
-#include "../../shared/model/Position.h"
+#include "../../input/MoveCommand.h"
+#include "../../input/JumpCommand.h"
+#include "../../../shared/model/Position.h"
 #include <exception>
 
 namespace {

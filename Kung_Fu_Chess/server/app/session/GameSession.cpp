@@ -1,5 +1,5 @@
 #include "GameSession.h"
-#include "../../shared/protocol/GameSnapshotCodec.h"
+#include "../../../shared/protocol/GameSnapshotCodec.h"
 
 namespace {
     const char* colorName(Chess::Color color) {

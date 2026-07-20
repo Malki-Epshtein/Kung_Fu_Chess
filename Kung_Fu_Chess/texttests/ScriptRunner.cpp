@@ -3,7 +3,7 @@
 #include "../server/io/BoardParser.h"
 #include "../server/io/BoardPrinter.h"
 #include "../server/engine/GameEngine.h"
-#include "../server/app/CommandDispatcher.h"
+#include "../server/app/logic/CommandDispatcher.h"
 #include "../client/input/BoardMapper.h"
 #include "../client/view/ViewConfig.h"
 #include "../shared/input/ClickResolver.h"

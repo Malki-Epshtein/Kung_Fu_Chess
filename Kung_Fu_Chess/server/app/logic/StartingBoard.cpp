@@ -1,5 +1,5 @@
 #include "StartingBoard.h"
-#include "../io/BoardParser.h"
+#include "../../io/BoardParser.h"
 #include <sstream>
 
 std::shared_ptr<Board> makeStartingBoard() {

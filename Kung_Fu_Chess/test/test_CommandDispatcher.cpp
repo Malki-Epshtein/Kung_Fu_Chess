@@ -1,5 +1,5 @@
 #include "../doctest.h"
-#include "../server/app/CommandDispatcher.h"
+#include "../server/app/logic/CommandDispatcher.h"
 #include "../shared/model/Board.h"
 #include <memory>
 

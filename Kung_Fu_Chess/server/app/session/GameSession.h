@@ -1,7 +1,7 @@
 #pragma once
-#include "../engine/GameEngine.h"
-#include "../../shared/bus/EventBus.h"
-#include "../../shared/model/Piece.h"
+#include "../../engine/GameEngine.h"
+#include "../../../shared/bus/EventBus.h"
+#include "../../../shared/model/Piece.h"
 #include <memory>
 #include <string>
 
