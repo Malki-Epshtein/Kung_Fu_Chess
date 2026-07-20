@@ -71,17 +71,17 @@ void GraphicalApplication::run() {
     // isn't wired to anything yet - Stage H) or the user closes the
     // window, which quits the app the same way closing the game window
     // does today - there's nothing useful to show without a room.
-    HomeScreenResult home = runHomeScreen(client);
+    HomeScreenResult home = runHomeScreen(client);//כל מסך הבית קורה עעכשיו
     if (!home.joinedRoom) {
         std::cout << "[client] exiting: Home screen closed without joining a room" << std::endl;
         return;
     }
-    view.setRoomName(home.roomName);
+    view.setRoomName(home.roomName);//שומרים את שם החדר שהמשתמש הצטרף אליו כדי להציג אותו על המסך
 
     // Only installed now that a room is actually joined - runHomeScreen()
     // needed the connection free for its own blocking CreateRoom/JoinRoom
     // exchange (same reasoning as LoginFlow, in the constructor).
-    client.setOnMessage([this](const std::string& text) { onMessage(text); });
+    client.setOnMessage([this](const std::string& text) { onMessage(text); });//אני מחכה עש שיהיה לי תשובה
 
     cv::namedWindow(ViewConfig::WINDOW_NAME);
     cv::setMouseCallback(ViewConfig::WINDOW_NAME, onMouseEvent, &controller);

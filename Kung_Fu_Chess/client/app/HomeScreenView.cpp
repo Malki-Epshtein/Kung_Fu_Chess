@@ -87,7 +87,7 @@ namespace {
 
     // Non-blocking: returns the GAME_FOUND payload once startFindGame()'s
     // push has arrived, nullopt otherwise (keep waiting).
-    std::optional<nlohmann::json> pollGameFound() {
+    std::optional<nlohmann::json> pollGameFound() {//אם כבר נמצא לי שחקן או לא
         std::lock_guard<std::mutex> lock(g_findGameMutex);
         if (!g_gameFoundResult)
             return std::nullopt;
@@ -99,7 +99,7 @@ namespace {
 
 HomeScreenResult runHomeScreen(WsClient& client) {
     cv::namedWindow(kHomeWindowName);
-    cv::setMouseCallback(kHomeWindowName, onHomeMouseEvent, nullptr);
+    cv::setMouseCallback(kHomeWindowName, onHomeMouseEvent, nullptr);//כשמישהו ילחץ עם העכבר על הכפתור של הבית זה יפעיל את הפונקציה הזאת
     std::cout << "[client] Home screen opened" << std::endl;
 
     cv::Mat canvas(500, 800, CV_8UC3, cv::Scalar(40, 40, 40));
@@ -127,7 +127,7 @@ HomeScreenResult runHomeScreen(WsClient& client) {
             break;
         }
 
-        if (searching) {
+        if (searching) {//אם אתה בחיפוש
             std::optional<nlohmann::json> found = pollGameFound();
             if (found) {
                 searching = false;
@@ -139,23 +139,23 @@ HomeScreenResult runHomeScreen(WsClient& client) {
                 std::cout << "[client] FindGame failed: " << found->value("message", "") << std::endl;
                 showRoomError(found->value("message", "no players available"));
             }
-        } else if (g_pendingChoice == HomeScreenChoice::Play) {
+        } else if (g_pendingChoice == HomeScreenChoice::Play) {//אם לחצץ על PLAY
             std::cout << "[client] Home: Play clicked" << std::endl;
             g_pendingChoice = HomeScreenChoice::None;
             startFindGame(client);
             searching = true;
-        } else if (g_pendingChoice == HomeScreenChoice::Room) {
+        } else if (g_pendingChoice == HomeScreenChoice::Room) {//אם לחצת על ROOM
             std::cout << "[client] Home: Room clicked" << std::endl;
             g_pendingChoice = HomeScreenChoice::None;
 
-            RoomDialogResult dialogResult = showRoomDialog();
+            RoomDialogResult dialogResult = showRoomDialog();//פותח את חלון הROOM ומחכה למשתמש לבחור אם הוא רוצה ליצור חדר או להצטרף לחדר קיים
             // Cancel, or Create/Join with nothing typed, is a no-op back
             // to the Home screen - matches the plan's Cancel/empty-field
             // behavior exactly.
             if (dialogResult.action == RoomDialogResult::Action::Cancel || dialogResult.roomName.empty())
                 continue;
 
-            std::string joinedName = sendRoomRequest(client, dialogResult.action, dialogResult.roomName);
+            std::string joinedName = sendRoomRequest(client, dialogResult.action, dialogResult.roomName);//שולח בקשה לפתיחת חדר או להצטרף לחדר קיים
             if (!joinedName.empty()) {
                 result.joinedRoom = true;
                 result.roomName   = joinedName;

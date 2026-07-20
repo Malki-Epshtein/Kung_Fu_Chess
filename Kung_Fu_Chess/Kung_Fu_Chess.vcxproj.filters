@@ -37,6 +37,9 @@
     <Filter Include="app\logic">
       <UniqueIdentifier>{41413a52-d19e-4a0e-928d-3110ad0bd16c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="app\handlers">
+      <UniqueIdentifier>{dfbce6a9-44e5-4b87-8d4e-529a951045a6}</UniqueIdentifier>
+    </Filter>
     <Filter Include="net">
       <UniqueIdentifier>{29d91015-7449-4c96-bd85-f5462ab9a81d}</UniqueIdentifier>
     </Filter>
@@ -93,6 +96,9 @@
     <ClCompile Include="server\app\session\ClientSessionRegistry.cpp">
       <Filter>app\session</Filter>
     </ClCompile>
+    <ClCompile Include="server\app\session\ConnectionHandler.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
     <ClCompile Include="test\test_GameSession.cpp">
       <Filter>app\session</Filter>
     </ClCompile>
@@ -102,10 +108,19 @@
     <ClCompile Include="test\test_ClientSessionRegistry.cpp">
       <Filter>app\session</Filter>
     </ClCompile>
+    <ClCompile Include="test\test_ConnectionHandler.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
     <ClCompile Include="server\app\networking\NetworkBroadcaster.cpp">
       <Filter>app\networking</Filter>
     </ClCompile>
+    <ClCompile Include="server\app\networking\BroadcasterManager.cpp">
+      <Filter>app\networking</Filter>
+    </ClCompile>
     <ClCompile Include="test\test_NetworkBroadcaster.cpp">
+      <Filter>app\networking</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_BroadcasterManager.cpp">
       <Filter>app\networking</Filter>
     </ClCompile>
     <ClCompile Include="server\app\logic\CommandDispatcher.cpp">
@@ -116,6 +131,42 @@
     </ClCompile>
     <ClCompile Include="server\app\logic\StartingBoard.cpp">
       <Filter>app\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\handlers\LoginHandler.cpp">
+      <Filter>app\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\handlers\CreateRoomHandler.cpp">
+      <Filter>app\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\handlers\JoinRoomHandler.cpp">
+      <Filter>app\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\handlers\FindGameHandler.cpp">
+      <Filter>app\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\handlers\MessageRouter.cpp">
+      <Filter>app\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\handlers\MessageDispatcher.cpp">
+      <Filter>app\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_LoginHandler.cpp">
+      <Filter>app\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_CreateRoomHandler.cpp">
+      <Filter>app\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_JoinRoomHandler.cpp">
+      <Filter>app\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_FindGameHandler.cpp">
+      <Filter>app\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_MessageRouter.cpp">
+      <Filter>app\handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_MessageDispatcher.cpp">
+      <Filter>app\handlers</Filter>
     </ClCompile>
     <ClCompile Include="test\test_CommandDispatcher.cpp">
       <Filter>app\logic</Filter>
@@ -374,7 +425,13 @@
     <ClInclude Include="server\app\session\ClientSessionRegistry.h">
       <Filter>app\session</Filter>
     </ClInclude>
+    <ClInclude Include="server\app\session\ConnectionHandler.h">
+      <Filter>app\session</Filter>
+    </ClInclude>
     <ClInclude Include="server\app\networking\NetworkBroadcaster.h">
+      <Filter>app\networking</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\networking\BroadcasterManager.h">
       <Filter>app\networking</Filter>
     </ClInclude>
     <ClInclude Include="server\app\logic\CommandDispatcher.h">
@@ -385,6 +442,30 @@
     </ClInclude>
     <ClInclude Include="server\app\logic\StartingBoard.h">
       <Filter>app\logic</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\session\RoleName.h">
+      <Filter>app\session</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\handlers\IMessageHandler.h">
+      <Filter>app\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\handlers\LoginHandler.h">
+      <Filter>app\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\handlers\CreateRoomHandler.h">
+      <Filter>app\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\handlers\JoinRoomHandler.h">
+      <Filter>app\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\handlers\FindGameHandler.h">
+      <Filter>app\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\handlers\MessageRouter.h">
+      <Filter>app\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\handlers\MessageDispatcher.h">
+      <Filter>app\handlers</Filter>
     </ClInclude>
     <ClInclude Include="server\net\WsServer.h">
       <Filter>net</Filter>

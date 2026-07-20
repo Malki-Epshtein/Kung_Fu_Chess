@@ -184,8 +184,10 @@
     <ClCompile Include="shared\protocol\GameSnapshotCodec.cpp" />
     <ClCompile Include="server\app\session\GameSession.cpp" />
     <ClCompile Include="server\app\networking\NetworkBroadcaster.cpp" />
+    <ClCompile Include="server\app\networking\BroadcasterManager.cpp" />
     <ClCompile Include="server\app\session\SessionRegistry.cpp" />
     <ClCompile Include="server\app\session\ClientSessionRegistry.cpp" />
+    <ClCompile Include="server\app\session\ConnectionHandler.cpp" />
     <ClCompile Include="server\app\logic\Matchmaker.cpp" />
     <ClCompile Include="server\db\UserRepository.cpp" />
     <ClCompile Include="ThirdParty\sqlite3.c">
@@ -199,6 +201,12 @@
     <ClCompile Include="server\net\WsServer.cpp" />
     <ClCompile Include="server\app\logic\CommandDispatcher.cpp" />
     <ClCompile Include="server\app\logic\StartingBoard.cpp" />
+    <ClCompile Include="server\app\handlers\LoginHandler.cpp" />
+    <ClCompile Include="server\app\handlers\CreateRoomHandler.cpp" />
+    <ClCompile Include="server\app\handlers\JoinRoomHandler.cpp" />
+    <ClCompile Include="server\app\handlers\FindGameHandler.cpp" />
+    <ClCompile Include="server\app\handlers\MessageRouter.cpp" />
+    <ClCompile Include="server\app\handlers\MessageDispatcher.cpp" />
     <ClCompile Include="client\net\WsClient.cpp" />
     <ClCompile Include="client\net\BlockingRequest.cpp" />
     <ClCompile Include="client\app\LoginFlow.cpp" />
@@ -360,6 +368,38 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="test\test_LoginHandler.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_CreateRoomHandler.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_JoinRoomHandler.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_FindGameHandler.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_MessageRouter.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_BroadcasterManager.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_ConnectionHandler.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_MessageDispatcher.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="test\test_ClickResolver.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -401,9 +441,11 @@
     <ClInclude Include="shared\protocol\GameSnapshotCodec.h" />
     <ClInclude Include="server\app\session\GameSession.h" />
     <ClInclude Include="server\app\networking\NetworkBroadcaster.h" />
+    <ClInclude Include="server\app\networking\BroadcasterManager.h" />
     <ClInclude Include="server\app\session\SessionRegistry.h" />
     <ClInclude Include="server\app\session\ClientSession.h" />
     <ClInclude Include="server\app\session\ClientSessionRegistry.h" />
+    <ClInclude Include="server\app\session\ConnectionHandler.h" />
     <ClInclude Include="server\app\logic\Matchmaker.h" />
     <ClInclude Include="server\db\UserRepository.h" />
     <ClInclude Include="ThirdParty\sqlite3.h" />
@@ -411,6 +453,14 @@
     <ClInclude Include="server\net\WsServer.h" />
     <ClInclude Include="server\app\logic\CommandDispatcher.h" />
     <ClInclude Include="server\app\logic\StartingBoard.h" />
+    <ClInclude Include="server\app\session\RoleName.h" />
+    <ClInclude Include="server\app\handlers\IMessageHandler.h" />
+    <ClInclude Include="server\app\handlers\LoginHandler.h" />
+    <ClInclude Include="server\app\handlers\CreateRoomHandler.h" />
+    <ClInclude Include="server\app\handlers\JoinRoomHandler.h" />
+    <ClInclude Include="server\app\handlers\FindGameHandler.h" />
+    <ClInclude Include="server\app\handlers\MessageRouter.h" />
+    <ClInclude Include="server\app\handlers\MessageDispatcher.h" />
     <ClInclude Include="client\net\WsClient.h" />
     <ClInclude Include="client\net\BlockingRequest.h" />
     <ClInclude Include="client\app\LoginFlow.h" />
