@@ -155,6 +155,7 @@
     <ClCompile Include="server\engine\ScoreObserver.cpp" />
     <ClCompile Include="server\engine\MoveLogObserver.cpp" />
     <ClCompile Include="client\input\BoardMapper.cpp" />
+    <ClCompile Include="client\app\HomeScreen.cpp" />
     <ClCompile Include="client\input\Controller.cpp" />
     <ClCompile Include="server\input\MoveCommand.cpp" />
     <ClCompile Include="server\input\JumpCommand.cpp" />
@@ -227,6 +228,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="test\test_Controller.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_HomeScreen.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -398,6 +403,7 @@
     <ClInclude Include="server\engine\ScoreObserver.h" />
     <ClInclude Include="server\engine\MoveLogObserver.h" />
     <ClInclude Include="client\input\BoardMapper.h" />
+    <ClInclude Include="client\app\HomeScreen.h" />
     <ClInclude Include="client\input\Controller.h" />
     <ClInclude Include="server\input\Command.h" />
     <ClInclude Include="server\input\MoveCommand.h" />

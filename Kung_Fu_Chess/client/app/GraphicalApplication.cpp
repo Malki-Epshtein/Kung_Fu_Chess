@@ -1,4 +1,5 @@
 #include "GraphicalApplication.h"
+#include "HomeScreenView.h"
 #include "../view/ViewConfig.h"
 #include "../../shared/protocol/GameSnapshotCodec.h"
 #include <opencv2/opencv.hpp>
@@ -66,6 +67,11 @@ void GraphicalApplication::onMessage(const std::string& text) {
 }
 
 void GraphicalApplication::run() {
+    // Stage G2a: shown first, closes on ESC/window-close - Play/Room don't
+    // lead anywhere yet (G2b/G2c), so this is purely additive: everything
+    // below runs exactly as it did before, once the Home screen closes.
+    runHomeScreen();
+
     cv::namedWindow(ViewConfig::WINDOW_NAME);
     cv::setMouseCallback(ViewConfig::WINDOW_NAME, onMouseEvent, &controller);
     std::cout << "[client] window opened, entering render loop" << std::endl;

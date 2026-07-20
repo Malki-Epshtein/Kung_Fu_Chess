@@ -95,6 +95,8 @@
   <ItemGroup>
     <ClCompile Include="client\client_main.cpp" />
     <ClCompile Include="client\app\GraphicalApplication.cpp" />
+    <ClCompile Include="client\app\HomeScreen.cpp" />
+    <ClCompile Include="client\app\HomeScreenView.cpp" />
     <ClCompile Include="client\input\BoardMapper.cpp" />
     <ClCompile Include="client\input\Controller.cpp" />
     <ClCompile Include="client\net\WsClient.cpp" />
@@ -121,6 +123,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="client\app\GraphicalApplication.h" />
+    <ClInclude Include="client\app\HomeScreen.h" />
+    <ClInclude Include="client\app\HomeScreenView.h" />
     <ClInclude Include="client\net\WsClient.h" />
     <ClInclude Include="client\app\LoginFlow.h" />
     <ClInclude Include="client\input\BoardMapper.h" />
