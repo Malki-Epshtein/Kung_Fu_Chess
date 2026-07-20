@@ -3,8 +3,11 @@
 #include "RoomDialog.h"
 #include "../net/BlockingRequest.h"
 #include "../../shared/protocol/Message.h"
+#include "../../shared/protocol/MessageCodec.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <mutex>
+#include <optional>
 #include <string>
 
 namespace {
@@ -18,6 +21,15 @@ namespace {
     // closing itself immediately). Deferring the actual handling to a
     // clean point between cv::waitKey() calls avoids that entirely.
     HomeScreenChoice g_pendingChoice = HomeScreenChoice::None;
+
+    // FindGame can take up to 60s to resolve (see WsServer.cpp) - blocking
+    // the Home screen loop for that long would freeze the window (no
+    // rendering, no ESC). So unlike Room's sendAndWaitForReply, Play
+    // installs its own onMessage handler that just stashes any GAME_FOUND
+    // push here; the main loop below polls it once per frame instead of
+    // blocking on it.
+    std::mutex                     g_findGameMutex;
+    std::optional<nlohmann::json>  g_gameFoundResult;
 
     void drawButton(cv::Mat& canvas, const ButtonBounds& bounds, const std::string& label) {
         cv::Rect rect(bounds.x, bounds.y, bounds.width, bounds.height);
@@ -52,6 +64,37 @@ namespace {
         }
         return reply.value("roomName", roomName);
     }
+
+    // Sends FindGame and returns immediately (does not wait for a result -
+    // see g_gameFoundResult above). Installs its own onMessage handler
+    // that only reacts to GAME_FOUND pushes; the immediate "searching for
+    // opponent" ack (no "type" field) is deliberately ignored here.
+    void startFindGame(WsClient& client) {
+        {
+            std::lock_guard<std::mutex> lock(g_findGameMutex);
+            g_gameFoundResult.reset();
+        }
+        client.setOnMessage([](const std::string& text) {
+            nlohmann::json j = nlohmann::json::parse(text);
+            if (j.value("type", std::string()) != "GAME_FOUND")
+                return;
+            std::lock_guard<std::mutex> lock(g_findGameMutex);
+            g_gameFoundResult = j;
+        });
+        client.send(MessageCodec::encode(Message{ MessageType::FindGame, {} }));
+        std::cout << "[client] FindGame sent, searching for opponent" << std::endl;
+    }
+
+    // Non-blocking: returns the GAME_FOUND payload once startFindGame()'s
+    // push has arrived, nullopt otherwise (keep waiting).
+    std::optional<nlohmann::json> pollGameFound() {
+        std::lock_guard<std::mutex> lock(g_findGameMutex);
+        if (!g_gameFoundResult)
+            return std::nullopt;
+        nlohmann::json payload = g_gameFoundResult->at("payload");
+        g_gameFoundResult.reset();
+        return payload;
+    }
 }
 
 HomeScreenResult runHomeScreen(WsClient& client) {
@@ -65,8 +108,14 @@ HomeScreenResult runHomeScreen(WsClient& client) {
 
     HomeScreenResult result;
     g_pendingChoice = HomeScreenChoice::None;
+    bool searching  = false;
     while (true) {
-        cv::imshow(kHomeWindowName, canvas);
+        cv::Mat display = canvas.clone();
+        if (searching)
+            cv::putText(display, "Searching for opponent...", cv::Point(220, 420),
+                        cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
+        cv::imshow(kHomeWindowName, display);
+
         int key = cv::waitKey(30);
         if (key == 27) { // ESC
             std::cout << "[client] Home screen closed: ESC pressed" << std::endl;
@@ -78,9 +127,23 @@ HomeScreenResult runHomeScreen(WsClient& client) {
             break;
         }
 
-        if (g_pendingChoice == HomeScreenChoice::Play) {
+        if (searching) {
+            std::optional<nlohmann::json> found = pollGameFound();
+            if (found) {
+                searching = false;
+                if (found->value("success", false)) {
+                    result.joinedRoom = true;
+                    result.roomName   = found->value("roomName", std::string());
+                    break;
+                }
+                std::cout << "[client] FindGame failed: " << found->value("message", "") << std::endl;
+                showRoomError(found->value("message", "no players available"));
+            }
+        } else if (g_pendingChoice == HomeScreenChoice::Play) {
             std::cout << "[client] Home: Play clicked" << std::endl;
             g_pendingChoice = HomeScreenChoice::None;
+            startFindGame(client);
+            searching = true;
         } else if (g_pendingChoice == HomeScreenChoice::Room) {
             std::cout << "[client] Home: Room clicked" << std::endl;
             g_pendingChoice = HomeScreenChoice::None;
@@ -102,6 +165,7 @@ HomeScreenResult runHomeScreen(WsClient& client) {
             // sendRoomRequest() - stay on the Home screen so the user can
             // try again via the Room button.
         }
+        g_pendingChoice = HomeScreenChoice::None; // stray clicks while searching are ignored
     }
     cv::destroyWindow(kHomeWindowName);
     return result;
