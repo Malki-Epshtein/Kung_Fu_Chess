@@ -221,6 +221,15 @@ void ImageView::render(const GameSnapshot& snapshot) {
         frame.put_text(message, textX, textY, 1.0);
     }
 
+    // Stage D: disconnect grace-period countdown, shown across the top of
+    // the board so it never overlaps the centered game-over message above.
+    if (disconnectActive) {
+        int boardPixelWidth = snapshot.board_width * ViewConfig::CELL_SIZE;
+        int textX = ViewConfig::PANEL_WIDTH + boardPixelWidth / 2 - 200;
+        int textY = ViewConfig::BOARD_MARGIN - 8;
+        frame.put_text(disconnectMessage, textX, textY, 0.8, cv::Scalar(0, 0, 255));
+    }
+
     // Not using Img::show() here - it blocks on waitKey(0) every call, which
     // would freeze a live render loop. GraphicalApplication owns the event
     // pump (waitKey) and calls render() once per frame instead.

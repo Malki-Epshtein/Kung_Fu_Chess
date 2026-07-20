@@ -147,9 +147,6 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="server\app\Application.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="client\app\GraphicalApplication.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
@@ -184,10 +181,16 @@
     <ClCompile Include="server\rules\SlidingPieceRules.cpp" />
     <ClCompile Include="server\rules\rule_engine.cpp" />
     <ClCompile Include="shared\protocol\MessageCodec.cpp" />
+    <ClCompile Include="shared\bus\EventBus.cpp" />
+    <ClCompile Include="shared\input\ClickResolver.cpp" />
+    <ClCompile Include="shared\protocol\GameSnapshotCodec.cpp" />
+    <ClCompile Include="server\app\GameSession.cpp" />
+    <ClCompile Include="server\app\NetworkBroadcaster.cpp" />
+    <ClCompile Include="server\app\SessionRegistry.cpp" />
     <ClCompile Include="server\net\WsServer.cpp" />
+    <ClCompile Include="server\app\CommandDispatcher.cpp" />
     <ClCompile Include="server\server_main.cpp" />
     <ClCompile Include="client\net\WsClient.cpp" />
-    <ClCompile Include="client\client_main.cpp" />
     <ClCompile Include="texttests\ScriptParser.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -306,6 +309,34 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="test\test_CommandDispatcher.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_EventBus.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_GameSnapshotCodec.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_GameSession.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_NetworkBroadcaster.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_SessionRegistry.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_ClickResolver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="client\view\assets\AnimationConfig.cpp" />
     <ClCompile Include="client\view\assets\AnimationFrameSelector.cpp" />
     <ClCompile Include="client\view\assets\AssetsRootConfig.cpp" />
@@ -332,17 +363,22 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="server\app\Application.h" />
     <ClInclude Include="client\app\GraphicalApplication.h" />
     <ClInclude Include="doctest.h" />
     <ClInclude Include="server\engine\GameEngine.h" />
     <ClInclude Include="shared\engine\GameSnapshot.h" />
     <ClInclude Include="shared\protocol\Message.h" />
     <ClInclude Include="shared\protocol\MessageCodec.h" />
+    <ClInclude Include="shared\bus\EventBus.h" />
+    <ClInclude Include="shared\input\ClickResolver.h" />
+    <ClInclude Include="shared\protocol\GameSnapshotCodec.h" />
+    <ClInclude Include="server\app\GameSession.h" />
+    <ClInclude Include="server\app\NetworkBroadcaster.h" />
+    <ClInclude Include="server\app\SessionRegistry.h" />
     <ClInclude Include="server\net\WsServer.h" />
+    <ClInclude Include="server\app\CommandDispatcher.h" />
     <ClInclude Include="server\server_main.h" />
     <ClInclude Include="client\net\WsClient.h" />
-    <ClInclude Include="client\client_main.h" />
     <ClInclude Include="server\engine\MoveResult.h" />
     <ClInclude Include="server\engine\ScoreObserver.h" />
     <ClInclude Include="server\engine\MoveLogObserver.h" />

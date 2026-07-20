@@ -19,6 +19,8 @@ private:
     const MoveLogObserver*  moveLogObserver = nullptr;
     std::string             whitePlayerName;
     std::string             blackPlayerName;
+    bool                    disconnectActive = false;
+    std::string             disconnectMessage;
 
 public:
     // Both constructor-injected: rendering is meaningless without a sprite
@@ -39,6 +41,12 @@ public:
     void setPlayerNames(std::string white, std::string black) {
         whitePlayerName = std::move(white);
         blackPlayerName = std::move(black);
+    }
+    // Stage D: a disconnect grace-period countdown to show on screen -
+    // active=false (the default) draws nothing extra.
+    void setDisconnectStatus(bool active, std::string message) {
+        disconnectActive = active;
+        disconnectMessage = std::move(message);
     }
 
     void render(const GameSnapshot& snapshot) override;
