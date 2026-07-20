@@ -3,6 +3,7 @@
 #include "../../shared/bus/EventBus.h"
 #include "../../shared/model/Piece.h"
 #include <websocketpp/common/connection_hdl.hpp>
+#include <asio/io_context.hpp>
 #include <map>
 #include <memory>
 #include <string>
@@ -11,9 +12,12 @@
 
 // Owns every active room (GameSession) by name, plus which connection
 // belongs to which room and what role (White/Black/Spectator) it holds
-// there. Pure bookkeeping - no networking, no asio - so it is fully
-// unit-testable without a socket. WsServer (Stage E2) is the only thing
-// that wires this to real connections.
+// there - and, since Stage E3, each room's disconnect grace-period
+// countdown too. The room-bookkeeping methods below are pure data
+// structure and fully unit-testable without a socket;
+// startDisconnectCountdown is the one method that touches asio (it needs
+// somewhere to run a timer) - WsServer (Stage E2) is what wires the rest
+// of this to real connections.
 class SessionRegistry {
 public:
     using ConnectionHandle = websocketpp::connection_hdl;
@@ -37,8 +41,7 @@ public:
 
     // Removes a connection from whichever room it was in (no-op, returns
     // None, if it wasn't in one). Returns the role it held there, so the
-    // caller (Stage E3 disconnect handling) knows whether to start a
-    // countdown.
+    // caller (disconnect handling) knows whether to start a countdown.
     Chess::Color leave(ConnectionHandle hdl);
 
     // Which room (if any) a connection belongs to; nullptr if none.
@@ -46,6 +49,12 @@ public:
 
     // The role a connection holds in its room (None if not found).
     Chess::Color roleOf(ConnectionHandle hdl) const;
+
+    // Starts a 20s auto-resign countdown for `color` in room `roomName`,
+    // running on `ioContext`. No-op if the room doesn't exist. Never
+    // cancelled once started (Stage D's simplified scope has no
+    // reconnect/seat-reclaim support) - always runs to completion.
+    void startDisconnectCountdown(const std::string& roomName, Chess::Color color, asio::io_context& ioContext);
 
 private:
     struct Room {

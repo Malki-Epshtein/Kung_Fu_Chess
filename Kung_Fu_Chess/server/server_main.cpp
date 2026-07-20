@@ -1,6 +1,6 @@
 #include "server_main.h"
 #include "net/WsServer.h"
-#include "app/GameSession.h"
+#include "app/SessionRegistry.h"
 #include "io/BoardParser.h"
 #include "../shared/bus/EventBus.h"
 #include <iostream>
@@ -30,9 +30,10 @@ int server_main(int /*argc*/, char** /*argv*/) {
     std::cout << "[server] starting on port " << kPort << std::endl;
     try {
         EventBus bus;
-        GameSession session(startingBoard(), bus, /*simultaneousMode=*/true);
+        SessionRegistry registry;
+        registry.createRoom(WsServer::kDefaultRoomName, startingBoard(), bus, /*simultaneousMode=*/true);
         WsServer server;
-        server.run(kPort, session, bus);
+        server.run(kPort, registry, bus);
     } catch (const std::exception& e) {
         std::cerr << "[server] failed to start: " << e.what()
                    << " (is port " << kPort << " already in use by another instance?)" << std::endl;

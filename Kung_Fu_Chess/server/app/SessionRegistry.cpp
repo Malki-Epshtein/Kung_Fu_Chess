@@ -1,4 +1,20 @@
 #include "SessionRegistry.h"
+#include <asio/steady_timer.hpp>
+#include <chrono>
+#include <functional>
+#include <iostream>
+
+namespace {
+    constexpr int kDisconnectGraceSeconds = 20;
+
+    const char* roleName(Chess::Color color) {
+        switch (color) {
+            case Chess::Color::White: return "White";
+            case Chess::Color::Black: return "Black";
+            default:                  return "Spectator";
+        }
+    }
+}
 
 bool SessionRegistry::createRoom(const std::string& name, std::shared_ptr<Board> board, EventBus& bus, bool simultaneousMode) {
     if (rooms_.count(name))
@@ -75,4 +91,30 @@ Chess::Color SessionRegistry::roleOf(ConnectionHandle hdl) const {
         return Chess::Color::None;
     auto roleIt = rIt->second.roles.find(hdl);
     return roleIt == rIt->second.roles.end() ? Chess::Color::None : roleIt->second;
+}
+
+void SessionRegistry::startDisconnectCountdown(const std::string& roomName, Chess::Color color, asio::io_context& ioContext) {
+    auto timer     = std::make_shared<asio::steady_timer>(ioContext);
+    auto remaining = std::make_shared<int>(kDisconnectGraceSeconds);
+    auto handler   = std::make_shared<std::function<void(const asio::error_code&)>>();
+
+    *handler = [this, timer, remaining, roomName, color, handler](const asio::error_code& ec) {
+        if (ec)
+            return;
+        GameSession* gameSession = room(roomName);
+        if (!gameSession)
+            return; // room no longer exists - nothing to update
+
+        gameSession->setDisconnectStatus({ true, color, *remaining });
+        if (*remaining <= 0) {
+            std::cout << "[server] " << roleName(color) << " auto-resigned (disconnected too long)" << std::endl;
+            return;
+        }
+        std::cout << "[server] " << roleName(color) << " disconnected - auto-resign in " << *remaining << "s" << std::endl;
+        --(*remaining);
+        timer->expires_after(std::chrono::seconds(1));
+        timer->async_wait(*handler);
+    };
+    timer->expires_after(std::chrono::seconds(0));
+    timer->async_wait(*handler);
 }

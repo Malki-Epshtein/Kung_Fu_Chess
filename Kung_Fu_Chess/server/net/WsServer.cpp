@@ -3,6 +3,7 @@
 #include "../../shared/model/Piece.h"
 #include "../app/CommandDispatcher.h"
 #include "../app/GameSession.h"
+#include "../app/SessionRegistry.h"
 #include "../app/NetworkBroadcaster.h"
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
@@ -10,13 +11,12 @@
 #include <chrono>
 #include <functional>
 #include <iostream>
-#include <map>
 #include <set>
+#include <string>
 
 namespace {
     using WsppServer = websocketpp::server<websocketpp::config::asio>;
     using ConnectionSet = std::set<websocketpp::connection_hdl, std::owner_less<websocketpp::connection_hdl>>;
-    using RoleMap = std::map<websocketpp::connection_hdl, Chess::Color, std::owner_less<websocketpp::connection_hdl>>;
 
     const char* typeName(MessageType type) {
         switch (type) {
@@ -35,80 +35,54 @@ namespace {
             default:                  return "Spectator";
         }
     }
-
-    constexpr int kDisconnectGraceSeconds = 20;
 }
 
-void WsServer::run(uint16_t port, GameSession& session, EventBus& bus, int tickMs) {
+void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, int tickMs) {
     WsppServer server;
     server.clear_access_channels(websocketpp::log::alevel::all);
     server.clear_error_channels(websocketpp::log::elevel::all);
     server.init_asio();
 
     ConnectionSet connections;
-    RoleMap       roles;
-    int           connectionCount = 0;
 
-    // Disconnect grace-period countdown (Stage D): started when a seated
-    // player (White/Black) disconnects, never for a spectator. Once
-    // started it always runs to completion - Stage D's simplified scope
-    // has no reconnect/seat-reclaim support, so there is nothing that
-    // would ever cancel it.
-    auto startDisconnectCountdown = [&server, &session](Chess::Color color) {
-        auto timer     = std::make_shared<asio::steady_timer>(server.get_io_service());
-        auto remaining = std::make_shared<int>(kDisconnectGraceSeconds);
-        auto handler   = std::make_shared<std::function<void(const asio::error_code&)>>();
-
-        *handler = [&session, timer, remaining, color, handler](const asio::error_code& ec) {
-            if (ec)
-                return;
-            session.setDisconnectStatus({ true, color, *remaining });
-            if (*remaining <= 0) {
-                std::cout << "[server] " << roleName(color) << " auto-resigned (disconnected too long)" << std::endl;
-                return;
-            }
-            std::cout << "[server] " << roleName(color) << " disconnected - auto-resign in " << *remaining << "s" << std::endl;
-            --(*remaining);
-            timer->expires_after(std::chrono::seconds(1));
-            timer->async_wait(*handler);
-        };
-        timer->expires_after(std::chrono::seconds(0));
-        timer->async_wait(*handler);
-    };
-
-    server.set_open_handler([&connections, &roles, &connectionCount](websocketpp::connection_hdl hdl) {
+    server.set_open_handler([&connections, &registry](websocketpp::connection_hdl hdl) {
         connections.insert(hdl);
-
-        // Join order decides the role: first connection is White, second is
-        // Black, everyone after that is a spectator (Chess::Color::None).
-        ++connectionCount;
-        Chess::Color role = connectionCount == 1 ? Chess::Color::White
-                           : connectionCount == 2 ? Chess::Color::Black
-                           : Chess::Color::None;
-        roles[hdl] = role;
-
-        std::cout << "[server] client connected, assigned role: " << roleName(role) << std::endl;
+        registry.joinRoom(WsServer::kDefaultRoomName, hdl);
+        std::cout << "[server] client connected, assigned role: " << roleName(registry.roleOf(hdl)) << std::endl;
     });
-    server.set_close_handler([&connections, &roles, &startDisconnectCountdown](websocketpp::connection_hdl hdl) {
+    server.set_close_handler([&connections, &registry, &server](websocketpp::connection_hdl hdl) {
         connections.erase(hdl);
-        Chess::Color role = roles.count(hdl) ? roles.at(hdl) : Chess::Color::None;
-        roles.erase(hdl);
+
+        // Capture the room name before leave() erases the association.
+        std::string roomName;
+        if (const std::string* name = registry.roomOf(hdl))
+            roomName = *name;
+
+        Chess::Color role = registry.leave(hdl);
         std::cout << "[server] client disconnected (was " << roleName(role) << ")" << std::endl;
 
-        if (role == Chess::Color::White || role == Chess::Color::Black)
-            startDisconnectCountdown(role);
+        // Disconnect grace-period countdown (Stage D, owned by the registry
+        // since Stage E3): started when a seated player (White/Black)
+        // disconnects, never for a spectator.
+        if (!roomName.empty() && (role == Chess::Color::White || role == Chess::Color::Black))
+            registry.startDisconnectCountdown(roomName, role, server.get_io_service());
     });
-    server.set_message_handler([&server, &session, &roles](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
+    server.set_message_handler([&server, &registry](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
         const std::string& text = msg->get_payload();
-        Chess::Color senderRole = roles.count(hdl) ? roles.at(hdl) : Chess::Color::None;
+        Chess::Color senderRole = registry.roleOf(hdl);
 
         nlohmann::json reply;
         try {
+            const std::string* roomName = registry.roomOf(hdl);
+            GameSession* gameSession = roomName ? registry.room(*roomName) : nullptr;
+            if (!gameSession)
+                throw std::runtime_error("connection is not in a room");
+
             Message decoded = MessageCodec::decode(text);
             std::cout << "[server] received " << typeName(decoded.type) << " from " << roleName(senderRole)
                        << ": " << text << std::endl;
 
-            DispatchResult result = CommandDispatcher::dispatch(decoded, session.engine(), senderRole);
+            DispatchResult result = CommandDispatcher::dispatch(decoded, gameSession->engine(), senderRole);
             std::cout << "[server] dispatch " << (result.success ? "OK" : "FAILED")
                        << ": " << result.message << std::endl;
 
@@ -125,7 +99,9 @@ void WsServer::run(uint16_t port, GameSession& session, EventBus& bus, int tickM
 
     // Subscribes itself to the bus for as long as this function runs; on
     // each published snapshot, sends the serialized text to every
-    // currently-connected client.
+    // currently-connected client. One room today (Stage E2), so "everyone"
+    // is exactly that room's occupants - real per-room filtering arrives
+    // with real multi-room support in Stage G.
     NetworkBroadcaster broadcaster(bus, [&server, &connections](const std::string& text) {
         for (const auto& hdl : connections) {
             websocketpp::lib::error_code ec;
@@ -135,13 +111,18 @@ void WsServer::run(uint16_t port, GameSession& session, EventBus& bus, int tickM
         }
     });
 
-    // Drives GameSession::tick on a periodic asio timer, on the same thread
-    // as the message handlers above - no locking needed, single writer.
+    // Drives every room's GameSession::tick on a periodic asio timer, on
+    // the same thread as the message handlers above - no locking needed,
+    // single writer. One room today; iterating the registry means this
+    // already scales to many without changing again later.
     asio::steady_timer timer(server.get_io_service());
     std::function<void(const asio::error_code&)> onTick = [&](const asio::error_code& ec) {
         if (ec)
             return;
-        session.tick(tickMs);
+        for (const std::string& roomName : registry.roomNames()) {
+            if (GameSession* gameSession = registry.room(roomName))
+                gameSession->tick(tickMs);
+        }
         timer.expires_after(std::chrono::milliseconds(tickMs));
         timer.async_wait(onTick);
     };
