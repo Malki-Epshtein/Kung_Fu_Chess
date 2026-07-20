@@ -13,6 +13,16 @@ bin/
 obj/
 x64/
 x86/
+# Win32-platform builds land directly in Debug/ or Release/ (not nested
+# under x86/), so those two patterns above don't catch them.
+Debug/
+Release/
+*.ilk
+*.idb
+*.tlog/
+*.recipe
+*.lastbuildstate
+*.FileListAbsolute.txt
 
 # Unused side .vcxproj skeletons (not part of the build; superseded by the
 # server/client/shared folders inside Kung_Fu_Chess/) - anchored to repo
