@@ -3,9 +3,9 @@
 #include "src/img.hpp"
 #include "ViewConfig.h"
 #include "assets/ISpriteSource.h"
-#include "../../server/engine/ScoreObserver.h"
-#include "../../server/engine/MoveLogObserver.h"
+#include "../../shared/protocol/MoveEntry.h"
 #include <string>
+#include <vector>
 
 class ImageView : public Renderer {
 private:
@@ -15,8 +15,10 @@ private:
     bool canvasLoaded = false;
     std::string             assetsRoot;
     ISpriteSource&          spriteSource;
-    const ScoreObserver*    scoreObserver = nullptr;
-    const MoveLogObserver*  moveLogObserver = nullptr;
+    int                     whiteScore = 0;
+    int                     blackScore = 0;
+    std::vector<MoveEntry>  whiteMoves;
+    std::vector<MoveEntry>  blackMoves;
     std::string             whitePlayerName;
     std::string             blackPlayerName;
     bool                    disconnectActive = false;
@@ -35,12 +37,23 @@ public:
         : assetsRoot(std::move(assetsRoot)), spriteSource(spriteSource) {}
 
     // Setters, not constructor params: both are optional (render() works
-    // fine with neither set) and Renderer's fixed interface takes no
-    // observers, so they're wired in after construction instead.
-    void setScoreObserver(const ScoreObserver* observer) { scoreObserver = observer; }
-    void setMoveLogObserver(const MoveLogObserver* observer) { moveLogObserver = observer; }
+    // fine with neither set - scores start 0-0, move lists start empty)
+    // and Renderer's fixed interface takes nothing extra, so they're wired
+    // in after construction instead. Plain data, not observer pointers -
+    // ImageView runs client-side, where a real ScoreObserver/MoveLogObserver
+    // (server-only classes) can never exist; GraphicalApplication decodes
+    // this from the wire (GameSnapshot's "score" field, MOVE_LOGGED pushes)
+    // and passes it straight through.
+    void setScore(int white, int black) {
+        whiteScore = white;
+        blackScore = black;
+    }
+    void setMoveLog(std::vector<MoveEntry> white, std::vector<MoveEntry> black) {
+        whiteMoves = std::move(white);
+        blackMoves = std::move(black);
+    }
     void setPlayerNames(std::string white, std::string black) {
-        whitePlayerName = std::move(white);
+        whitePlayerName = std::move(white);//אני לא צריכה יותר את המשאבים של WHITE
         blackPlayerName = std::move(black);
     }
     // Stage D: a disconnect grace-period countdown to show on screen -

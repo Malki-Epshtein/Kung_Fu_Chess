@@ -10,9 +10,11 @@
 #include "LoginFlow.h"
 #include "HomeScreenView.h"
 #include "../../shared/engine/GameSnapshot.h"
+#include "../../shared/protocol/MoveLogCodec.h"
 #include <cstdint>
 #include <mutex>
 #include <stdexcept>
+#include <vector>
 
 class GraphicalApplication {
 private:
@@ -42,6 +44,16 @@ private:
     // snapshot above.
     bool        networkDisconnectActive = false;
     std::string networkDisconnectMessage;
+
+    // Stage I: score rides on the same snapshot broadcast (extracted here
+    // rather than through GameSnapshotCodec, same as disconnect above).
+    // Move log arrives as separate MOVE_LOGGED pushes instead - only ever
+    // appended to, never replaced - plus a one-time backfill seeded from
+    // the room-join reply's moveLog field before the game window opens.
+    int                     networkWhiteScore = 0;
+    int                     networkBlackScore = 0;
+    std::vector<MoveEntry>  networkWhiteMoves;
+    std::vector<MoveEntry>  networkBlackMoves;
 
     Controller controller;
     ImageView  view;

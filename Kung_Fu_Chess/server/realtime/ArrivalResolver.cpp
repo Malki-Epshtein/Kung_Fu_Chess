@@ -63,7 +63,7 @@ void ArrivalResolver::resolve(const Motion& m, int gameClockMs, bool& kingCaptur
     board.movePiece(m.from, m.to);
 
     for (auto* observer : moveObservers)
-        observer->onMoveCompleted(*piece, m.from, m.to, wasCapture);
+        observer->onMoveCompleted(*piece, m.from, m.to, wasCapture, gameClockMs);
 
     if (piece->getKind() == Chess::Kind::Pawn) {
         int promotionRow = (piece->getColor() == Chess::Color::White) ? 0 : board.getHeight() - 1;

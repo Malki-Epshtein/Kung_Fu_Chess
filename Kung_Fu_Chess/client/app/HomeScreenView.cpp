@@ -48,10 +48,15 @@ namespace {
     }
 
     // Sends CreateRoom/JoinRoom for `roomName` and blocks for the reply.
-    // Empty on failure (message logged); non-empty is the room name to
-    // display, taken from the server's reply rather than echoing back
-    // whatever was typed, since the two can differ in principle.
-    std::string sendRoomRequest(WsClient& client, RoomDialogResult::Action action, const std::string& roomName) {
+    // Empty roomName on failure (message logged); non-empty is the room
+    // name to display, taken from the server's reply rather than echoing
+    // back whatever was typed, since the two can differ in principle.
+    struct RoomJoinOutcome {
+        std::string    roomName;
+        nlohmann::json moveLog;
+    };
+
+    RoomJoinOutcome sendRoomRequest(WsClient& client, RoomDialogResult::Action action, const std::string& roomName) {
         MessageType type = (action == RoomDialogResult::Action::Create) ? MessageType::CreateRoom : MessageType::JoinRoom;
         Message request{ type, { {"name", roomName} } };
         nlohmann::json reply = sendAndWaitForReply(client, request);
@@ -62,7 +67,7 @@ namespace {
             showRoomError(message);
             return {};
         }
-        return reply.value("roomName", roomName);
+        return { reply.value("roomName", roomName), reply.value("moveLog", HomeScreenResult{}.moveLog) };
     }
 
     // Sends FindGame and returns immediately (does not wait for a result -
@@ -134,6 +139,7 @@ HomeScreenResult runHomeScreen(WsClient& client) {
                 if (found->value("success", false)) {
                     result.joinedRoom = true;
                     result.roomName   = found->value("roomName", std::string());
+                    result.moveLog    = found->value("moveLog", HomeScreenResult{}.moveLog);
                     break;
                 }
                 std::cout << "[client] FindGame failed: " << found->value("message", "") << std::endl;
@@ -155,10 +161,11 @@ HomeScreenResult runHomeScreen(WsClient& client) {
             if (dialogResult.action == RoomDialogResult::Action::Cancel || dialogResult.roomName.empty())
                 continue;
 
-            std::string joinedName = sendRoomRequest(client, dialogResult.action, dialogResult.roomName);//שולח בקשה לפתיחת חדר או להצטרף לחדר קיים
-            if (!joinedName.empty()) {
+            RoomJoinOutcome outcome = sendRoomRequest(client, dialogResult.action, dialogResult.roomName);//שולח בקשה לפתיחת חדר או להצטרף לחדר קיים
+            if (!outcome.roomName.empty()) {
                 result.joinedRoom = true;
-                result.roomName   = joinedName;
+                result.roomName   = outcome.roomName;
+                result.moveLog    = outcome.moveLog;
                 break;
             }
             // Failure (e.g. "room already exists") already logged inside

@@ -1,13 +1,9 @@
 #pragma once
 #include "../realtime/MoveObserver.h"
-#include <vector>
+#include "../../shared/protocol/MoveEntry.h"
+#include <functional>
 #include <string>
-#include <chrono>
-
-struct MoveEntry {
-    std::string timestamp; // wall-clock elapsed since game start, "MM:SS.mmm"
-    std::string notation;  // simplified algebraic notation, e.g. "Nc6", "exd5"
-};
+#include <vector>
 
 // Implements only MoveObserver (Interface Segregation) - the move log only
 // cares about completed moves, never about captures.
@@ -16,15 +12,19 @@ private:
     std::vector<MoveEntry> whiteMoves;
     std::vector<MoveEntry> blackMoves;
     int boardHeight;
-    std::chrono::steady_clock::time_point startTime;
 
     std::string describe(const Piece& mover, Position from, Position to, bool wasCapture) const;
-    std::string formatElapsed() const;
+    static std::string formatElapsed(int gameClockMs);
 
 public:
-    explicit MoveLogObserver(int boardHeight)
-        : boardHeight(boardHeight), startTime(std::chrono::steady_clock::now()) {}
+    explicit MoveLogObserver(int boardHeight) : boardHeight(boardHeight) {}
 
-    void onMoveCompleted(const Piece& mover, Position from, Position to, bool wasCapture) override;
+    // Fired right after a new entry is appended (never for captures alone,
+    // never before the entry actually exists in whiteMoves/blackMoves) -
+    // lets a caller (GameSession) bridge into the network layer without
+    // this class ever knowing EventBus/JSON exist. Empty by default (no-op).
+    std::function<void(Chess::Color, const MoveEntry&)> onNewEntry;
+
+    void onMoveCompleted(const Piece& mover, Position from, Position to, bool wasCapture, int gameClockMs) override;
     const std::vector<MoveEntry>& getMoves(Chess::Color color) const;
 };

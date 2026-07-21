@@ -9,10 +9,13 @@ BroadcasterManager::BroadcasterManager(EventBus& bus, SessionRegistry& registry,
 }
 
 void BroadcasterManager::attach(const std::string& roomName) {
-    broadcasters_[roomName] = std::make_unique<NetworkBroadcaster>(
-        bus_, GameSession::snapshotTopic(roomName),
-        [this, roomName](const std::string& text) {
-            for (const auto& hdl : registry_.connectionsInRoom(roomName))
-                sender_(hdl, text);
-        });
+    auto forwardToRoom = [this, roomName](const std::string& text) {
+        for (const auto& hdl : registry_.connectionsInRoom(roomName))
+            sender_(hdl, text);
+    };
+
+    std::vector<std::unique_ptr<NetworkBroadcaster>> roomBroadcasters;
+    roomBroadcasters.push_back(std::make_unique<NetworkBroadcaster>(bus_, GameSession::snapshotTopic(roomName), forwardToRoom));
+    roomBroadcasters.push_back(std::make_unique<NetworkBroadcaster>(bus_, GameSession::moveLogTopic(roomName), forwardToRoom));
+    broadcasters_[roomName] = std::move(roomBroadcasters);
 }

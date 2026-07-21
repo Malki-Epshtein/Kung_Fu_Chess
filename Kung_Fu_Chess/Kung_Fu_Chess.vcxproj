@@ -53,6 +53,21 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <!-- Anchored to $(ProjectDir) (this file's own folder), not left to
+         MSBuild's default - the default resolves relative to
+         $(SolutionDir) when built via the .sln (Visual Studio), but
+         relative to this project file when built standalone (e.g. `MSBuild
+         Kung_Fu_Chess.vcxproj` from the command line) - since
+         Kung_Fu_Chess.sln lives one folder up from the .vcxproj files,
+         those two build paths used to produce two DIFFERENT, out-of-sync
+         output folders. Anchoring here makes every build method land in
+         the same place. $(Configuration)\ only (no $(Platform)\ prefix,
+         unlike Server/Client) to match this project's existing, already-
+         in-use output path (Debug\Kung_Fu_Chess.exe, Win32-only). -->
+    <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared">
@@ -182,6 +197,7 @@
     <ClCompile Include="shared\bus\EventBus.cpp" />
     <ClCompile Include="shared\input\ClickResolver.cpp" />
     <ClCompile Include="shared\protocol\GameSnapshotCodec.cpp" />
+    <ClCompile Include="shared\protocol\MoveLogCodec.cpp" />
     <ClCompile Include="server\app\session\GameSession.cpp" />
     <ClCompile Include="server\app\networking\NetworkBroadcaster.cpp" />
     <ClCompile Include="server\app\networking\BroadcasterManager.cpp" />
@@ -344,6 +360,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="test\test_MoveLogCodec.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="test\test_GameSession.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -439,6 +459,8 @@
     <ClInclude Include="shared\bus\EventBus.h" />
     <ClInclude Include="shared\input\ClickResolver.h" />
     <ClInclude Include="shared\protocol\GameSnapshotCodec.h" />
+    <ClInclude Include="shared\protocol\MoveEntry.h" />
+    <ClInclude Include="shared\protocol\MoveLogCodec.h" />
     <ClInclude Include="server\app\session\GameSession.h" />
     <ClInclude Include="server\app\networking\NetworkBroadcaster.h" />
     <ClInclude Include="server\app\networking\BroadcasterManager.h" />

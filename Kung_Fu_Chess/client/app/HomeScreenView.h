@@ -1,5 +1,6 @@
 #pragma once
 #include "../net/WsClient.h"
+#include "json.hpp"
 #include <string>
 
 struct HomeScreenResult {
@@ -8,6 +9,12 @@ struct HomeScreenResult {
     // "quit the app", same as closing the game window today.
     bool        joinedRoom = false;
     std::string roomName;
+
+    // The room's move history so far (MoveLogCodec::encodeAll shape) - empty
+    // for a brand new room, populated when joining/matching into a game
+    // already in progress. GraphicalApplication seeds its local move log
+    // from this once, before opening the game window.
+    nlohmann::json moveLog = { {"white", nlohmann::json::array()}, {"black", nlohmann::json::array()} };
 };
 
 // Opens the Home Screen window (Play/Room buttons) and blocks until the

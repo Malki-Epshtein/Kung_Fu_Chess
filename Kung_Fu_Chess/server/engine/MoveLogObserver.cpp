@@ -40,9 +40,8 @@ std::string MoveLogObserver::describe(const Piece& mover, Position from, Positio
     return out.str();
 }
 
-std::string MoveLogObserver::formatElapsed() const {
-    auto elapsed = std::chrono::steady_clock::now() - startTime;
-    long long totalMs = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+std::string MoveLogObserver::formatElapsed(int gameClockMs) {
+    long long totalMs = gameClockMs;
     long long minutes = totalMs / 60000;
     long long seconds = (totalMs / 1000) % 60;
     long long millis  = totalMs % 1000;
@@ -54,13 +53,19 @@ std::string MoveLogObserver::formatElapsed() const {
     return out.str();
 }
 
-void MoveLogObserver::onMoveCompleted(const Piece& mover, Position from, Position to, bool wasCapture) {
-    MoveEntry entry{ formatElapsed(), describe(mover, from, to, wasCapture) };
+void MoveLogObserver::onMoveCompleted(const Piece& mover, Position from, Position to, bool wasCapture, int gameClockMs) {
+    MoveEntry entry{ formatElapsed(gameClockMs), describe(mover, from, to, wasCapture) };
 
-    if (mover.getColor() == Chess::Color::White)
+    Chess::Color color = mover.getColor();
+    if (color == Chess::Color::White)
         whiteMoves.push_back(entry);
-    else if (mover.getColor() == Chess::Color::Black)
+    else if (color == Chess::Color::Black)
         blackMoves.push_back(entry);
+    else
+        return; // shouldn't happen in practice - a piece always has a real color
+
+    if (onNewEntry)
+        onNewEntry(color, entry);
 }
 
 const std::vector<MoveEntry>& MoveLogObserver::getMoves(Chess::Color color) const {

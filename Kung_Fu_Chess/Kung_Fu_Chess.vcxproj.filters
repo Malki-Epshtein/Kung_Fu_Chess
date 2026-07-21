@@ -195,6 +195,12 @@
     <ClCompile Include="shared\protocol\GameSnapshotCodec.cpp">
       <Filter>protocol</Filter>
     </ClCompile>
+    <ClCompile Include="shared\protocol\MoveLogCodec.cpp">
+      <Filter>protocol</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_MoveLogCodec.cpp">
+      <Filter>protocol</Filter>
+    </ClCompile>
     <ClCompile Include="test\test_MessageCodec.cpp">
       <Filter>protocol</Filter>
     </ClCompile>
@@ -486,6 +492,12 @@
       <Filter>protocol</Filter>
     </ClInclude>
     <ClInclude Include="shared\protocol\GameSnapshotCodec.h">
+      <Filter>protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\protocol\MoveEntry.h">
+      <Filter>protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\protocol\MoveLogCodec.h">
       <Filter>protocol</Filter>
     </ClInclude>
     <ClInclude Include="shared\bus\EventBus.h">

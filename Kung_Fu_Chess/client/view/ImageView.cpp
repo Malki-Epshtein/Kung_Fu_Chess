@@ -194,18 +194,16 @@ void ImageView::render(const GameSnapshot& snapshot) {
     }
 
     // Side panels: Black on the left, White on the right - each shows its
-    // own name, score, and move history as a "Time | Move" table. Comes
-    // from Observer objects (RealTimeArbiter -> observers -> here), never
-    // through GameSnapshot - see the Step 9 plan.
+    // own name, score, and move history as a "Time | Move" table. Plain
+    // data set via setScore/setMoveLog (Stage I), decoded by
+    // GraphicalApplication from the wire - never through GameSnapshot,
+    // since neither score nor the move log are part of the board state
+    // itself.
     const int leftPanelX  = 10;
     const int rightPanelX = ViewConfig::PANEL_WIDTH + ViewConfig::BOARD_WIDTH_PX + ViewConfig::BOARD_MARGIN + 15;
 
-    if (scoreObserver && moveLogObserver) {
-        drawPlayerPanel(frame, leftPanelX, "Black", blackPlayerName,
-            scoreObserver->getScore(Chess::Color::Black), moveLogObserver->getMoves(Chess::Color::Black));
-        drawPlayerPanel(frame, rightPanelX, "White", whitePlayerName,
-            scoreObserver->getScore(Chess::Color::White), moveLogObserver->getMoves(Chess::Color::White));
-    }
+    drawPlayerPanel(frame, leftPanelX, "Black", blackPlayerName, blackScore, blackMoves);
+    drawPlayerPanel(frame, rightPanelX, "White", whitePlayerName, whiteScore, whiteMoves);
 
     // Spec (Iteration 9): display an end-of-game message when game_over is true.
     if (snapshot.game_over) {

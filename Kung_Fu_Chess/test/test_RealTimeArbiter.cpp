@@ -452,10 +452,10 @@ namespace {
     };
 
     struct RecordingMoveObserver : public MoveObserver {
-        struct Move { int piece_id; Position from; Position to; bool wasCapture; };
+        struct Move { int piece_id; Position from; Position to; bool wasCapture; int gameClockMs; };
         std::vector<Move> moves;
-        void onMoveCompleted(const Piece& mover, Position from, Position to, bool wasCapture) override {
-            moves.push_back({ mover.getId(), from, to, wasCapture });
+        void onMoveCompleted(const Piece& mover, Position from, Position to, bool wasCapture, int gameClockMs) override {
+            moves.push_back({ mover.getId(), from, to, wasCapture, gameClockMs });
         }
     };
 }

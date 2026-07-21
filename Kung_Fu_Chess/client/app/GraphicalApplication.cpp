@@ -29,15 +29,27 @@ namespace {
 }
 
 void GraphicalApplication::onMessage(const std::string& text) {
-    // Runs on WsClient's network thread. The server sends two
-    // differently-shaped, un-enveloped JSON payloads on the same connection:
-    // a broadcast GameSnapshot (has "board_width") and a direct
-    // command-reply ack (has "success"). Only the former is meaningful to
-    // the view - and only networkSnapshot (never latestSnapshot) is touched
-    // here, under the lock; run() copies it to latestSnapshot on the GUI
-    // thread once per frame.
+    // Runs on WsClient's network thread. The server sends three
+    // differently-shaped JSON payloads on the same connection: a broadcast
+    // GameSnapshot (un-enveloped, has "board_width"), a direct
+    // command-reply ack (un-enveloped, has "success"), and an enveloped
+    // server->client push (has "type") like MOVE_LOGGED. Only the first two
+    // are handled elsewhere/below; MOVE_LOGGED is handled first here since
+    // it would otherwise be silently dropped by the "board_width" check
+    // below (it has neither key).
     try {
         nlohmann::json j = nlohmann::json::parse(text);
+
+        if (j.value("type", std::string()) == "MOVE_LOGGED") {
+            MoveLogEvent event = MoveLogCodec::decode(j.at("payload"));
+            std::lock_guard<std::mutex> lock(snapshotMutex);
+            if (event.color == Chess::Color::White)
+                networkWhiteMoves.push_back(event.entry);
+            else if (event.color == Chess::Color::Black)
+                networkBlackMoves.push_back(event.entry);
+            return;
+        }
+
         if (!j.contains("board_width"))
             return;
 
@@ -57,10 +69,16 @@ void GraphicalApplication::onMessage(const std::string& text) {
                 : color + " resigned (disconnected) - " + opponentName(color) + " wins!";
         }
 
+        // Stage I: score rides along the same way disconnect does.
+        int whiteScore = j.value("score", nlohmann::json::object()).value("white", 0);
+        int blackScore = j.value("score", nlohmann::json::object()).value("black", 0);
+
         std::lock_guard<std::mutex> lock(snapshotMutex);
         networkSnapshot = std::move(decoded);
         networkDisconnectActive = active;
         networkDisconnectMessage = std::move(message);
+        networkWhiteScore = whiteScore;
+        networkBlackScore = blackScore;
     } catch (const std::exception& e) {
         std::cerr << "[client] failed to parse server message: " << e.what() << std::endl;
     }
@@ -78,6 +96,13 @@ void GraphicalApplication::run() {
     }
     view.setRoomName(home.roomName);//שומרים את שם החדר שהמשתמש הצטרף אליו כדי להציג אותו על המסך
 
+    // One-time backfill for a room already in progress (Stage I) - safe to
+    // touch networkWhiteMoves/networkBlackMoves without the lock here,
+    // since onMessage isn't installed yet (a couple of lines below).
+    MoveLogBundle backfill = MoveLogCodec::decodeAll(home.moveLog);
+    networkWhiteMoves = std::move(backfill.white);
+    networkBlackMoves = std::move(backfill.black);
+
     // Only installed now that a room is actually joined - runHomeScreen()
     // needed the connection free for its own blocking CreateRoom/JoinRoom
     // exchange (same reasoning as LoginFlow, in the constructor).
@@ -91,13 +116,21 @@ void GraphicalApplication::run() {
     while (true) {
         bool        disconnectActive;
         std::string disconnectMessage;
+        int         whiteScore, blackScore;
+        std::vector<MoveEntry> whiteMoves, blackMoves;
         {
             std::lock_guard<std::mutex> lock(snapshotMutex);
             latestSnapshot = networkSnapshot;
             disconnectActive = networkDisconnectActive;
             disconnectMessage = networkDisconnectMessage;
+            whiteScore = networkWhiteScore;
+            blackScore = networkBlackScore;
+            whiteMoves = networkWhiteMoves;
+            blackMoves = networkBlackMoves;
         }
         view.setDisconnectStatus(disconnectActive, disconnectMessage);
+        view.setScore(whiteScore, blackScore);
+        view.setMoveLog(std::move(whiteMoves), std::move(blackMoves));
         view.render(controller.getSnapshot());
         ++frame;
 

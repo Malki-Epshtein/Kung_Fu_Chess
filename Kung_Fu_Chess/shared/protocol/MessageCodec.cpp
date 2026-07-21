@@ -13,6 +13,7 @@ namespace {
         { MessageType::JoinRoom,   "JOIN_ROOM"   },
         { MessageType::FindGame,   "FIND_GAME"   },
         { MessageType::GameFound,  "GAME_FOUND"  },
+        { MessageType::MoveLogged, "MOVE_LOGGED" },
     };
 
     MessageType nameToType(const std::string& name) {

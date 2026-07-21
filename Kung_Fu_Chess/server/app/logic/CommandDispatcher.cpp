@@ -76,6 +76,9 @@ DispatchResult CommandDispatcher::dispatch(const Message& message, GameEngine& e
                 // never send this; this case only exists so the switch
                 // stays exhaustive.
                 return { false, "GameFound is server-to-client only" };
+            case MessageType::MoveLogged:
+                // Same reasoning as GameFound: server->client push only.
+                return { false, "MoveLogged is server-to-client only" };
         }
         return { false, "unknown message type" };
     } catch (const std::exception& e) {

@@ -36,8 +36,19 @@
     <!-- Server.vcxproj and Client.vcxproj sit in the same folder as
          Kung_Fu_Chess.vcxproj (so their relative source paths match), which
          means their default intermediate directory would collide (both
-         write to the same vc143.pdb). Give each project its own. -->
-    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+         write to the same vc143.pdb). Give each project its own.
+
+         Both anchored to $(ProjectDir) (this file's own folder) rather than
+         left to MSBuild's default - the default resolves relative to
+         $(SolutionDir) when built via the .sln (Visual Studio), but
+         relative to this project file when built standalone (e.g. `MSBuild
+         Server.vcxproj` from the command line) - since Kung_Fu_Chess.sln
+         lives one folder up from the .vcxproj files, those two build paths
+         used to produce two DIFFERENT, out-of-sync x64\Debug\ output
+         folders. Anchoring here makes every build method land in the same
+         place. -->
+    <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -139,6 +150,7 @@
     <ClCompile Include="shared\bus\EventBus.cpp" />
     <ClCompile Include="shared\input\ClickResolver.cpp" />
     <ClCompile Include="shared\protocol\GameSnapshotCodec.cpp" />
+    <ClCompile Include="shared\protocol\MoveLogCodec.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="server\engine\GameEngine.h" />
@@ -196,6 +208,8 @@
     <ClInclude Include="shared\bus\EventBus.h" />
     <ClInclude Include="shared\input\ClickResolver.h" />
     <ClInclude Include="shared\protocol\GameSnapshotCodec.h" />
+    <ClInclude Include="shared\protocol\MoveEntry.h" />
+    <ClInclude Include="shared\protocol\MoveLogCodec.h" />
     <ClInclude Include="shared\model\Board.h" />
     <ClInclude Include="shared\model\GameState.h" />
     <ClInclude Include="shared\model\Piece.h" />

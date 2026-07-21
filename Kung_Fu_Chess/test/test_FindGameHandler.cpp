@@ -3,6 +3,7 @@
 #include "../server/app/session/SessionRegistry.h"
 #include "../server/app/session/ClientSessionRegistry.h"
 #include "../server/app/logic/Matchmaker.h"
+#include "../shared/protocol/MoveLogCodec.h"
 #include <asio/io_context.hpp>
 #include <memory>
 #include <vector>
@@ -86,6 +87,13 @@ TEST_CASE("FindGameHandler - שני שחקנים בטווח ELO משודכים �
     nlohmann::json pushedMsg = nlohmann::json::parse(f.pushed[0]);
     CHECK(pushedMsg.at("payload").at("role").get<std::string>() == "White");
     CHECK(pushedMsg.at("payload").at("roomName").get<std::string>() == roomName);
+
+    // Freshly matched room -> always empty, but present for shape
+    // consistency with JoinRoom's reply (see GameSession::fullMoveLog).
+    REQUIRE(payload.contains("moveLog"));
+    CHECK(MoveLogCodec::decodeAll(payload.at("moveLog")).white.empty());
+    REQUIRE(pushedMsg.at("payload").contains("moveLog"));
+    CHECK(MoveLogCodec::decodeAll(pushedMsg.at("payload").at("moveLog")).white.empty());
 }
 
 TEST_CASE("FindGameHandler - שחקנים מחוץ לטווח ELO נשארים שניהם ממתינים") {

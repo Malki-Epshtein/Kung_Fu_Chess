@@ -1,5 +1,6 @@
 #include "FindGameHandler.h"
 #include "../session/SessionRegistry.h"
+#include "../session/GameSession.h"
 #include "../session/ClientSessionRegistry.h"
 #include "../session/RoleName.h"
 #include "../logic/Matchmaker.h"
@@ -25,18 +26,23 @@ nlohmann::json FindGameHandler::handle(ConnectionHandle hdl, const nlohmann::jso
         registry_.joinRoom(name, *opponent); // was waiting first -> White
         registry_.joinRoom(name, hdl);        // just matched -> Black
 
+        // Always empty here (the room was just created for this match) -
+        // included for shape consistency with JoinRoom's reply, same as
+        // CreateRoom (see GameSession::fullMoveLog).
+        nlohmann::json moveLog = registry_.room(name)->fullMoveLog();
+
         // The opponent isn't expecting a reply right now - this is a
         // server->client PUSH (see Message.h), sent unprompted outside the
         // normal reply flow (which only ever reaches `hdl`, the sender).
         Message opponentMsg{ MessageType::GameFound,
-            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry_.roleOf(*opponent))} } };
+            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry_.roleOf(*opponent))}, {"moveLog", moveLog} } };
         push_(*opponent, MessageCodec::encode(opponentMsg));
 
         // The sender DOES get the normal reply flow (handled by whoever
         // calls this), but shaped as the same GameFound envelope so both
         // players receive an identical message shape.
         Message senderMsg{ MessageType::GameFound,
-            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry_.roleOf(hdl))} } };
+            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry_.roleOf(hdl))}, {"moveLog", moveLog} } };
         std::cout << "[server] matched '" << name << "' via FindGame" << std::endl;
         return nlohmann::json::parse(MessageCodec::encode(senderMsg));
     }

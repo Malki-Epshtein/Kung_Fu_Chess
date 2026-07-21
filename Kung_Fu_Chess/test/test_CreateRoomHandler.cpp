@@ -2,6 +2,7 @@
 #include "../server/app/handlers/CreateRoomHandler.h"
 #include "../server/app/session/SessionRegistry.h"
 #include "../shared/model/Board.h"
+#include "../shared/protocol/MoveLogCodec.h"
 #include <memory>
 #include <vector>
 
@@ -29,6 +30,11 @@ TEST_CASE("CreateRoomHandler - שם פנוי נוצר בהצלחה והיוצר 
     CHECK(reply.at("roomName").get<std::string>() == "room-a");
     CHECK(registry.roomExists("room-a"));
     CHECK(registry.roleOf(hdlA) == Chess::Color::White);
+
+    REQUIRE(reply.contains("moveLog"));
+    MoveLogBundle bundle = MoveLogCodec::decodeAll(reply.at("moveLog"));
+    CHECK(bundle.white.empty());
+    CHECK(bundle.black.empty());
 }
 
 TEST_CASE("CreateRoomHandler - יצירת חדר מצרפת broadcaster לחדר החדש") {

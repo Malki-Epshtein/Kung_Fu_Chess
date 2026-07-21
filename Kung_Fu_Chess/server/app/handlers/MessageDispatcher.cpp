@@ -26,6 +26,7 @@ namespace {
             case MessageType::JoinRoom:   return "JOIN_ROOM";
             case MessageType::FindGame:   return "FIND_GAME";
             case MessageType::GameFound:  return "GAME_FOUND";
+            case MessageType::MoveLogged: return "MOVE_LOGGED";
         }
         return "UNKNOWN";
     }
