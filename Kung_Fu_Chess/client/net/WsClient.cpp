@@ -2,6 +2,7 @@
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 #include <iostream>
+#include <mutex>
 #include <thread>
 
 struct WsClient::Impl {
@@ -9,6 +10,14 @@ struct WsClient::Impl {
 
     WsppClient                              client;//באמת זה הוא שגורם לכל החיבור
     websocketpp::connection_hdl             hdl;//החיבור עצמו
+    // Guards onMessage/onOpen themselves - setOnMessage/setOnOpen are
+    // called from the caller's own thread (main/GUI), while the network
+    // thread reads and invokes them from the websocketpp handlers below.
+    // Without this, a setOnMessage(...) call racing the network thread's
+    // read-and-invoke of the PREVIOUS handler is a real data race on the
+    // std::function itself (observed crash: "unlock of unowned mutex" -
+    // the old handler's captured state being torn down mid-invocation).
+    std::mutex                              handlerMutex;
     std::function<void(const std::string&)> onMessage;//מקום שאפשר לשים פונקציה שתתבצע כאשר מתקבלת הודעה מהשרת
     std::function<void()>                   onOpen;//מקום שאפשר לשים פונקציה שתתבצע כאשר החיבור נפתח
     bool                                    connected = false;//אם החיבור פעיל או לא
@@ -37,12 +46,25 @@ void WsClient::connect(const std::string& host, uint16_t port) {//הפונקצי
         impl->hdl = hdl;
         impl->connected = true;
         std::cout << "[client] connected" << std::endl;
-        if (impl->onOpen)//אם יש פונקציה שהוגדרה על ידי המשתמש, היא תתבצע
-            impl->onOpen();
+        // Copy the handler out under the lock, then call it unlocked - so
+        // the handler itself (arbitrary caller code) is never invoked
+        // while handlerMutex is held.
+        std::function<void()> handler;
+        {
+            std::lock_guard<std::mutex> lock(impl->handlerMutex);
+            handler = impl->onOpen;
+        }
+        if (handler)//אם יש פונקציה שהוגדרה על ידי המשתמש, היא תתבצע
+            handler();
     });
     client.set_message_handler([this](websocketpp::connection_hdl, Impl::WsppClient::message_ptr msg) {//כאשר מתקבלת הודעה מהשרת
-        if (impl->onMessage)
-            impl->onMessage(msg->get_payload());
+        std::function<void(const std::string&)> handler;
+        {
+            std::lock_guard<std::mutex> lock(impl->handlerMutex);
+            handler = impl->onMessage;
+        }
+        if (handler)
+            handler(msg->get_payload());
     });
     client.set_fail_handler([this](websocketpp::connection_hdl hdl) {//כאשר החיבור נכשל
         std::cout << "[client] connection failed: " << impl->client.get_con_from_hdl(hdl)->get_ec().message() << std::endl;
@@ -82,9 +104,11 @@ void WsClient::send(const std::string& text) {//שליחת הודעה לשרת
 }
 
 void WsClient::setOnMessage(std::function<void(const std::string&)> handler) {//הגדרת פונקציה שתתבצע כאשר מתקבלת הודעה מהשרת מי יטפל בהודעה
+    std::lock_guard<std::mutex> lock(impl->handlerMutex);
     impl->onMessage = std::move(handler);
 }
 
 void WsClient::setOnOpen(std::function<void()> handler) {// מי יטפל כאשר החיבור נפתח
+    std::lock_guard<std::mutex> lock(impl->handlerMutex);
     impl->onOpen = std::move(handler);
 }

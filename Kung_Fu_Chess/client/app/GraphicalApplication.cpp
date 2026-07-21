@@ -131,7 +131,15 @@ void GraphicalApplication::run() {
         view.setDisconnectStatus(disconnectActive, disconnectMessage);
         view.setScore(whiteScore, blackScore);
         view.setMoveLog(std::move(whiteMoves), std::move(blackMoves));
-        view.render(controller.getSnapshot());
+        try {
+            view.render(controller.getSnapshot());
+        } catch (const std::exception& e) {
+            // A render failure used to crash the whole client with zero
+            // diagnostic output (the window would just vanish) - surfacing
+            // it here at least tells us what actually went wrong.
+            std::cerr << "[client] render() failed at frame " << frame << ": " << e.what() << std::endl;
+            break;
+        }
         ++frame;
 
         int key = cv::waitKey(30);

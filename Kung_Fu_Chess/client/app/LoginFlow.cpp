@@ -8,19 +8,24 @@ namespace {
     constexpr int kMaxAttempts = 3;
 
     void waitForConnectionOpen(WsClient& client, std::ostream& out) {
-        std::mutex              mutex;
-        std::condition_variable cv;
-        bool                    opened = false;
+        // Same reasoning as sendAndWaitForReply (BlockingRequest.cpp):
+        // nothing ever calls setOnOpen again after this, so this handler
+        // stays the installed one for the rest of the connection's life -
+        // it must not capture references to this function's own locals,
+        // which are destroyed the moment this function returns.
+        auto mutex  = std::make_shared<std::mutex>();
+        auto cv     = std::make_shared<std::condition_variable>();
+        auto opened = std::make_shared<bool>(false);
 
-        client.setOnOpen([&]() {
-            std::lock_guard<std::mutex> lock(mutex);
-            opened = true;
-            cv.notify_one();
+        client.setOnOpen([mutex, cv, opened]() {
+            std::lock_guard<std::mutex> lock(*mutex);
+            *opened = true;
+            cv->notify_one();
         });
 
         out << "Connecting to server..." << std::endl;
-        std::unique_lock<std::mutex> lock(mutex);
-        cv.wait(lock, [&] { return opened; });
+        std::unique_lock<std::mutex> lock(*mutex);
+        cv->wait(lock, [&] { return *opened; });
     }
 
     LoginResult sendLoginAndWaitForReply(WsClient& client, const std::string& username, const std::string& password) {
