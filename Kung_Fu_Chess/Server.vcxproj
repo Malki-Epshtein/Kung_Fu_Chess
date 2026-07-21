@@ -100,6 +100,7 @@
     <ClCompile Include="server\engine\GameEngine.cpp" />
     <ClCompile Include="server\engine\ScoreObserver.cpp" />
     <ClCompile Include="server\engine\MoveLogObserver.cpp" />
+    <ClCompile Include="server\engine\CaptureEventObserver.cpp" />
     <ClCompile Include="server\app\logic\MoveCommand.cpp" />
     <ClCompile Include="server\app\logic\JumpCommand.cpp" />
     <ClCompile Include="server\io\BoardParser.cpp" />
@@ -151,12 +152,14 @@
     <ClCompile Include="shared\input\ClickResolver.cpp" />
     <ClCompile Include="shared\protocol\GameSnapshotCodec.cpp" />
     <ClCompile Include="shared\protocol\MoveLogCodec.cpp" />
+    <ClCompile Include="shared\protocol\CaptureEventCodec.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="server\engine\GameEngine.h" />
     <ClInclude Include="server\engine\MoveResult.h" />
     <ClInclude Include="server\engine\ScoreObserver.h" />
     <ClInclude Include="server\engine\MoveLogObserver.h" />
+    <ClInclude Include="server\engine\CaptureEventObserver.h" />
     <ClInclude Include="server\app\session\GameSession.h" />
     <ClInclude Include="server\app\networking\NetworkBroadcaster.h" />
     <ClInclude Include="server\app\networking\BroadcasterManager.h" />
@@ -210,6 +213,8 @@
     <ClInclude Include="shared\protocol\GameSnapshotCodec.h" />
     <ClInclude Include="shared\protocol\MoveEntry.h" />
     <ClInclude Include="shared\protocol\MoveLogCodec.h" />
+    <ClInclude Include="shared\protocol\CaptureEvent.h" />
+    <ClInclude Include="shared\protocol\CaptureEventCodec.h" />
     <ClInclude Include="shared\model\Board.h" />
     <ClInclude Include="shared\model\GameState.h" />
     <ClInclude Include="shared\model\Piece.h" />

@@ -2,6 +2,7 @@
 #include "HomeScreenView.h"
 #include "../view/ViewConfig.h"
 #include "../../shared/protocol/GameSnapshotCodec.h"
+#include "../../shared/protocol/CaptureEventCodec.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
@@ -32,11 +33,11 @@ void GraphicalApplication::onMessage(const std::string& text) {
     // Runs on WsClient's network thread. The server sends three
     // differently-shaped JSON payloads on the same connection: a broadcast
     // GameSnapshot (un-enveloped, has "board_width"), a direct
-    // command-reply ack (un-enveloped, has "success"), and an enveloped
-    // server->client push (has "type") like MOVE_LOGGED. Only the first two
-    // are handled elsewhere/below; MOVE_LOGGED is handled first here since
-    // it would otherwise be silently dropped by the "board_width" check
-    // below (it has neither key).
+    // command-reply ack (un-enveloped, has "success"), and enveloped
+    // server->client pushes (has "type") like MOVE_LOGGED/CAPTURE_EVENT.
+    // Only the first two are handled elsewhere/below; the enveloped pushes
+    // are handled first here since they'd otherwise be silently dropped by
+    // the "board_width" check below (they have neither key).
     try {
         nlohmann::json j = nlohmann::json::parse(text);
 
@@ -47,6 +48,17 @@ void GraphicalApplication::onMessage(const std::string& text) {
                 networkWhiteMoves.push_back(event.entry);
             else if (event.color == Chess::Color::Black)
                 networkBlackMoves.push_back(event.entry);
+            return;
+        }
+
+        // Reception only for now - no sound/animation playback wired up yet,
+        // that's a separate, not-yet-scoped feature. This just proves a real
+        // capture on the server reaches the client as a CAPTURE_EVENT push.
+        if (j.value("type", std::string()) == "CAPTURE_EVENT") {
+            CaptureEvent event = CaptureEventCodec::decode(j.at("payload"));
+            std::cout << "[client] capture event received: kind=" << static_cast<int>(event.kind)
+                       << " color=" << static_cast<int>(event.color)
+                       << " cell=" << event.cell << std::endl;
             return;
         }
 

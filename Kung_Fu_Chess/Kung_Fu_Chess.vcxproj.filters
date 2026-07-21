@@ -201,6 +201,12 @@
     <ClCompile Include="test\test_MoveLogCodec.cpp">
       <Filter>protocol</Filter>
     </ClCompile>
+    <ClCompile Include="shared\protocol\CaptureEventCodec.cpp">
+      <Filter>protocol</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_CaptureEventCodec.cpp">
+      <Filter>protocol</Filter>
+    </ClCompile>
     <ClCompile Include="test\test_MessageCodec.cpp">
       <Filter>protocol</Filter>
     </ClCompile>
@@ -313,6 +319,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_MoveLogObserver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="server\engine\CaptureEventObserver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_CaptureEventObserver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test\test_Controller.cpp">
@@ -500,6 +512,12 @@
     <ClInclude Include="shared\protocol\MoveLogCodec.h">
       <Filter>protocol</Filter>
     </ClInclude>
+    <ClInclude Include="shared\protocol\CaptureEvent.h">
+      <Filter>protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\protocol\CaptureEventCodec.h">
+      <Filter>protocol</Filter>
+    </ClInclude>
     <ClInclude Include="shared\bus\EventBus.h">
       <Filter>bus</Filter>
     </ClInclude>
@@ -597,6 +615,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="server\engine\MoveLogObserver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="server\engine\CaptureEventObserver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="server\engine\MoveResult.h">

@@ -64,6 +64,28 @@ TEST_CASE("BroadcasterManager - attach שולח גם אירועי moveLogTopic �
     CHECK(sentTo.size() == 2); // both occupants of room-a
 }
 
+TEST_CASE("BroadcasterManager - attach שולח גם אירועי captureTopic לחיבורים של אותו חדר") {
+    SessionRegistry registry;
+    EventBus bus;
+
+    std::vector<std::string> sentTo;
+    BroadcasterManager manager(bus, registry, [&](BroadcasterManager::ConnectionHandle, const std::string& text) {
+        sentTo.push_back(text);
+    });
+
+    registry.createRoom("room-a", makeBoard(), bus);
+    std::shared_ptr<int> a, b;
+    auto hdlA = handleFrom(a);
+    auto hdlB = handleFrom(b);
+    registry.joinRoom("room-a", hdlA);
+    registry.joinRoom("room-a", hdlB);
+
+    manager.attach("room-a");
+    bus.publish(GameSession::captureTopic("room-a"), { {"type", "CAPTURE_EVENT"}, {"payload", {{"kind", "Pawn"}, {"color", "White"}, {"cell", {{"row", 0}, {"col", 0}}}}} });
+
+    CHECK(sentTo.size() == 2); // both occupants of room-a
+}
+
 TEST_CASE("BroadcasterManager - חדרים שונים לא מקבלים שידורים אחד של השני") {
     SessionRegistry registry;
     EventBus bus;

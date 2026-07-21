@@ -134,6 +134,7 @@
     <ClCompile Include="shared\input\ClickResolver.cpp" />
     <ClCompile Include="shared\protocol\GameSnapshotCodec.cpp" />
     <ClCompile Include="shared\protocol\MoveLogCodec.cpp" />
+    <ClCompile Include="shared\protocol\CaptureEventCodec.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="client\app\GraphicalApplication.h" />
@@ -169,6 +170,8 @@
     <ClInclude Include="shared\protocol\GameSnapshotCodec.h" />
     <ClInclude Include="shared\protocol\MoveEntry.h" />
     <ClInclude Include="shared\protocol\MoveLogCodec.h" />
+    <ClInclude Include="shared\protocol\CaptureEvent.h" />
+    <ClInclude Include="shared\protocol\CaptureEventCodec.h" />
     <ClInclude Include="shared\model\Board.h" />
     <ClInclude Include="shared\model\GameState.h" />
     <ClInclude Include="shared\model\Piece.h" />

@@ -169,6 +169,7 @@
     <ClCompile Include="server\engine\GameEngine.cpp" />
     <ClCompile Include="server\engine\ScoreObserver.cpp" />
     <ClCompile Include="server\engine\MoveLogObserver.cpp" />
+    <ClCompile Include="server\engine\CaptureEventObserver.cpp" />
     <ClCompile Include="client\input\BoardMapper.cpp" />
     <ClCompile Include="client\app\HomeScreen.cpp" />
     <ClCompile Include="client\input\Controller.cpp" />
@@ -198,6 +199,7 @@
     <ClCompile Include="shared\input\ClickResolver.cpp" />
     <ClCompile Include="shared\protocol\GameSnapshotCodec.cpp" />
     <ClCompile Include="shared\protocol\MoveLogCodec.cpp" />
+    <ClCompile Include="shared\protocol\CaptureEventCodec.cpp" />
     <ClCompile Include="server\app\session\GameSession.cpp" />
     <ClCompile Include="server\app\networking\NetworkBroadcaster.cpp" />
     <ClCompile Include="server\app\networking\BroadcasterManager.cpp" />
@@ -364,6 +366,14 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="test\test_CaptureEventObserver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_CaptureEventCodec.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="test\test_GameSession.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -461,6 +471,8 @@
     <ClInclude Include="shared\protocol\GameSnapshotCodec.h" />
     <ClInclude Include="shared\protocol\MoveEntry.h" />
     <ClInclude Include="shared\protocol\MoveLogCodec.h" />
+    <ClInclude Include="shared\protocol\CaptureEvent.h" />
+    <ClInclude Include="shared\protocol\CaptureEventCodec.h" />
     <ClInclude Include="server\app\session\GameSession.h" />
     <ClInclude Include="server\app\networking\NetworkBroadcaster.h" />
     <ClInclude Include="server\app\networking\BroadcasterManager.h" />
@@ -489,6 +501,7 @@
     <ClInclude Include="server\engine\MoveResult.h" />
     <ClInclude Include="server\engine\ScoreObserver.h" />
     <ClInclude Include="server\engine\MoveLogObserver.h" />
+    <ClInclude Include="server\engine\CaptureEventObserver.h" />
     <ClInclude Include="client\input\BoardMapper.h" />
     <ClInclude Include="client\app\HomeScreen.h" />
     <ClInclude Include="client\input\Controller.h" />

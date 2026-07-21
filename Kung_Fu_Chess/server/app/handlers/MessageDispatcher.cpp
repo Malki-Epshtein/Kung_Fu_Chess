@@ -27,6 +27,7 @@ namespace {
             case MessageType::FindGame:   return "FIND_GAME";
             case MessageType::GameFound:  return "GAME_FOUND";
             case MessageType::MoveLogged: return "MOVE_LOGGED";
+            case MessageType::CaptureEvent: return "CAPTURE_EVENT";
         }
         return "UNKNOWN";
     }

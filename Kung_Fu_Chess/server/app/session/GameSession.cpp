@@ -1,6 +1,7 @@
 #include "GameSession.h"
 #include "../../../shared/protocol/GameSnapshotCodec.h"
 #include "../../../shared/protocol/MoveLogCodec.h"
+#include "../../../shared/protocol/CaptureEventCodec.h"
 #include "../../../shared/protocol/MessageCodec.h"
 
 namespace {
@@ -17,6 +18,7 @@ GameSession::GameSession(std::shared_ptr<Board> board, EventBus& bus, std::strin
     : engine_(board, simultaneousMode), bus_(bus), roomName_(std::move(roomName)), moveLogObserver_(board->getHeight()) {
     engine_.addCaptureObserver(&scoreObserver_);
     engine_.addMoveObserver(&moveLogObserver_);
+    engine_.addCaptureObserver(&captureEventObserver_);
 
     // Bridges MoveLogObserver into the network layer without it ever
     // knowing EventBus/JSON exist - see MoveLogObserver::onNewEntry.
@@ -27,6 +29,13 @@ GameSession::GameSession(std::shared_ptr<Board> board, EventBus& bus, std::strin
     moveLogObserver_.onNewEntry = [this](Chess::Color color, const MoveEntry& entry) {
         Message msg{ MessageType::MoveLogged, MoveLogCodec::encode(color, entry) };
         bus_.publish(moveLogTopic(roomName_), nlohmann::json::parse(MessageCodec::encode(msg)));
+    };
+
+    // Same bridging pattern as moveLogObserver_.onNewEntry above, for a
+    // capture instead of a completed move.
+    captureEventObserver_.onNewCapture = [this](const CaptureEvent& event) {
+        Message msg{ MessageType::CaptureEvent, CaptureEventCodec::encode(event) };
+        bus_.publish(captureTopic(roomName_), nlohmann::json::parse(MessageCodec::encode(msg)));
     };
 }
 

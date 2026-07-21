@@ -14,6 +14,7 @@ namespace {
         { MessageType::FindGame,   "FIND_GAME"   },
         { MessageType::GameFound,  "GAME_FOUND"  },
         { MessageType::MoveLogged, "MOVE_LOGGED" },
+        { MessageType::CaptureEvent, "CAPTURE_EVENT" },
     };
 
     MessageType nameToType(const std::string& name) {

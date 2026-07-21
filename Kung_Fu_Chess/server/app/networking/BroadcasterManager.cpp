@@ -17,5 +17,6 @@ void BroadcasterManager::attach(const std::string& roomName) {
     std::vector<std::unique_ptr<NetworkBroadcaster>> roomBroadcasters;
     roomBroadcasters.push_back(std::make_unique<NetworkBroadcaster>(bus_, GameSession::snapshotTopic(roomName), forwardToRoom));
     roomBroadcasters.push_back(std::make_unique<NetworkBroadcaster>(bus_, GameSession::moveLogTopic(roomName), forwardToRoom));
+    roomBroadcasters.push_back(std::make_unique<NetworkBroadcaster>(bus_, GameSession::captureTopic(roomName), forwardToRoom));
     broadcasters_[roomName] = std::move(roomBroadcasters);
 }

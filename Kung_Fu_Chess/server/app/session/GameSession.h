@@ -2,6 +2,7 @@
 #include "../../engine/GameEngine.h"
 #include "../../engine/ScoreObserver.h"
 #include "../../engine/MoveLogObserver.h"
+#include "../../engine/CaptureEventObserver.h"
 #include "../../../shared/bus/EventBus.h"
 #include "../../../shared/model/Piece.h"
 #include "json.hpp"
@@ -35,6 +36,7 @@ class GameSession {
 public:
     static std::string snapshotTopic(const std::string& roomName) { return "game-state-changed:" + roomName; }
     static std::string moveLogTopic(const std::string& roomName) { return "move-logged:" + roomName; }
+    static std::string captureTopic(const std::string& roomName) { return "capture-event:" + roomName; }
 
     GameSession(std::shared_ptr<Board> board, EventBus& bus, std::string roomName, bool simultaneousMode = true);
 
@@ -54,5 +56,6 @@ private:
     std::string       roomName_;
     ScoreObserver      scoreObserver_;
     MoveLogObserver     moveLogObserver_;
+    CaptureEventObserver captureEventObserver_;
     DisconnectStatus     disconnectStatus_{};
 };

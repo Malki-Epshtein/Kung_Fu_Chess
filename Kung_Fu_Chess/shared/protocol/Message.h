@@ -1,10 +1,11 @@
 #pragma once
 #include "json.hpp"
 
-// Every type here except GameFound/MoveLogged is a client->server request
-// that gets a direct reply. Those two are server->client pushes: the
-// server sends them unprompted (a match found/timed out, or a move just
-// completed) - never as a reply to a message the client just sent.
+// Every type here except GameFound/MoveLogged/CaptureEvent is a
+// client->server request that gets a direct reply. Those three are
+// server->client pushes: the server sends them unprompted (a match
+// found/timed out, a move just completed, a piece was just captured) -
+// never as a reply to a message the client just sent.
 enum class MessageType {
     Hello,
     Move,
@@ -15,7 +16,8 @@ enum class MessageType {
     JoinRoom,
     FindGame,
     GameFound,
-    MoveLogged
+    MoveLogged,
+    CaptureEvent
 };
 
 struct Message {
