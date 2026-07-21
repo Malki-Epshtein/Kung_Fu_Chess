@@ -97,6 +97,11 @@ public:
 
     void run();
 
+    // Public only because it's called through the raw C function pointer
+    // OpenCV's setMouseCallback requires (cast back from void* userdata) -
+    // not meant to be called from anywhere else.
+    void onMouseClick(int x, int y);
+
 private:
     void onMessage(const std::string& text);
 };
