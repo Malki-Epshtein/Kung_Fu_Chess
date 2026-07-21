@@ -36,6 +36,21 @@ TEST_CASE("Board - תאים תפוסים מחזירים את הכלי הנכון
     CHECK(piece->getId() == 1);
 }
 
+TEST_CASE("Board - getPieceAt מחזיר nullptr במקום UB עבור row/col מחוץ לגבולות") {
+    Board board(8, 8);
+    CHECK(board.getPieceAt(-1, 0) == nullptr);
+    CHECK(board.getPieceAt(0, -1) == nullptr);
+    CHECK(board.getPieceAt(8, 0) == nullptr);
+    CHECK(board.getPieceAt(0, 8) == nullptr);
+}
+
+TEST_CASE("Board - getPieceAt מחזיר את הכלי הנכון לתא תקין") {
+    Board board(8, 8);
+    auto rook = std::make_shared<TestPiece>(1, Chess::Color::White, Chess::Kind::Rook, Position{ 0, 0 });
+    board.addPiece(rook, { 0, 0 });
+    CHECK(board.getPieceAt(0, 0)->getKind() == Chess::Kind::Rook);
+}
+
 TEST_CASE("Board - הוספת שני כלים לאותו תא נכשלת") {
     Board board(8, 8);
     auto p1 = std::make_shared<TestPiece>(1, Chess::Color::White, Chess::Kind::Rook,   Position{ 2, 2 });

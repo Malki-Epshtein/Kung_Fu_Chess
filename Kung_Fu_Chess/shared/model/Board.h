@@ -24,7 +24,9 @@ public:
     bool isWithinBounds(Position pos) const;
     int getWidth()  const { return width;  }
     int getHeight() const { return height; }
-    std::shared_ptr<Piece> getPieceAt(int row, int col) const { return grid[index(row, col)]; }
+    std::shared_ptr<Piece> getPieceAt(int row, int col) const {
+        return isWithinBounds({ row, col }) ? grid[index(row, col)] : nullptr;
+    }
 
 
     void movePiece(Position from, Position to);
