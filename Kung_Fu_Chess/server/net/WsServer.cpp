@@ -51,9 +51,9 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
     server.set_close_handler([&connectionHandler](websocketpp::connection_hdl hdl) {
         connectionHandler.onClose(hdl);
     });
-    server.set_message_handler([&server, &dispatcher](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {
+    server.set_message_handler([&server, &dispatcher](websocketpp::connection_hdl hdl, WsppServer::message_ptr msg) {//פה אני מקבלת את ההודעה
         std::string reply = dispatcher.process(hdl, msg->get_payload());
-        server.send(hdl, reply, msg->get_opcode());
+        server.send(hdl, reply, msg->get_opcode());//שולח בחזרה ללקוח
     });
 
     // Drives every room's GameSession::tick on a periodic asio timer, on

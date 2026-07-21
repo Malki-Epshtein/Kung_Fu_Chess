@@ -12,7 +12,7 @@ nlohmann::json CreateRoomHandler::handle(ConnectionHandle hdl, const nlohmann::j
         return { {"success", false}, {"message", "room already exists"} };
 
     registry_.createRoom(name, makeStartingBoard(), bus_, /*simultaneousMode=*/true);
-    attachBroadcaster_(name);
+    attachBroadcaster_(name);//פה נוצרת ההרשמה
     // The creator becomes the room's first occupant (White) - otherwise
     // they'd have to immediately send a separate JoinRoom right after
     // creating it.

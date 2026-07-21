@@ -7,6 +7,7 @@
 #include "../view/assets/FileImageLoader.h"
 #include "../view/assets/CachingImageLoader.h"
 #include "../view/assets/AssetsRootConfig.h"
+#include "../audio/SoundPlayer.h"
 #include "LoginFlow.h"
 #include "HomeScreenView.h"
 #include "../../shared/engine/GameSnapshot.h"
@@ -27,6 +28,7 @@ private:
     FileImageLoader      fileImageLoader;
     CachingImageLoader   cachingImageLoader;
     SpriteRepository     spriteRepository;
+    SoundPlayer          soundPlayer;
 
     WsClient client;
 
@@ -71,6 +73,7 @@ public:
           pathBuilder(assetsRoot),
           cachingImageLoader(fileImageLoader),
           spriteRepository(pathBuilder, cachingImageLoader),
+          soundPlayer(assetsRoot),
           controller(latestSnapshot, [this](const std::string& text) { client.send(text); }),
           view(spriteRepository, assetsRoot) {
         client.connect(SERVER_HOST, SERVER_PORT);

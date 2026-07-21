@@ -48,17 +48,18 @@ void GraphicalApplication::onMessage(const std::string& text) {
                 networkWhiteMoves.push_back(event.entry);
             else if (event.color == Chess::Color::Black)
                 networkBlackMoves.push_back(event.entry);
+            soundPlayer.play("move.wav");
             return;
         }
 
-        // Reception only for now - no sound/animation playback wired up yet,
-        // that's a separate, not-yet-scoped feature. This just proves a real
-        // capture on the server reaches the client as a CAPTURE_EVENT push.
+        // A real capture on the server reaches the client as a
+        // CAPTURE_EVENT push - play the capture sound.
         if (j.value("type", std::string()) == "CAPTURE_EVENT") {
             CaptureEvent event = CaptureEventCodec::decode(j.at("payload"));
             std::cout << "[client] capture event received: kind=" << static_cast<int>(event.kind)
                        << " color=" << static_cast<int>(event.color)
                        << " cell=" << event.cell << std::endl;
+            soundPlayer.play("capture.wav");
             return;
         }
 

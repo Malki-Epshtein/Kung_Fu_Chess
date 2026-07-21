@@ -74,7 +74,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)OpenCV_451\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world451d.lib;ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world451d.lib;ws2_32.lib;mswsock.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(ProjectDir)OpenCV_451\bin\opencv_world451d.dll" "$(OutDir)"</Command>
@@ -97,7 +97,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)OpenCV_451\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world451.lib;ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world451.lib;ws2_32.lib;mswsock.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(ProjectDir)OpenCV_451\bin\opencv_world451.dll" "$(OutDir)"</Command>
@@ -106,6 +106,7 @@
   <ItemGroup>
     <ClCompile Include="client\client_main.cpp" />
     <ClCompile Include="client\app\GraphicalApplication.cpp" />
+    <ClCompile Include="client\audio\SoundPlayer.cpp" />
     <ClCompile Include="client\app\HomeScreen.cpp" />
     <ClCompile Include="client\app\HomeScreenView.cpp" />
     <ClCompile Include="client\app\RoomDialog.cpp" />
@@ -138,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="client\app\GraphicalApplication.h" />
+    <ClInclude Include="client\audio\SoundPlayer.h" />
     <ClInclude Include="client\app\HomeScreen.h" />
     <ClInclude Include="client\app\HomeScreenView.h" />
     <ClInclude Include="client\app\RoomDialog.h" />
