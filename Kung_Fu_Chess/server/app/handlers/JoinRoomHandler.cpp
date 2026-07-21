@@ -2,6 +2,7 @@
 #include "../session/SessionRegistry.h"
 #include "../session/GameSession.h"
 #include "../session/RoleName.h"
+#include "../session/RoomIdentityResolver.h"
 #include "../../../shared/model/Piece.h"
 #include <iostream>
 
@@ -19,6 +20,9 @@ nlohmann::json JoinRoomHandler::handle(ConnectionHandle hdl, const nlohmann::jso
     // already happened, so this is the one-time catch-up (see
     // GameSession::fullMoveLog). Everything after this reply arrives as a
     // normal live MOVE_LOGGED push, same as for anyone else in the room.
+    RoomIdentity identity = RoomIdentityResolver::resolve(registry_, clientSessions_, name);
     return { {"success", true}, {"message", "joined room"}, {"role", roleName(role)}, {"roomName", name},
-             {"moveLog", registry_.room(name)->fullMoveLog()} };//שלחתי את כל המהחלכים עד עכשיו למי שמצטרף עכשיו
+             {"moveLog", registry_.room(name)->fullMoveLog()},//שלחתי את כל המהחלכים עד עכשיו למי שמצטרף עכשיו
+             {"whiteName", identity.whiteUsername}, {"whiteElo", identity.whiteElo},
+             {"blackName", identity.blackUsername}, {"blackElo", identity.blackElo} };
 }

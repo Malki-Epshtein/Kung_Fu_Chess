@@ -4,6 +4,7 @@
 #include "../server/app/session/SessionRegistry.h"
 #include "../server/app/session/ClientSessionRegistry.h"
 #include "../server/app/logic/Matchmaker.h"
+#include "../server/app/logic/EloService.h"
 #include "../server/db/UserRepository.h"
 #include "../shared/protocol/MessageCodec.h"
 #include <asio/io_context.hpp>
@@ -23,10 +24,11 @@ namespace {
         SessionRegistry          registry;
         EventBus                  bus;
         Matchmaker                matchmaker;
+        EloService                eloService{ users };
         asio::io_context          io;
         BroadcasterManager        broadcasters{ bus, registry, [](MessageDispatcher::ConnectionHandle, const std::string&) {} };
         MessageDispatcher          dispatcher{ users, clientSessions, registry, bus, matchmaker,
-                                                broadcasters, [](MessageDispatcher::ConnectionHandle, const std::string&) {}, io };
+                                                broadcasters, eloService, [](MessageDispatcher::ConnectionHandle, const std::string&) {}, io };
     };
 
     nlohmann::json send(Fixture& f, MessageDispatcher::ConnectionHandle hdl, MessageType type, const nlohmann::json& payload = {}) {

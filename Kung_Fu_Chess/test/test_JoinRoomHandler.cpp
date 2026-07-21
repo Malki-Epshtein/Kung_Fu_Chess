@@ -1,6 +1,7 @@
 #include "../doctest.h"
 #include "../server/app/handlers/JoinRoomHandler.h"
 #include "../server/app/session/SessionRegistry.h"
+#include "../server/app/session/ClientSessionRegistry.h"
 #include "../shared/model/Board.h"
 #include "../shared/protocol/MoveLogCodec.h"
 #include <memory>
@@ -23,9 +24,10 @@ namespace {
 
 TEST_CASE("JoinRoomHandler - הצטרפות לחדר קיים מצליחה ונותנת Black לשני") {
     SessionRegistry registry;
+    ClientSessionRegistry clientSessions;
     EventBus bus;
     registry.createRoom("room-a", makeBoard(), bus);
-    JoinRoomHandler handler(registry);
+    JoinRoomHandler handler(registry, clientSessions);
 
     std::shared_ptr<int> a, b;
     auto hdlA = handleFrom(a);
@@ -47,7 +49,8 @@ TEST_CASE("JoinRoomHandler - הצטרפות לחדר קיים מצליחה ונ�
 
 TEST_CASE("JoinRoomHandler - הצטרפות לחדר שלא קיים נכשלת") {
     SessionRegistry registry;
-    JoinRoomHandler handler(registry);
+    ClientSessionRegistry clientSessions;
+    JoinRoomHandler handler(registry, clientSessions);
 
     std::shared_ptr<int> a;
     auto hdlA = handleFrom(a);
@@ -57,13 +60,36 @@ TEST_CASE("JoinRoomHandler - הצטרפות לחדר שלא קיים נכשלת"
     CHECK(registry.roomOf(hdlA) == nullptr);
 }
 
+TEST_CASE("JoinRoomHandler - התשובה כוללת שם/elo של White ושל המצטרף עצמו כ-Black") {
+    SessionRegistry registry;
+    ClientSessionRegistry clientSessions;
+    EventBus bus;
+    registry.createRoom("room-a", makeBoard(), bus);
+    JoinRoomHandler handler(registry, clientSessions);
+
+    std::shared_ptr<int> a, b;
+    auto hdlA = handleFrom(a);
+    auto hdlB = handleFrom(b);
+    clientSessions.onLogin(hdlA, "alice", 1250);
+    clientSessions.onLogin(hdlB, "bob", 1400);
+    registry.joinRoom("room-a", hdlA); // White
+
+    nlohmann::json reply = handler.handle(hdlB, { {"name", "room-a"} });
+
+    CHECK(reply.at("whiteName").get<std::string>() == "alice");
+    CHECK(reply.at("whiteElo").get<int>() == 1250);
+    CHECK(reply.at("blackName").get<std::string>() == "bob");
+    CHECK(reply.at("blackElo").get<int>() == 1400);
+}
+
 TEST_CASE("JoinRoomHandler - צופה שמצטרף באמצע משחק מקבל את היומן שכבר נצבר (backfill)") {
     SessionRegistry registry;
+    ClientSessionRegistry clientSessions;
     EventBus bus;
     auto board = std::make_shared<Board>(8, 8);
     board->addPiece(std::make_shared<TestPiece>(1, Chess::Color::White, Chess::Kind::Rook, Position{3, 3}), {3, 3});
     registry.createRoom("room-a", board, bus);
-    JoinRoomHandler handler(registry);
+    JoinRoomHandler handler(registry, clientSessions);
 
     // A move already completed in this room before anyone new joins - the
     // exact scenario a late-joining spectator needs backfilled.

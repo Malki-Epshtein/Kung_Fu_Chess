@@ -38,6 +38,23 @@ TEST_CASE("UserRepository - שני שמות משתמש שונים לא מתנג�
     CHECK_FALSE(repo.login("malki", "secret2").success);
 }
 
+TEST_CASE("UserRepository - updateElo משנה את ה-ELO שמוחזר בכניסה הבאה") {
+    UserRepository repo(":memory:");
+    repo.login("malki", "secret");
+
+    repo.updateElo("malki", 1350);
+
+    LoginResult result = repo.login("malki", "secret");
+    CHECK(result.success);
+    CHECK(result.elo == 1350);
+}
+
+TEST_CASE("UserRepository - updateElo על שם משתמש לא קיים לא קורס") {
+    UserRepository repo(":memory:");
+    repo.updateElo("no-such-user", 1500);
+    // No CHECK needed - the test passes simply by not crashing.
+}
+
 TEST_CASE("UserRepository - שני מופעים נפרדים של DB בזיכרון לא חולקים נתונים") {
     UserRepository repoA(":memory:");
     UserRepository repoB(":memory:");

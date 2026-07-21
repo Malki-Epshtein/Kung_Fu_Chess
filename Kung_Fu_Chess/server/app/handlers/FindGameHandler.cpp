@@ -2,6 +2,7 @@
 #include "../session/SessionRegistry.h"
 #include "../session/GameSession.h"
 #include "../session/ClientSessionRegistry.h"
+#include "../session/RoomIdentityResolver.h"
 #include "../session/RoleName.h"
 #include "../logic/Matchmaker.h"
 #include "../logic/StartingBoard.h"
@@ -31,18 +32,24 @@ nlohmann::json FindGameHandler::handle(ConnectionHandle hdl, const nlohmann::jso
         // CreateRoom (see GameSession::fullMoveLog).
         nlohmann::json moveLog = registry_.room(name)->fullMoveLog();
 
+        RoomIdentity identity = RoomIdentityResolver::resolve(registry_, sessions_, name);
+
         // The opponent isn't expecting a reply right now - this is a
         // server->client PUSH (see Message.h), sent unprompted outside the
         // normal reply flow (which only ever reaches `hdl`, the sender).
         Message opponentMsg{ MessageType::GameFound,
-            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry_.roleOf(*opponent))}, {"moveLog", moveLog} } };
+            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry_.roleOf(*opponent))}, {"moveLog", moveLog},
+              {"whiteName", identity.whiteUsername}, {"whiteElo", identity.whiteElo},
+              {"blackName", identity.blackUsername}, {"blackElo", identity.blackElo} } };
         push_(*opponent, MessageCodec::encode(opponentMsg));
 
         // The sender DOES get the normal reply flow (handled by whoever
         // calls this), but shaped as the same GameFound envelope so both
         // players receive an identical message shape.
         Message senderMsg{ MessageType::GameFound,
-            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry_.roleOf(hdl))}, {"moveLog", moveLog} } };
+            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry_.roleOf(hdl))}, {"moveLog", moveLog},
+              {"whiteName", identity.whiteUsername}, {"whiteElo", identity.whiteElo},
+              {"blackName", identity.blackUsername}, {"blackElo", identity.blackElo} } };
         std::cout << "[server] matched '" << name << "' via FindGame" << std::endl;
         return nlohmann::json::parse(MessageCodec::encode(senderMsg));
     }

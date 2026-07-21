@@ -123,8 +123,12 @@
     <ClCompile Include="server\app\networking\BroadcasterManager.cpp" />
     <ClCompile Include="server\app\session\SessionRegistry.cpp" />
     <ClCompile Include="server\app\session\ClientSessionRegistry.cpp" />
+    <ClCompile Include="server\app\session\RoomIdentityResolver.cpp" />
+    <ClCompile Include="server\app\session\GameResultCodec.cpp" />
     <ClCompile Include="server\app\session\ConnectionHandler.cpp" />
     <ClCompile Include="server\app\logic\Matchmaker.cpp" />
+    <ClCompile Include="server\app\logic\EloCalculator.cpp" />
+    <ClCompile Include="server\app\logic\EloService.cpp" />
     <ClCompile Include="server\app\logic\CommandDispatcher.cpp" />
     <ClCompile Include="server\app\logic\StartingBoard.cpp" />
     <ClCompile Include="server\app\handlers\LoginHandler.cpp" />
@@ -166,8 +170,14 @@
     <ClInclude Include="server\app\session\SessionRegistry.h" />
     <ClInclude Include="server\app\session\ClientSession.h" />
     <ClInclude Include="server\app\session\ClientSessionRegistry.h" />
+    <ClInclude Include="server\app\session\RoomIdentity.h" />
+    <ClInclude Include="server\app\session\GameResult.h" />
+    <ClInclude Include="server\app\session\RoomIdentityResolver.h" />
+    <ClInclude Include="server\app\session\GameResultCodec.h" />
     <ClInclude Include="server\app\session\ConnectionHandler.h" />
     <ClInclude Include="server\app\logic\Matchmaker.h" />
+    <ClInclude Include="server\app\logic\EloCalculator.h" />
+    <ClInclude Include="server\app\logic\EloService.h" />
     <ClInclude Include="server\app\logic\CommandDispatcher.h" />
     <ClInclude Include="server\app\logic\StartingBoard.h" />
     <ClInclude Include="server\app\session\RoleName.h" />

@@ -30,6 +30,11 @@ public:
     // `password` matches what's stored for it.
     LoginResult login(const std::string& username, const std::string& password);
 
+    // Overwrites `username`'s stored elo - no-op if that username doesn't
+    // exist (shouldn't happen: only ever called with a username just read
+    // back out of an active, logged-in ClientSession).
+    void updateElo(const std::string& username, int newElo);
+
 private:
     sqlite3* db_ = nullptr;
 };

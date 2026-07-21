@@ -11,6 +11,7 @@ class SessionRegistry;
 class EventBus;
 class Matchmaker;
 class BroadcasterManager;
+class EloService;
 class LoginHandler;
 class CreateRoomHandler;
 class JoinRoomHandler;
@@ -33,7 +34,7 @@ public:
 
     MessageDispatcher(UserRepository& users, ClientSessionRegistry& clientSessions,
                        SessionRegistry& registry, EventBus& bus, Matchmaker& matchmaker,
-                       BroadcasterManager& broadcasters, ConnectionSender push,
+                       BroadcasterManager& broadcasters, EloService& eloService, ConnectionSender push,
                        asio::io_context& ioContext);
     ~MessageDispatcher();
 

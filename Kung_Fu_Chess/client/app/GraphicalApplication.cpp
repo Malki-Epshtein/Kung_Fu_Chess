@@ -13,6 +13,16 @@ namespace {
         return color == "White" ? "Black" : "White";
     }
 
+    // "name (elo)", matching how real chess sites always pair a player's
+    // name with their rating rather than showing either alone. An empty
+    // name means that seat isn't filled yet (e.g. the room's creator,
+    // still waiting for Black to join).
+    std::string playerLabel(const std::string& name, int elo) {
+        if (name.empty())
+            return "Waiting for player...";
+        return name + " (" + std::to_string(elo) + ")";
+    }
+
     void onMouseEvent(int event, int x, int y, int /*flags*/, void* userdata) {
         if (event != cv::EVENT_LBUTTONDOWN)
             return;
@@ -89,12 +99,26 @@ void GraphicalApplication::onMessage(const std::string& text) {
         int whiteScore = j.value("score", nlohmann::json::object()).value("white", 0);
         int blackScore = j.value("score", nlohmann::json::object()).value("black", 0);
 
+        // Step 4: identity (name/elo/spectatorCount) rides the same way -
+        // refreshed every tick, not just once at room-join time.
+        nlohmann::json identity = j.value("identity", nlohmann::json::object());
+        std::string whiteName    = identity.value("whiteName", std::string());
+        int         whiteElo     = identity.value("whiteElo", 0);
+        std::string blackName    = identity.value("blackName", std::string());
+        int         blackElo     = identity.value("blackElo", 0);
+        int         spectatorCount = identity.value("spectatorCount", 0);
+
         std::lock_guard<std::mutex> lock(snapshotMutex);
         networkSnapshot = std::move(decoded);
         networkDisconnectActive = active;
         networkDisconnectMessage = std::move(message);
         networkWhiteScore = whiteScore;
         networkBlackScore = blackScore;
+        networkWhiteName = std::move(whiteName);
+        networkWhiteElo = whiteElo;
+        networkBlackName = std::move(blackName);
+        networkBlackElo = blackElo;
+        networkSpectatorCount = spectatorCount;
     } catch (const std::exception& e) {
         std::cerr << "[client] failed to parse server message: " << e.what() << std::endl;
     }
@@ -111,6 +135,7 @@ void GraphicalApplication::run() {
         return;
     }
     view.setRoomName(home.roomName);//שומרים את שם החדר שהמשתמש הצטרף אליו כדי להציג אותו על המסך
+    view.setPlayerNames(playerLabel(home.whiteName, home.whiteElo), playerLabel(home.blackName, home.blackElo));
 
     // One-time backfill for a room already in progress (Stage I) - safe to
     // touch networkWhiteMoves/networkBlackMoves without the lock here,
@@ -135,6 +160,8 @@ void GraphicalApplication::run() {
         std::string disconnectMessage;
         int         whiteScore, blackScore;
         std::vector<MoveEntry> whiteMoves, blackMoves;
+        std::string whiteName, blackName;
+        int         whiteElo, blackElo, spectatorCount;
         {
             std::lock_guard<std::mutex> lock(snapshotMutex);
             latestSnapshot = networkSnapshot;
@@ -144,6 +171,11 @@ void GraphicalApplication::run() {
             blackScore = networkBlackScore;
             whiteMoves = networkWhiteMoves;
             blackMoves = networkBlackMoves;
+            whiteName = networkWhiteName;
+            whiteElo = networkWhiteElo;
+            blackName = networkBlackName;
+            blackElo = networkBlackElo;
+            spectatorCount = networkSpectatorCount;
         }
         // Edge-triggered (only the frame game_over first becomes true, not
         // every frame it stays true) - game_over already rides on every
@@ -156,6 +188,8 @@ void GraphicalApplication::run() {
         view.setDisconnectStatus(disconnectActive, disconnectMessage);
         view.setScore(whiteScore, blackScore);
         view.setMoveLog(std::move(whiteMoves), std::move(blackMoves));
+        view.setPlayerNames(playerLabel(whiteName, whiteElo), playerLabel(blackName, blackElo));
+        view.setSpectatorCount(spectatorCount);
         try {
             view.render(controller.getSnapshot());
         } catch (const std::exception& e) {

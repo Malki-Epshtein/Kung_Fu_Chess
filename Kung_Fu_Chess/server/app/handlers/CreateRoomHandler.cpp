@@ -2,6 +2,7 @@
 #include "../session/SessionRegistry.h"
 #include "../session/GameSession.h"
 #include "../session/RoleName.h"
+#include "../session/RoomIdentityResolver.h"
 #include "../logic/StartingBoard.h"
 #include "../../../shared/model/Piece.h"
 #include <iostream>
@@ -23,6 +24,9 @@ nlohmann::json CreateRoomHandler::handle(ConnectionHandle hdl, const nlohmann::j
     // moveLog is always empty here (the room was just created) - included
     // anyway for shape consistency with JoinRoom/FindGame's replies, which
     // is exactly what a late joiner needs (see GameSession::fullMoveLog).
+    RoomIdentity identity = RoomIdentityResolver::resolve(registry_, clientSessions_, name);
     return { {"success", true}, {"message", "room created"}, {"role", roleName(role)}, {"roomName", name},
-             {"moveLog", registry_.room(name)->fullMoveLog()} };
+             {"moveLog", registry_.room(name)->fullMoveLog()},
+             {"whiteName", identity.whiteUsername}, {"whiteElo", identity.whiteElo},
+             {"blackName", identity.blackUsername}, {"blackElo", identity.blackElo} };
 }

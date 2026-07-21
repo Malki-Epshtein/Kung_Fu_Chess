@@ -25,6 +25,7 @@ private:
     std::string             disconnectMessage;
     std::string             roomName;
     std::string             titledRoomName; // last roomName the OS window title was set to
+    int                     spectatorCount = 0;
 
 public:
     // Both constructor-injected: rendering is meaningless without a sprite
@@ -67,6 +68,10 @@ public:
     // everyone in the room can confirm they're in the right one. Empty
     // (the default) draws nothing extra.
     void setRoomName(std::string name) { roomName = std::move(name); }
+
+    // A count, not a name list - matches how real chess sites (lichess,
+    // chess.com) show spectators, to avoid a growing/distracting list.
+    void setSpectatorCount(int count) { spectatorCount = count; }
 
     void render(const GameSnapshot& snapshot) override;
 };

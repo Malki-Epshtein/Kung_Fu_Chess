@@ -15,6 +15,16 @@ struct HomeScreenResult {
     // already in progress. GraphicalApplication seeds its local move log
     // from this once, before opening the game window.
     nlohmann::json moveLog = { {"white", nlohmann::json::array()}, {"black", nlohmann::json::array()} };
+
+    // White/Black's real identity, resolved server-side (RoomIdentityResolver)
+    // at the moment of this reply - empty name/elo 0 if that seat isn't
+    // filled yet. A one-time snapshot, not kept live here (Stage I's own
+    // "score/disconnect ride the periodic snapshot" pattern is what keeps
+    // this current once the game window is open).
+    std::string whiteName;
+    int         whiteElo = 0;
+    std::string blackName;
+    int         blackElo = 0;
 };
 
 // Opens the Home Screen window (Play/Room buttons) and blocks until the

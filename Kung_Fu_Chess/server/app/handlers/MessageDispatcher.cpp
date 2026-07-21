@@ -10,6 +10,7 @@
 #include "../session/GameSession.h"
 #include "../networking/BroadcasterManager.h"
 #include "../logic/CommandDispatcher.h"
+#include "../logic/EloService.h"
 #include "../../../shared/protocol/MessageCodec.h"
 #include "../../../shared/model/Piece.h"
 #include <iostream>
@@ -35,15 +36,24 @@ namespace {
 
 MessageDispatcher::MessageDispatcher(UserRepository& users, ClientSessionRegistry& clientSessions,
                                       SessionRegistry& registry, EventBus& bus, Matchmaker& matchmaker,
-                                      BroadcasterManager& broadcasters, ConnectionSender push,
+                                      BroadcasterManager& broadcasters, EloService& eloService, ConnectionSender push,
                                       asio::io_context& ioContext)
     : registry_(registry) {
+    // Called once a new room actually exists (room creation or a Play
+    // match) - attaches every per-room subscriber a fresh room needs:
+    // NetworkBroadcaster's three client-facing topics, and EloService's
+    // server-internal gameEndedTopic. CreateRoomHandler/FindGameHandler
+    // just call this; neither needs to know what "attach" entails.
     BroadcasterManager* broadcastersPtr = &broadcasters;
-    auto attachBroadcaster = [broadcastersPtr](const std::string& name) { broadcastersPtr->attach(name); };
+    EloService* eloServicePtr = &eloService;
+    auto attachBroadcaster = [broadcastersPtr, eloServicePtr, &bus](const std::string& name) {
+        broadcastersPtr->attach(name);
+        eloServicePtr->attach(bus, name);
+    };
 
     loginHandler_      = std::make_unique<LoginHandler>(users, clientSessions);
-    createRoomHandler_ = std::make_unique<CreateRoomHandler>(registry, bus, attachBroadcaster);
-    joinRoomHandler_   = std::make_unique<JoinRoomHandler>(registry);
+    createRoomHandler_ = std::make_unique<CreateRoomHandler>(registry, clientSessions, bus, attachBroadcaster);
+    joinRoomHandler_   = std::make_unique<JoinRoomHandler>(registry, clientSessions);
     findGameHandler_   = std::make_unique<FindGameHandler>(clientSessions, matchmaker, registry, bus,
                                                              attachBroadcaster, push, ioContext);
 

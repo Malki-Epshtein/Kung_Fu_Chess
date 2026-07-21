@@ -4,6 +4,7 @@
 #include <string>
 
 class SessionRegistry;
+class ClientSessionRegistry;
 class EventBus;
 
 class CreateRoomHandler : public IMessageHandler {
@@ -14,13 +15,14 @@ public:
     // WsServer.cpp has.
     using AttachBroadcaster = std::function<void(const std::string&)>;
 
-    CreateRoomHandler(SessionRegistry& registry, EventBus& bus, AttachBroadcaster attachBroadcaster)
-        : registry_(registry), bus_(bus), attachBroadcaster_(std::move(attachBroadcaster)) {}
+    CreateRoomHandler(SessionRegistry& registry, ClientSessionRegistry& clientSessions, EventBus& bus, AttachBroadcaster attachBroadcaster)
+        : registry_(registry), clientSessions_(clientSessions), bus_(bus), attachBroadcaster_(std::move(attachBroadcaster)) {}
 
     nlohmann::json handle(ConnectionHandle hdl, const nlohmann::json& payload) override;
 
 private:
-    SessionRegistry&  registry_;
-    EventBus&          bus_;
-    AttachBroadcaster  attachBroadcaster_;
+    SessionRegistry&        registry_;
+    ClientSessionRegistry&  clientSessions_;
+    EventBus&                bus_;
+    AttachBroadcaster        attachBroadcaster_;
 };

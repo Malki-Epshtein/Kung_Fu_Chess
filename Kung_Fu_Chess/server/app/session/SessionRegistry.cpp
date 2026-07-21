@@ -104,12 +104,14 @@ Chess::Color SessionRegistry::roleOf(ConnectionHandle hdl) const {
     return roleIt == rIt->second.roles.end() ? Chess::Color::None : roleIt->second;
 }
 
-void SessionRegistry::startDisconnectCountdown(const std::string& roomName, Chess::Color color, asio::io_context& ioContext) {
+void SessionRegistry::startDisconnectCountdown(const std::string& roomName, Chess::Color color,
+                                                 std::string disconnectedUsername, int disconnectedElo,
+                                                 asio::io_context& ioContext) {
     auto timer     = std::make_shared<asio::steady_timer>(ioContext);
     auto remaining = std::make_shared<int>(kDisconnectGraceSeconds);
     auto handler   = std::make_shared<std::function<void(const asio::error_code&)>>();
 
-    *handler = [this, timer, remaining, roomName, color, handler](const asio::error_code& ec) {
+    *handler = [this, timer, remaining, roomName, color, disconnectedUsername, disconnectedElo, handler](const asio::error_code& ec) {
         if (ec)
             return;
         GameSession* gameSession = room(roomName);
@@ -119,6 +121,7 @@ void SessionRegistry::startDisconnectCountdown(const std::string& roomName, Ches
         gameSession->setDisconnectStatus({ true, color, *remaining });
         if (*remaining <= 0) {
             std::cout << "[server] " << roleName(color) << " auto-resigned (disconnected too long)" << std::endl;
+            gameSession->markDisconnectResign(color, disconnectedUsername, disconnectedElo);
             return;
         }
         std::cout << "[server] " << roleName(color) << " disconnected - auto-resign in " << *remaining << "s" << std::endl;

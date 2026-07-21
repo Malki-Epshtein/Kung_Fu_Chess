@@ -25,6 +25,17 @@ void ConnectionHandler::onClose(ConnectionHandle hdl) {
     Chess::Color role = registry_.leave(hdl);
     std::cout << "[server] client disconnected (was " << roleName(role) << ")" << std::endl;
 
+    // Captured before onDisconnect() erases it below - needed later (see
+    // GameSession::markDisconnectResign) to apply an ELO update once this
+    // seated player's auto-resign grace period expires. By then this
+    // connection's own ClientSession is long gone.
+    std::string username;
+    int elo = 0;
+    if (const ClientSession* session = clientSessions_.sessionFor(hdl)) {
+        username = session->username;
+        elo = session->elo;
+    }
+
     clientSessions_.onDisconnect(hdl);
     matchmaker_.remove(hdl); // no-op if it wasn't waiting for a match
 
@@ -32,5 +43,5 @@ void ConnectionHandler::onClose(ConnectionHandle hdl) {
     // since Stage E3): started when a seated player (White/Black)
     // disconnects, never for a spectator.
     if (!roomName.empty() && (role == Chess::Color::White || role == Chess::Color::Black))
-        registry_.startDisconnectCountdown(roomName, role, ioContext_);
+        registry_.startDisconnectCountdown(roomName, role, username, elo, ioContext_);
 }

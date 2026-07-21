@@ -205,8 +205,12 @@
     <ClCompile Include="server\app\networking\BroadcasterManager.cpp" />
     <ClCompile Include="server\app\session\SessionRegistry.cpp" />
     <ClCompile Include="server\app\session\ClientSessionRegistry.cpp" />
+    <ClCompile Include="server\app\session\RoomIdentityResolver.cpp" />
+    <ClCompile Include="server\app\session\GameResultCodec.cpp" />
     <ClCompile Include="server\app\session\ConnectionHandler.cpp" />
     <ClCompile Include="server\app\logic\Matchmaker.cpp" />
+    <ClCompile Include="server\app\logic\EloCalculator.cpp" />
+    <ClCompile Include="server\app\logic\EloService.cpp" />
     <ClCompile Include="server\db\UserRepository.cpp" />
     <ClCompile Include="ThirdParty\sqlite3.c">
       <!-- Vendored file (not our code): uses the deprecated GetVersionEx
@@ -390,7 +394,23 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="test\test_RoomIdentityResolver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_GameResultCodec.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="test\test_Matchmaker.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_EloCalculator.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="test\test_EloService.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -479,8 +499,14 @@
     <ClInclude Include="server\app\session\SessionRegistry.h" />
     <ClInclude Include="server\app\session\ClientSession.h" />
     <ClInclude Include="server\app\session\ClientSessionRegistry.h" />
+    <ClInclude Include="server\app\session\RoomIdentity.h" />
+    <ClInclude Include="server\app\session\GameResult.h" />
+    <ClInclude Include="server\app\session\RoomIdentityResolver.h" />
+    <ClInclude Include="server\app\session\GameResultCodec.h" />
     <ClInclude Include="server\app\session\ConnectionHandler.h" />
     <ClInclude Include="server\app\logic\Matchmaker.h" />
+    <ClInclude Include="server\app\logic\EloCalculator.h" />
+    <ClInclude Include="server\app\logic\EloService.h" />
     <ClInclude Include="server\db\UserRepository.h" />
     <ClInclude Include="ThirdParty\sqlite3.h" />
     <ClInclude Include="ThirdParty\sqlite3ext.h" />

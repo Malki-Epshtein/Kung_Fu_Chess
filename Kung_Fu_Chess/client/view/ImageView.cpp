@@ -229,6 +229,11 @@ void ImageView::render(const GameSnapshot& snapshot) {
         titledRoomName = roomName;
     }
 
+    // A count, not a name list (see setSpectatorCount) - drawn in the
+    // top-left corner freed up when the room name moved to the window
+    // title above.
+    frame.put_text("Spectators: " + std::to_string(spectatorCount), 10, 20, 0.6, cv::Scalar(255, 255, 255));
+
     // Stage D: disconnect grace-period countdown - shown in the bottom
     // margin band (reserved space below the board, otherwise empty) rather
     // than the top band, which is where the A-H file labels already live.

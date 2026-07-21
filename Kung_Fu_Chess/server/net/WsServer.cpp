@@ -2,8 +2,10 @@
 #include "../app/session/SessionRegistry.h"
 #include "../app/session/GameSession.h"
 #include "../app/session/ClientSessionRegistry.h"
+#include "../app/session/RoomIdentityResolver.h"
 #include "../app/session/ConnectionHandler.h"
 #include "../app/logic/Matchmaker.h"
+#include "../app/logic/EloService.h"
 #include "../app/networking/BroadcasterManager.h"
 #include "../app/handlers/MessageDispatcher.h"
 #include "../db/UserRepository.h"
@@ -27,6 +29,7 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
 
     ClientSessionRegistry clientSessions;
     Matchmaker            matchmaker;
+    EloService            eloService(users);
 
     // The one place any of this subsystem's objects actually touch a
     // socket - wraps server.send for "push this text to some connection
@@ -43,7 +46,7 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
     BroadcasterManager broadcasters(bus, registry, sendToConnection);
     ConnectionHandler  connectionHandler(registry, clientSessions, matchmaker, server.get_io_service());
     MessageDispatcher  dispatcher(users, clientSessions, registry, bus, matchmaker,
-                                   broadcasters, sendToConnection, server.get_io_service());
+                                   broadcasters, eloService, sendToConnection, server.get_io_service());
 
     server.set_open_handler([&connectionHandler](websocketpp::connection_hdl hdl) {
         connectionHandler.onOpen(hdl);
@@ -65,8 +68,17 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
         if (ec)
             return;
         for (const std::string& roomName : registry.roomNames()) {
-            if (GameSession* gameSession = registry.room(roomName))
+            if (GameSession* gameSession = registry.room(roomName)) {
+                gameSession->setIdentity(RoomIdentityResolver::resolve(registry, clientSessions, roomName));
                 gameSession->tick(tickMs);//לכח אחד מפעילה את השעון
+                // Game-over detection/ELO application both moved off this
+                // loop entirely - GameSession publishes gameEndedTopic
+                // itself (from within tick(), or from
+                // markDisconnectResign() via the disconnect timer), and
+                // EloService (attached per-room in MessageDispatcher)
+                // reacts independently. This loop no longer needs to know
+                // ELO exists at all.
+            }
         }
         timer.expires_after(std::chrono::milliseconds(tickMs));
         timer.async_wait(onTick);

@@ -54,6 +54,10 @@ namespace {
     struct RoomJoinOutcome {
         std::string    roomName;
         nlohmann::json moveLog;
+        std::string    whiteName;
+        int            whiteElo = 0;
+        std::string    blackName;
+        int            blackElo = 0;
     };
 
     RoomJoinOutcome sendRoomRequest(WsClient& client, RoomDialogResult::Action action, const std::string& roomName) {
@@ -67,7 +71,9 @@ namespace {
             showRoomError(message);
             return {};
         }
-        return { reply.value("roomName", roomName), reply.value("moveLog", HomeScreenResult{}.moveLog) };
+        return { reply.value("roomName", roomName), reply.value("moveLog", HomeScreenResult{}.moveLog),
+                 reply.value("whiteName", std::string()), reply.value("whiteElo", 0),
+                 reply.value("blackName", std::string()), reply.value("blackElo", 0) };
     }
 
     // Sends FindGame and returns immediately (does not wait for a result -
@@ -140,6 +146,10 @@ HomeScreenResult runHomeScreen(WsClient& client) {
                     result.joinedRoom = true;
                     result.roomName   = found->value("roomName", std::string());
                     result.moveLog    = found->value("moveLog", HomeScreenResult{}.moveLog);
+                    result.whiteName  = found->value("whiteName", std::string());
+                    result.whiteElo   = found->value("whiteElo", 0);
+                    result.blackName  = found->value("blackName", std::string());
+                    result.blackElo   = found->value("blackElo", 0);
                     break;
                 }
                 std::cout << "[client] FindGame failed: " << found->value("message", "") << std::endl;
@@ -166,6 +176,10 @@ HomeScreenResult runHomeScreen(WsClient& client) {
                 result.joinedRoom = true;
                 result.roomName   = outcome.roomName;
                 result.moveLog    = outcome.moveLog;
+                result.whiteName  = outcome.whiteName;
+                result.whiteElo   = outcome.whiteElo;
+                result.blackName  = outcome.blackName;
+                result.blackElo   = outcome.blackElo;
                 break;
             }
             // Failure (e.g. "room already exists") already logged inside

@@ -1,6 +1,7 @@
 #include "../doctest.h"
 #include "../server/app/handlers/CreateRoomHandler.h"
 #include "../server/app/session/SessionRegistry.h"
+#include "../server/app/session/ClientSessionRegistry.h"
 #include "../shared/model/Board.h"
 #include "../shared/protocol/MoveLogCodec.h"
 #include <memory>
@@ -17,9 +18,10 @@ namespace {
 
 TEST_CASE("CreateRoomHandler - שם פנוי נוצר בהצלחה והיוצר הופך ל-White") {
     SessionRegistry registry;
+    ClientSessionRegistry clientSessions;
     EventBus bus;
     std::vector<std::string> attachedRooms;
-    CreateRoomHandler handler(registry, bus, [&](const std::string& name) { attachedRooms.push_back(name); });
+    CreateRoomHandler handler(registry, clientSessions, bus, [&](const std::string& name) { attachedRooms.push_back(name); });
 
     std::shared_ptr<int> a;
     auto hdlA = handleFrom(a);
@@ -39,9 +41,10 @@ TEST_CASE("CreateRoomHandler - שם פנוי נוצר בהצלחה והיוצר 
 
 TEST_CASE("CreateRoomHandler - יצירת חדר מצרפת broadcaster לחדר החדש") {
     SessionRegistry registry;
+    ClientSessionRegistry clientSessions;
     EventBus bus;
     std::vector<std::string> attachedRooms;
-    CreateRoomHandler handler(registry, bus, [&](const std::string& name) { attachedRooms.push_back(name); });
+    CreateRoomHandler handler(registry, clientSessions, bus, [&](const std::string& name) { attachedRooms.push_back(name); });
 
     std::shared_ptr<int> a;
     auto hdlA = handleFrom(a);
@@ -53,8 +56,9 @@ TEST_CASE("CreateRoomHandler - יצירת חדר מצרפת broadcaster לחדר
 
 TEST_CASE("CreateRoomHandler - שם תפוס נכשל ולא נוגע בחדר הקיים") {
     SessionRegistry registry;
+    ClientSessionRegistry clientSessions;
     EventBus bus;
-    CreateRoomHandler handler(registry, bus, [](const std::string&) {});
+    CreateRoomHandler handler(registry, clientSessions, bus, [](const std::string&) {});
 
     std::shared_ptr<int> a, b;
     auto hdlA = handleFrom(a);
@@ -65,4 +69,21 @@ TEST_CASE("CreateRoomHandler - שם תפוס נכשל ולא נוגע בחדר �
 
     CHECK_FALSE(reply.at("success").get<bool>());
     CHECK(registry.roleOf(hdlB) == Chess::Color::None);
+}
+
+TEST_CASE("CreateRoomHandler - התשובה כוללת שם/elo נכונים של היוצר ותאים ריקים ל-Black") {
+    SessionRegistry registry;
+    ClientSessionRegistry clientSessions;
+    EventBus bus;
+    CreateRoomHandler handler(registry, clientSessions, bus, [](const std::string&) {});
+
+    std::shared_ptr<int> a;
+    auto hdlA = handleFrom(a);
+    clientSessions.onLogin(hdlA, "alice", 1250);
+    nlohmann::json reply = handler.handle(hdlA, { {"name", "room-a"} });
+
+    CHECK(reply.at("whiteName").get<std::string>() == "alice");
+    CHECK(reply.at("whiteElo").get<int>() == 1250);
+    CHECK(reply.at("blackName").get<std::string>() == "");
+    CHECK(reply.at("blackElo").get<int>() == 0);
 }

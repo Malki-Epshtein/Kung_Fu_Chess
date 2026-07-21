@@ -59,7 +59,13 @@ public:
     // running on `ioContext`. No-op if the room doesn't exist. Never
     // cancelled once started (Stage D's simplified scope has no
     // reconnect/seat-reclaim support) - always runs to completion.
-    void startDisconnectCountdown(const std::string& roomName, Chess::Color color, asio::io_context& ioContext);
+    // disconnectedUsername/disconnectedElo must be captured by the caller
+    // (ConnectionHandler) before this - they're handed straight through to
+    // GameSession::markDisconnectResign once the countdown expires, since
+    // this connection's own ClientSession is already gone by then.
+    void startDisconnectCountdown(const std::string& roomName, Chess::Color color,
+                                   std::string disconnectedUsername, int disconnectedElo,
+                                   asio::io_context& ioContext);
 
 private:
     struct Room {

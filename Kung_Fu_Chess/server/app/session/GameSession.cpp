@@ -1,4 +1,5 @@
 #include "GameSession.h"
+#include "GameResultCodec.h"
 #include "../../../shared/protocol/GameSnapshotCodec.h"
 #include "../../../shared/protocol/MoveLogCodec.h"
 #include "../../../shared/protocol/CaptureEventCodec.h"
@@ -11,6 +12,24 @@ namespace {
             case Chess::Color::Black: return "Black";
             default:                  return "None";
         }
+    }
+
+    // A king is only ever missing from the snapshot once it's been
+    // captured, so whichever color's king is still present is the winner.
+    // Deliberately duplicated from ImageView.cpp's identical helper (same
+    // convention as this codebase's per-file kKindToName/kColorToName maps)
+    // rather than shared, since client/server sharing a header here would
+    // be the only cross-boundary include in either direction.
+    Chess::Color survivingKingColor(const GameSnapshot& snapshot) {
+        bool whiteKing = false, blackKing = false;
+        for (const auto& piece : snapshot.pieces) {
+            if (piece.kind != Chess::Kind::King) continue;
+            if (piece.color == Chess::Color::White) whiteKing = true;
+            else if (piece.color == Chess::Color::Black) blackKing = true;
+        }
+        if (whiteKing && !blackKing) return Chess::Color::White;
+        if (blackKing && !whiteKing) return Chess::Color::Black;
+        return Chess::Color::None;
     }
 }
 
@@ -39,6 +58,31 @@ GameSession::GameSession(std::shared_ptr<Board> board, EventBus& bus, std::strin
     };
 }
 
+void GameSession::markDisconnectResign(Chess::Color loser, std::string loserUsername, int loserElo) {
+    // Also checks the live engine state directly, not just
+    // gameResultPublished_ - a king capture can make
+    // engine_.snapshot().game_over true on this same tick, just before
+    // this fires from the disconnect timer. Without this check, a
+    // disconnect landing in that window could publish a second, wrong
+    // result right after the real one.
+    if (gameResultPublished_ || engine_.snapshot().game_over)
+        return; // already ended some other way - first result wins
+
+    bool winnerIsWhite = (loser != Chess::Color::White);
+    Chess::Color winner = winnerIsWhite ? Chess::Color::White : Chess::Color::Black;
+    publishGameEnded(GameResult{
+        winner, GameEndReason::Disconnect,
+        winnerIsWhite ? identity_.whiteUsername : identity_.blackUsername,
+        winnerIsWhite ? identity_.whiteElo : identity_.blackElo,
+        std::move(loserUsername), loserElo,
+    });
+}
+
+void GameSession::publishGameEnded(const GameResult& result) {//פה אני מפיצה את התוצאת המשחקת על הTOPIC של המשחק שהסתיים, ומסמנת שהמשחק כבר הסתיים
+    gameResultPublished_ = true;
+    bus_.publish(gameEndedTopic(roomName_), GameResultCodec::encode(result));
+}
+
 nlohmann::json GameSession::fullMoveLog() const {
     return MoveLogCodec::encodeAll(moveLogObserver_.getMoves(Chess::Color::White), moveLogObserver_.getMoves(Chess::Color::Black));
 }
@@ -51,6 +95,11 @@ void GameSession::tick(int ms) {
         {"white", scoreObserver_.getScore(Chess::Color::White)},//זב כן מספיק בSNAPSHOT
         {"black", scoreObserver_.getScore(Chess::Color::Black)},
     };
+    payload["identity"] = {
+        {"whiteName", identity_.whiteUsername}, {"whiteElo", identity_.whiteElo},
+        {"blackName", identity_.blackUsername}, {"blackElo", identity_.blackElo},
+        {"spectatorCount", identity_.spectatorCount},
+    };
     if (disconnectStatus_.active) {
         payload["disconnect"] = {
             {"active", true},
@@ -59,4 +108,23 @@ void GameSession::tick(int ms) {
         };
     }
     bus_.publish(snapshotTopic(roomName_), payload);
+
+    // King-capture game-over detection rides on the same engine_.snapshot()
+    // this tick already computed above for the broadcast - checking here
+    // costs nothing extra, and publishes gameEndedTopic the moment it's
+    // first true (edge-triggered via gameResultPublished_), the same tick
+    // clients see game_over:true on the snapshot. A disconnect-caused
+    // ending instead reaches gameEndedTopic via markDisconnectResign,
+    // called directly by SessionRegistry's timer - not from here.
+    if (!gameResultPublished_ && engine_.snapshot().game_over) {
+        Chess::Color winner = survivingKingColor(engine_.snapshot());
+        bool winnerIsWhite = winner == Chess::Color::White;
+        publishGameEnded(GameResult{
+            winner, GameEndReason::KingCapture,
+            winnerIsWhite ? identity_.whiteUsername : identity_.blackUsername,
+            winnerIsWhite ? identity_.whiteElo : identity_.blackElo,
+            winnerIsWhite ? identity_.blackUsername : identity_.whiteUsername,
+            winnerIsWhite ? identity_.blackElo : identity_.whiteElo,
+        });
+    }
 }

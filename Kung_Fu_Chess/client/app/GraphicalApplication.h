@@ -57,13 +57,19 @@ private:
     std::vector<MoveEntry>  networkWhiteMoves;
     std::vector<MoveEntry>  networkBlackMoves;
 
+    // Identity rides the same periodic snapshot too (Step 4) - refreshed
+    // every tick from RoomIdentityResolver server-side, so a player
+    // waiting alone in a room sees the opponent's name/elo the moment
+    // they join, and the spectator count stays live.
+    std::string             networkWhiteName;
+    int                     networkWhiteElo = 0;
+    std::string             networkBlackName;
+    int                     networkBlackElo = 0;
+    int                     networkSpectatorCount = 0;
+
     Controller controller;
     ImageView  view;
 
-    // No text-input UI exists yet, so player names are fixed here for now -
-    // easy to swap for a config-file read later without touching callers.
-    static constexpr const char* WHITE_PLAYER_NAME = "White Player";
-    static constexpr const char* BLACK_PLAYER_NAME = "Black Player";
     static constexpr const char* SERVER_HOST       = "localhost";
     static constexpr uint16_t    SERVER_PORT        = 9002;
 
@@ -91,8 +97,9 @@ public:
         // only once a room has actually been joined via the Home screen.
         // Until then, runHomeScreen() below needs the connection free to
         // run its own blocking CreateRoom/JoinRoom request/reply exchange
-        // (same reasoning as login, just above).
-        view.setPlayerNames(WHITE_PLAYER_NAME, BLACK_PLAYER_NAME);
+        // (same reasoning as login, just above). Real player names/elo
+        // aren't known yet at this point (they come back from the room
+        // join reply) - set in run() instead, once home.roomName is.
     }
 
     void run();

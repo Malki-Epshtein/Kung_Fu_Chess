@@ -71,3 +71,12 @@ LoginResult UserRepository::login(const std::string& username, const std::string
         return { false, "could not create account", 0 };
     return { true, "account created", kStartingElo };
 }
+
+void UserRepository::updateElo(const std::string& username, int newElo) {
+    sqlite3_stmt* update = nullptr;
+    sqlite3_prepare_v2(db_, "UPDATE users SET elo = ? WHERE username = ?;", -1, &update, nullptr);
+    sqlite3_bind_int(update, 1, newElo);
+    sqlite3_bind_text(update, 2, username.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_step(update);
+    sqlite3_finalize(update);
+}

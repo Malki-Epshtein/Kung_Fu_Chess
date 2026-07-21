@@ -96,6 +96,12 @@
     <ClCompile Include="server\app\session\ClientSessionRegistry.cpp">
       <Filter>app\session</Filter>
     </ClCompile>
+    <ClCompile Include="server\app\session\RoomIdentityResolver.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\session\GameResultCodec.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
     <ClCompile Include="server\app\session\ConnectionHandler.cpp">
       <Filter>app\session</Filter>
     </ClCompile>
@@ -106,6 +112,12 @@
       <Filter>app\session</Filter>
     </ClCompile>
     <ClCompile Include="test\test_ClientSessionRegistry.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_RoomIdentityResolver.cpp">
+      <Filter>app\session</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_GameResultCodec.cpp">
       <Filter>app\session</Filter>
     </ClCompile>
     <ClCompile Include="test\test_ConnectionHandler.cpp">
@@ -127,6 +139,12 @@
       <Filter>app\logic</Filter>
     </ClCompile>
     <ClCompile Include="server\app\logic\Matchmaker.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\logic\EloCalculator.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="server\app\logic\EloService.cpp">
       <Filter>app\logic</Filter>
     </ClCompile>
     <ClCompile Include="server\app\logic\StartingBoard.cpp">
@@ -172,6 +190,12 @@
       <Filter>app\logic</Filter>
     </ClCompile>
     <ClCompile Include="test\test_Matchmaker.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_EloCalculator.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_EloService.cpp">
       <Filter>app\logic</Filter>
     </ClCompile>
     <ClCompile Include="server\net\WsServer.cpp">
@@ -443,6 +467,18 @@
     <ClInclude Include="server\app\session\ClientSessionRegistry.h">
       <Filter>app\session</Filter>
     </ClInclude>
+    <ClInclude Include="server\app\session\RoomIdentity.h">
+      <Filter>app\session</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\session\GameResult.h">
+      <Filter>app\session</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\session\RoomIdentityResolver.h">
+      <Filter>app\session</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\session\GameResultCodec.h">
+      <Filter>app\session</Filter>
+    </ClInclude>
     <ClInclude Include="server\app\session\ConnectionHandler.h">
       <Filter>app\session</Filter>
     </ClInclude>
@@ -456,6 +492,12 @@
       <Filter>app\logic</Filter>
     </ClInclude>
     <ClInclude Include="server\app\logic\Matchmaker.h">
+      <Filter>app\logic</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\logic\EloCalculator.h">
+      <Filter>app\logic</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\logic\EloService.h">
       <Filter>app\logic</Filter>
     </ClInclude>
     <ClInclude Include="server\app\logic\StartingBoard.h">
