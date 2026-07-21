@@ -24,6 +24,7 @@ private:
     bool                    disconnectActive = false;
     std::string             disconnectMessage;
     std::string             roomName;
+    std::string             titledRoomName; // last roomName the OS window title was set to
 
 public:
     // Both constructor-injected: rendering is meaningless without a sprite

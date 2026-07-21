@@ -219,18 +219,23 @@ void ImageView::render(const GameSnapshot& snapshot) {
         frame.put_text(message, textX, textY, 1.0);
     }
 
-    // Stage G2c: which room this is, in the window's top-left corner - a
-    // fixed spot that never overlaps the centered game-over/disconnect
-    // messages below.
-    if (!roomName.empty())
-        frame.put_text("Room: " + roomName, 10, 20, 0.6, cv::Scalar(255, 255, 255));
+    // Stage G2c: which room this is - shown in the OS window title bar
+    // instead of drawn on the canvas, so it can never overlap the Black
+    // panel's own header (it used to be drawn at the same corner). Set
+    // once per room, not every frame - setWindowTitle needs the window to
+    // already exist, which it does by the time render() is first called.
+    if (!roomName.empty() && roomName != titledRoomName) {
+        cv::setWindowTitle(ViewConfig::WINDOW_NAME, "Kung Fu Chess - Room " + roomName);
+        titledRoomName = roomName;
+    }
 
-    // Stage D: disconnect grace-period countdown, shown across the top of
-    // the board so it never overlaps the centered game-over message above.
+    // Stage D: disconnect grace-period countdown - shown in the bottom
+    // margin band (reserved space below the board, otherwise empty) rather
+    // than the top band, which is where the A-H file labels already live.
     if (disconnectActive) {
         int boardPixelWidth = snapshot.board_width * ViewConfig::CELL_SIZE;
         int textX = ViewConfig::PANEL_WIDTH + boardPixelWidth / 2 - 200;
-        int textY = ViewConfig::BOARD_MARGIN - 8;
+        int textY = boardY + boardH + margin - 8;
         frame.put_text(disconnectMessage, textX, textY, 0.8, cv::Scalar(0, 0, 255));
     }
 

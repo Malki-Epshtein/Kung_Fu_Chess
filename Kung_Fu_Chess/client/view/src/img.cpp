@@ -99,11 +99,11 @@ void Img::put_text(const std::string& txt, int x, int y, double font_size,
     // color the background happens to be underneath (e.g. a light square
     // of the board) - a standard technique for HUD/overlay text.
     cv::putText(img, txt, cv::Point(x, y),
-                cv::FONT_HERSHEY_SIMPLEX, font_size,
+                cv::FONT_HERSHEY_DUPLEX, font_size,
                 cv::Scalar(0, 0, 0, 255), thickness + 2, cv::LINE_AA);
 
     cv::putText(img, txt, cv::Point(x, y),
-                cv::FONT_HERSHEY_SIMPLEX, font_size,
+                cv::FONT_HERSHEY_DUPLEX, font_size,
                 color, thickness, cv::LINE_AA);
 }
 
