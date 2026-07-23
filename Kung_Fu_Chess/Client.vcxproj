@@ -114,6 +114,7 @@
     <ClCompile Include="client\input\Controller.cpp" />
     <ClCompile Include="client\net\WsClient.cpp" />
     <ClCompile Include="client\net\BlockingRequest.cpp" />
+    <ClCompile Include="client\net\NetworkMessageHandler.cpp" />
     <ClCompile Include="client\app\LoginFlow.cpp" />
     <ClCompile Include="client\view\assets\AnimationConfig.cpp" />
     <ClCompile Include="client\view\assets\AnimationFrameSelector.cpp" />
@@ -145,6 +146,7 @@
     <ClInclude Include="client\app\RoomDialog.h" />
     <ClInclude Include="client\net\WsClient.h" />
     <ClInclude Include="client\net\BlockingRequest.h" />
+    <ClInclude Include="client\net\NetworkMessageHandler.h" />
     <ClInclude Include="client\app\LoginFlow.h" />
     <ClInclude Include="client\input\BoardMapper.h" />
     <ClInclude Include="client\input\Controller.h" />
@@ -159,6 +161,7 @@
     <ClInclude Include="client\view\assets\SpriteRepository.h" />
     <ClInclude Include="client\view\ImageView.h" />
     <ClInclude Include="client\view\ViewConfig.h" />
+    <ClInclude Include="client\view\BoardScale.h" />
     <ClInclude Include="client\view\Renderer.h" />
     <ClInclude Include="client\view\src\img.hpp" />
     <ClInclude Include="server\engine\MoveResult.h" />

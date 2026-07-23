@@ -1,5 +1,6 @@
 #pragma once
 #include "../net/WsClient.h"
+#include "../../shared/model/Piece.h"
 #include "json.hpp"
 #include <string>
 
@@ -25,6 +26,13 @@ struct HomeScreenResult {
     int         whiteElo = 0;
     std::string blackName;
     int         blackElo = 0;
+
+    // This connection's own seated color in the room just joined - drives
+    // Controller::setMyColor (see its comment) so a player can never select
+    // the opponent's pieces. None both when the server said "Spectator" and
+    // as this struct's own default (a spectator should never be able to
+    // select anything either).
+    Chess::Color role = Chess::Color::None;
 };
 
 // Opens the Home Screen window (Play/Room buttons) and blocks until the

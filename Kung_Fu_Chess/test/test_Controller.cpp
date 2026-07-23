@@ -41,7 +41,8 @@ namespace {
 TEST_CASE("click - קליק ראשון על כלי ואז קליק שני על יעד חוקי שולח הודעת MOVE") {
     auto snap = snapshotWith({ piece(Chess::Kind::Rook, Chess::Color::White, {3, 3}) });
     RecordingSender sender;
-    Controller controller(snap, sender.asSender());
+    BoardScale boardScale; // defaults to ViewConfig::CELL_SIZE, matching click()'s own math below
+    Controller controller(snap, sender.asSender(), boardScale);
 
     click(controller, 3, 3); // בחירת הצריח
     click(controller, 3, 6); // יעד חוקי וריק
@@ -57,7 +58,8 @@ TEST_CASE("click - קליק ראשון על כלי ואז קליק שני על �
 TEST_CASE("click - קליק ראשון על תא ריק לא שולח כלום ולא בוחר") {
     auto snap = snapshotWith({ piece(Chess::Kind::Rook, Chess::Color::White, {3, 3}) });
     RecordingSender sender;
-    Controller controller(snap, sender.asSender());
+    BoardScale boardScale; // defaults to ViewConfig::CELL_SIZE, matching click()'s own math below
+    Controller controller(snap, sender.asSender(), boardScale);
 
     click(controller, 0, 0); // תא ריק
     CHECK(sender.sent.empty());
@@ -67,7 +69,8 @@ TEST_CASE("click - קליק ראשון על תא ריק לא שולח כלום �
 TEST_CASE("click - קליק שני על אותו כלי נבחר שולח הודעת JUMP") {
     auto snap = snapshotWith({ piece(Chess::Kind::Rook, Chess::Color::White, {3, 3}) });
     RecordingSender sender;
-    Controller controller(snap, sender.asSender());
+    BoardScale boardScale; // defaults to ViewConfig::CELL_SIZE, matching click()'s own math below
+    Controller controller(snap, sender.asSender(), boardScale);
 
     click(controller, 3, 3);
     click(controller, 3, 3);
@@ -82,7 +85,8 @@ TEST_CASE("click - קליק שני על אותו כלי נבחר שולח הוד
 TEST_CASE("click - קליק מחוץ ללוח ללא בחירה קודמת לא שולח כלום") {
     auto snap = snapshotWith({ piece(Chess::Kind::Rook, Chess::Color::White, {3, 3}) });
     RecordingSender sender;
-    Controller controller(snap, sender.asSender());
+    BoardScale boardScale; // defaults to ViewConfig::CELL_SIZE, matching click()'s own math below
+    Controller controller(snap, sender.asSender(), boardScale);
 
     controller.handleMouseClick(-10, -10);
     CHECK(sender.sent.empty());
@@ -91,7 +95,8 @@ TEST_CASE("click - קליק מחוץ ללוח ללא בחירה קודמת לא 
 TEST_CASE("click - קליק מחוץ ללוח עם כלי נבחר מבטל בחירה ולא שולח מהלך") {
     auto snap = snapshotWith({ piece(Chess::Kind::Rook, Chess::Color::White, {3, 3}) });
     RecordingSender sender;
-    Controller controller(snap, sender.asSender());
+    BoardScale boardScale; // defaults to ViewConfig::CELL_SIZE, matching click()'s own math below
+    Controller controller(snap, sender.asSender(), boardScale);
 
     click(controller, 3, 3);
     controller.handleMouseClick(-10, -10);
@@ -106,7 +111,8 @@ TEST_CASE("click - קליק שני על כלי ידידותי מחליף בחי�
         piece(Chess::Kind::Bishop, Chess::Color::White, {0, 2}),
     });
     RecordingSender sender;
-    Controller controller(snap, sender.asSender());
+    BoardScale boardScale; // defaults to ViewConfig::CELL_SIZE, matching click()'s own math below
+    Controller controller(snap, sender.asSender(), boardScale);
 
     click(controller, 0, 0);
     click(controller, 0, 2);
@@ -121,7 +127,8 @@ TEST_CASE("click - פרש נבחר שקליק שני עליו כלי ידידו�
         piece(Chess::Kind::Pawn,   Chess::Color::White, {1, 2}),
     });
     RecordingSender sender;
-    Controller controller(snap, sender.asSender());
+    BoardScale boardScale; // defaults to ViewConfig::CELL_SIZE, matching click()'s own math below
+    Controller controller(snap, sender.asSender(), boardScale);
 
     click(controller, 3, 3);
     click(controller, 1, 2);
@@ -136,7 +143,8 @@ TEST_CASE("click - קליק שני על כלי אויב שולח הודעת MOVE
         piece(Chess::Kind::Pawn, Chess::Color::Black, {3, 6}),
     });
     RecordingSender sender;
-    Controller controller(snap, sender.asSender());
+    BoardScale boardScale; // defaults to ViewConfig::CELL_SIZE, matching click()'s own math below
+    Controller controller(snap, sender.asSender(), boardScale);
 
     click(controller, 3, 3);
     click(controller, 3, 6);
@@ -148,7 +156,8 @@ TEST_CASE("click - קליק שני על כלי אויב שולח הודעת MOVE
 TEST_CASE("getSnapshot - אין בחירה לפני קליק ראשון") {
     auto snap = snapshotWith({ piece(Chess::Kind::Rook, Chess::Color::White, {3, 3}) });
     RecordingSender sender;
-    Controller controller(snap, sender.asSender());
+    BoardScale boardScale; // defaults to ViewConfig::CELL_SIZE, matching click()'s own math below
+    Controller controller(snap, sender.asSender(), boardScale);
 
     CHECK_FALSE(controller.getSnapshot().has_selection);
 }
@@ -156,7 +165,8 @@ TEST_CASE("getSnapshot - אין בחירה לפני קליק ראשון") {
 TEST_CASE("getSnapshot - קליק ראשון על כלי חושף אותו כתא נבחר") {
     auto snap = snapshotWith({ piece(Chess::Kind::Rook, Chess::Color::White, {3, 3}) });
     RecordingSender sender;
-    Controller controller(snap, sender.asSender());
+    BoardScale boardScale; // defaults to ViewConfig::CELL_SIZE, matching click()'s own math below
+    Controller controller(snap, sender.asSender(), boardScale);
 
     click(controller, 3, 3);
 
@@ -168,7 +178,8 @@ TEST_CASE("getSnapshot - קליק ראשון על כלי חושף אותו כת�
 TEST_CASE("getSnapshot - אחרי שליחת הודעה הבחירה מתנקה מתמונת המצב") {
     auto snap = snapshotWith({ piece(Chess::Kind::Rook, Chess::Color::White, {3, 3}) });
     RecordingSender sender;
-    Controller controller(snap, sender.asSender());
+    BoardScale boardScale; // defaults to ViewConfig::CELL_SIZE, matching click()'s own math below
+    Controller controller(snap, sender.asSender(), boardScale);
 
     click(controller, 3, 3);
     click(controller, 3, 6);

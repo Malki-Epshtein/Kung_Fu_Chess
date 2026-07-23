@@ -1,18 +1,18 @@
 #include "Controller.h"
-#include "../view/ViewConfig.h"
 #include "../../shared/protocol/MessageCodec.h"
 
-void Controller::handleMouseClick(int x, int y) {
-    int boardWidthPx  = currentSnapshot.board_width  * ViewConfig::CELL_SIZE;
-    int boardHeightPx = currentSnapshot.board_height * ViewConfig::CELL_SIZE;
+ClickOutcomeType Controller::handleMouseClick(int x, int y) {
+    int cellSize = boardScale.cellSize();
+    int boardWidthPx  = currentSnapshot.board_width  * cellSize;
+    int boardHeightPx = currentSnapshot.board_height * cellSize;
 
     if (x < 0 || y < 0 || x >= boardWidthPx || y >= boardHeightPx) {
         selectedPos = std::nullopt;
-        return;
+        return ClickOutcomeType::NoOp;
     }
 
-    Position clickedPos = BoardMapper::mapToPosition(x, y);
-    ClickOutcome outcome = ClickResolver::resolve(currentSnapshot, selectedPos, clickedPos);
+    Position clickedPos = BoardMapper::mapToPosition(x, y, cellSize);
+    ClickOutcome outcome = ClickResolver::resolve(currentSnapshot, selectedPos, clickedPos, myColor_);
 
     switch (outcome.type) {
         case ClickOutcomeType::Selected:
@@ -41,6 +41,7 @@ void Controller::handleMouseClick(int x, int y) {
         case ClickOutcomeType::NoOp:
             break;
     }
+    return outcome.type;
 }
 
 GameSnapshot Controller::getSnapshot() const {

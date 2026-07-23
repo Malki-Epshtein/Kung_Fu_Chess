@@ -1,5 +1,6 @@
 #pragma once
 #include "BoardMapper.h"
+#include "../view/BoardScale.h"
 #include "../../shared/input/ClickResolver.h"
 #include "../../shared/protocol/Message.h"
 #include <functional>
@@ -14,14 +15,28 @@ class Controller {
 public:
     using Sender = std::function<void(const std::string&)>;
 
-    Controller(const GameSnapshot& currentSnapshot, Sender send)
-        : currentSnapshot(currentSnapshot), send(std::move(send)) {}
+    // boardScale is held by reference, not copied - it must reflect the
+    // live current size (a player can resize mid-game, see BoardScale's own
+    // comment), not whatever it was at construction time.
+    Controller(const GameSnapshot& currentSnapshot, Sender send, const BoardScale& boardScale)
+        : currentSnapshot(currentSnapshot), send(std::move(send)), boardScale(boardScale) {}
 
-    void         handleMouseClick(int x, int y);
+    ClickOutcomeType handleMouseClick(int x, int y);
     GameSnapshot getSnapshot() const;
 
+    // Set once the player's seated color is known (GraphicalApplication, in
+    // run(), once the room join/GameFound reply has it - unknown at
+    // construction time). Left unset (nullopt) by default so existing
+    // callers that never call this - unit tests, and any future non-network
+    // use of Controller - keep the old "select any piece" behavior; only a
+    // real seated player restricts selection to their own color (see
+    // ClickResolver's own comment for why).
+    void setMyColor(Chess::Color color) { myColor_ = color; }
+
 private:
-    std::optional<Position> selectedPos;
-    const GameSnapshot&     currentSnapshot;
-    Sender                  send;
+    std::optional<Position>     selectedPos;
+    const GameSnapshot&         currentSnapshot;
+    Sender                      send;
+    const BoardScale&           boardScale;
+    std::optional<Chess::Color> myColor_;
 };

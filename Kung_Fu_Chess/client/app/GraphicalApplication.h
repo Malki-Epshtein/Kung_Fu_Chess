@@ -1,7 +1,9 @@
 #pragma once
 #include "../input/Controller.h"
 #include "../net/WsClient.h"
+#include "../net/NetworkMessageHandler.h"
 #include "../view/ImageView.h"
+#include "../view/BoardScale.h"
 #include "../view/assets/SpriteRepository.h"
 #include "../view/assets/AssetPathBuilder.h"
 #include "../view/assets/FileImageLoader.h"
@@ -11,18 +13,20 @@
 #include "LoginFlow.h"
 #include "HomeScreenView.h"
 #include "../../shared/engine/GameSnapshot.h"
-#include "../../shared/protocol/MoveLogCodec.h"
 #include <cstdint>
-#include <mutex>
 #include <stdexcept>
-#include <vector>
 
 class GraphicalApplication {
 private:
-    // Declaration order matters here: each of these is built from the one
-    // before it in the constructor's initializer list, so it must also be
-    // declared after it (C++ initializes members in declaration order,
-    // regardless of the order written in the initializer list).
+    // The board's current on-screen cell size - referenced by
+    // SpriteRepository (sizes piece sprites to a cell), Controller (bounds
+    // check + click-to-cell mapping), and ImageView (all board/piece/label
+    // pixel math), so it's declared first: it has no dependencies of its
+    // own, and everything that needs a reference to it must be declared
+    // after it (C++ initializes members in declaration order, regardless
+    // of the order written in the initializer list).
+    BoardScale boardScale;
+
     std::string         assetsRoot;
     AssetPathBuilder     pathBuilder;
     FileImageLoader      fileImageLoader;
@@ -32,43 +36,31 @@ private:
 
     WsClient client;
 
-    // networkSnapshot is written by WsClient's onMessage callback on its own
-    // network thread, guarded by snapshotMutex. latestSnapshot is a stable
-    // copy taken under that lock once per render frame, on the GUI thread -
-    // Controller holds a reference to latestSnapshot only, so it never needs
-    // to know threading is involved at all.
-    std::mutex   snapshotMutex;
-    GameSnapshot networkSnapshot{};
+    // Owns all inbound-message parsing/dispatch and the network-derived
+    // state it produces (snapshot, score, move log, identity, disconnect
+    // status) - see NetworkMessageHandler for why this was split out.
+    // Needs soundPlayer to already exist (it plays move/capture/illegal
+    // sounds as messages arrive).
+    NetworkMessageHandler networkHandler;
+
+    // A stable copy of the current snapshot, refreshed once per render
+    // frame from networkHandler.currentState() - Controller holds a
+    // reference to THIS member specifically (bound once, at construction),
+    // so it must stay a real member here rather than a frame-local, and
+    // must be updated in place (assignment) rather than replaced.
     GameSnapshot latestSnapshot{};
-
-    // Stage D: disconnect grace-period countdown, written by the network
-    // thread under the same lock, copied out once per frame like the
-    // snapshot above.
-    bool        networkDisconnectActive = false;
-    std::string networkDisconnectMessage;
-
-    // Stage I: score rides on the same snapshot broadcast (extracted here
-    // rather than through GameSnapshotCodec, same as disconnect above).
-    // Move log arrives as separate MOVE_LOGGED pushes instead - only ever
-    // appended to, never replaced - plus a one-time backfill seeded from
-    // the room-join reply's moveLog field before the game window opens.
-    int                     networkWhiteScore = 0;
-    int                     networkBlackScore = 0;
-    std::vector<MoveEntry>  networkWhiteMoves;
-    std::vector<MoveEntry>  networkBlackMoves;
-
-    // Identity rides the same periodic snapshot too (Step 4) - refreshed
-    // every tick from RoomIdentityResolver server-side, so a player
-    // waiting alone in a room sees the opponent's name/elo the moment
-    // they join, and the spectator count stays live.
-    std::string             networkWhiteName;
-    int                     networkWhiteElo = 0;
-    std::string             networkBlackName;
-    int                     networkBlackElo = 0;
-    int                     networkSpectatorCount = 0;
 
     Controller controller;
     ImageView  view;
+
+    // Drag-to-resize state (Phase 3) - set on a LBUTTONDOWN that lands on
+    // the handle (see BoardScale::isInHandle), consumed on MOUSEMOVE while
+    // active, cleared on LBUTTONUP. Nothing here ever sends a network
+    // message - resizing is purely local to this client.
+    bool resizing_          = false;
+    int  dragStartX_        = 0;
+    int  dragStartY_        = 0;
+    int  dragStartCellSize_ = 0;
 
     static constexpr const char* SERVER_HOST       = "localhost";
     static constexpr uint16_t    SERVER_PORT        = 9002;
@@ -78,10 +70,11 @@ public:
         : assetsRoot(readAssetsRoot()),
           pathBuilder(assetsRoot),
           cachingImageLoader(fileImageLoader),
-          spriteRepository(pathBuilder, cachingImageLoader),
+          spriteRepository(pathBuilder, cachingImageLoader, boardScale),
           soundPlayer(assetsRoot),
-          controller(latestSnapshot, [this](const std::string& text) { client.send(text); }),
-          view(spriteRepository, assetsRoot) {
+          networkHandler(soundPlayer),
+          controller(latestSnapshot, [this](const std::string& text) { client.send(text); }, boardScale),
+          view(spriteRepository, assetsRoot, boardScale) {
         client.connect(SERVER_HOST, SERVER_PORT);
 
         // Shell login handshake (Stage F4) happens over this same
@@ -106,9 +99,11 @@ public:
 
     // Public only because it's called through the raw C function pointer
     // OpenCV's setMouseCallback requires (cast back from void* userdata) -
-    // not meant to be called from anywhere else.
-    void onMouseClick(int x, int y);
+    // not meant to be called from anywhere else. Handles all three event
+    // types the callback now forwards (down/move/up) - a plain click still
+    // goes to onMouseClick below, unless it started a drag instead.
+    void onMouseEvent(int event, int x, int y);
 
 private:
-    void onMessage(const std::string& text);
+    void onMouseClick(int x, int y);
 };

@@ -10,8 +10,10 @@ namespace {
     constexpr int kCreateId  = 102;
     constexpr int kJoinId    = 103;
     constexpr int kCancelId  = 104;
+    constexpr int kErrorOkId = 105;
 
-    const wchar_t* kClassName = L"KfcRoomDialogClass";
+    const wchar_t* kClassName      = L"KfcRoomDialogClass";
+    const wchar_t* kErrorClassName = L"KfcErrorDialogClass";
 
     // The dialog only ever runs one at a time (blocking, on the caller's
     // thread), so a couple of statics to bridge the WndProc callback are
@@ -137,6 +139,43 @@ namespace {
         registered = true;
     }
 
+    // A custom window instead of MessageBoxW - MessageBoxW's own window
+    // reliably fails to actually appear on screen in this environment (it
+    // still gets created, and Windows still plays the warning sound, but
+    // the window itself never surfaces - confirmed via Alt+Tab showing it
+    // present but never raised). This class follows the exact same
+    // CreateWindowExW pattern as the Room dialog above, which does show up
+    // correctly.
+    LRESULT CALLBACK errorWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+        switch (msg) {
+            case WM_COMMAND:
+                if (HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == kErrorOkId)
+                    DestroyWindow(hwnd);
+                return 0;
+            case WM_CLOSE:
+                DestroyWindow(hwnd);
+                return 0;
+            case WM_DESTROY:
+                PostQuitMessage(0);
+                return 0;
+        }
+        return DefWindowProcW(hwnd, msg, wParam, lParam);
+    }
+
+    void registerErrorClassOnce() {
+        static bool registered = false;
+        if (registered)
+            return;
+        WNDCLASSW wc{};
+        wc.lpfnWndProc   = errorWndProc;
+        wc.hInstance     = GetModuleHandleW(nullptr);
+        wc.lpszClassName = kErrorClassName;
+        wc.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
+        wc.hbrBackground = reinterpret_cast<HBRUSH>(static_cast<INT_PTR>(COLOR_BTNFACE + 1));
+        RegisterClassW(&wc);
+        registered = true;
+    }
+
     const char* actionName(RoomDialogResult::Action action) {
         switch (action) {
             case RoomDialogResult::Action::Create: return "Create";
@@ -176,5 +215,26 @@ RoomDialogResult showRoomDialog() {
 }
 
 void showRoomError(const std::string& message) {
-    MessageBoxW(nullptr, utf8ToWide(message).c_str(), L"Room error", MB_OK | MB_ICONWARNING);
+    registerErrorClassOnce();
+
+    HWND hwnd = CreateWindowExW(WS_EX_DLGMODALFRAME, kErrorClassName, L"Room error",
+        WS_CAPTION | WS_SYSMENU | WS_VISIBLE,
+        CW_USEDEFAULT, CW_USEDEFAULT, 320, 140,
+        nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+
+    CreateWindowExW(0, L"STATIC", utf8ToWide(message).c_str(), WS_CHILD | WS_VISIBLE,
+                     20, 20, 260, 40, hwnd, nullptr, nullptr, nullptr);
+    CreateWindowExW(0, L"BUTTON", L"OK", WS_CHILD | WS_VISIBLE,
+                     110, 70, 80, 30, hwnd, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kErrorOkId)), nullptr, nullptr);
+
+    ShowWindow(hwnd, SW_SHOW);
+    SetForegroundWindow(hwnd);
+
+    MSG msg;
+    while (GetMessageW(&msg, nullptr, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+        if (!IsWindow(hwnd))
+            break;
+    }
 }

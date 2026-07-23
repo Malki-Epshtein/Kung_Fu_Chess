@@ -1,18 +1,10 @@
 #include "GraphicalApplication.h"
 #include "HomeScreenView.h"
 #include "../view/ViewConfig.h"
-#include "../../shared/protocol/GameSnapshotCodec.h"
-#include "../../shared/protocol/CaptureEventCodec.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
 namespace {
-    // "White"/"Black" -> the other color's display name, for the
-    // disconnect-countdown message (Stage D).
-    const char* opponentName(const std::string& color) {
-        return color == "White" ? "Black" : "White";
-    }
-
     // "name (elo)", matching how real chess sites always pair a player's
     // name with their rating rather than showing either alone. An empty
     // name means that seat isn't filled yet (e.g. the room's creator,
@@ -23,11 +15,41 @@ namespace {
         return name + " (" + std::to_string(elo) + ")";
     }
 
-    void onMouseEvent(int event, int x, int y, int /*flags*/, void* userdata) {
-        if (event != cv::EVENT_LBUTTONDOWN)
-            return;
-        static_cast<GraphicalApplication*>(userdata)->onMouseClick(x, y);
+    // Forwards every event OpenCV's HighGUI reports - down/move/up are all
+    // needed now for the drag-to-resize handle (Phase 3), not just clicks.
+    void mouseCallback(int event, int x, int y, int /*flags*/, void* userdata) {
+        static_cast<GraphicalApplication*>(userdata)->onMouseEvent(event, x, y);
     }
+}
+
+void GraphicalApplication::onMouseEvent(int event, int x, int y) {
+    if (event == cv::EVENT_LBUTTONDOWN) {
+        if (boardScale.isInHandle(latestSnapshot.board_width, latestSnapshot.board_height, x, y)) {
+            // Grabbing the handle starts a drag instead of a board click -
+            // deliberately returns here so this same press is never also
+            // read as a piece selection.
+            resizing_          = true;
+            dragStartX_        = x;
+            dragStartY_        = y;
+            dragStartCellSize_ = boardScale.cellSize();
+            return;
+        }
+        onMouseClick(x, y);
+        return;
+    }
+
+    if (event == cv::EVENT_MOUSEMOVE) {
+        if (!resizing_ || latestSnapshot.board_width <= 0)
+            return;
+        // Diagonal drag distance from the grab point - growing/shrinking
+        // both axes together, matching a corner handle's usual feel.
+        int delta = ((x - dragStartX_) + (y - dragStartY_)) / 2;
+        boardScale.setCellSize(dragStartCellSize_ + delta / latestSnapshot.board_width);
+        return;
+    }
+
+    if (event == cv::EVENT_LBUTTONUP)
+        resizing_ = false;
 }
 
 void GraphicalApplication::onMouseClick(int x, int y) {
@@ -38,90 +60,8 @@ void GraphicalApplication::onMouseClick(int x, int y) {
     // unaware of any rendering layout. A click landing inside a side panel
     // or the frame margin becomes a negative coordinate, which Controller's
     // existing bounds check already treats as out-of-board.
-    controller.handleMouseClick(x - ViewConfig::PANEL_WIDTH, y - ViewConfig::BOARD_MARGIN);
-    soundPlayer.play("click.wav");
-}
-
-void GraphicalApplication::onMessage(const std::string& text) {
-    // Runs on WsClient's network thread. The server sends three
-    // differently-shaped JSON payloads on the same connection: a broadcast
-    // GameSnapshot (un-enveloped, has "board_width"), a direct
-    // command-reply ack (un-enveloped, has "success"), and enveloped
-    // server->client pushes (has "type") like MOVE_LOGGED/CAPTURE_EVENT.
-    // Only the first two are handled elsewhere/below; the enveloped pushes
-    // are handled first here since they'd otherwise be silently dropped by
-    // the "board_width" check below (they have neither key).
-    try {
-        nlohmann::json j = nlohmann::json::parse(text);
-
-        if (j.value("type", std::string()) == "MOVE_LOGGED") {
-            MoveLogEvent event = MoveLogCodec::decode(j.at("payload"));
-            std::lock_guard<std::mutex> lock(snapshotMutex);
-            if (event.color == Chess::Color::White)
-                networkWhiteMoves.push_back(event.entry);
-            else if (event.color == Chess::Color::Black)
-                networkBlackMoves.push_back(event.entry);
-            soundPlayer.play("move.wav");
-            return;
-        }
-
-        // A real capture on the server reaches the client as a
-        // CAPTURE_EVENT push - play the capture sound.
-        if (j.value("type", std::string()) == "CAPTURE_EVENT") {
-            CaptureEvent event = CaptureEventCodec::decode(j.at("payload"));
-            std::cout << "[client] capture event received: kind=" << static_cast<int>(event.kind)
-                       << " color=" << static_cast<int>(event.color)
-                       << " cell=" << event.cell << std::endl;
-            soundPlayer.play("capture.wav");
-            return;
-        }
-
-        if (!j.contains("board_width"))
-            return;
-
-        GameSnapshot decoded = GameSnapshotCodec::decode(j);
-
-        // Stage D: the "disconnect" key rides along on the same broadcast
-        // rather than being a separate message shape - present only while a
-        // seated player's grace-period countdown is active.
-        bool active = false;
-        std::string message;
-        if (j.contains("disconnect") && j["disconnect"].value("active", false)) {
-            std::string color = j["disconnect"].value("color", "");
-            int secondsRemaining = j["disconnect"].value("secondsRemaining", 0);
-            active = true;
-            message = secondsRemaining > 0
-                ? color + " disconnected - auto-resign in " + std::to_string(secondsRemaining) + "s"
-                : color + " resigned (disconnected) - " + opponentName(color) + " wins!";
-        }
-
-        // Stage I: score rides along the same way disconnect does.
-        int whiteScore = j.value("score", nlohmann::json::object()).value("white", 0);
-        int blackScore = j.value("score", nlohmann::json::object()).value("black", 0);
-
-        // Step 4: identity (name/elo/spectatorCount) rides the same way -
-        // refreshed every tick, not just once at room-join time.
-        nlohmann::json identity = j.value("identity", nlohmann::json::object());
-        std::string whiteName    = identity.value("whiteName", std::string());
-        int         whiteElo     = identity.value("whiteElo", 0);
-        std::string blackName    = identity.value("blackName", std::string());
-        int         blackElo     = identity.value("blackElo", 0);
-        int         spectatorCount = identity.value("spectatorCount", 0);
-
-        std::lock_guard<std::mutex> lock(snapshotMutex);
-        networkSnapshot = std::move(decoded);
-        networkDisconnectActive = active;
-        networkDisconnectMessage = std::move(message);
-        networkWhiteScore = whiteScore;
-        networkBlackScore = blackScore;
-        networkWhiteName = std::move(whiteName);
-        networkWhiteElo = whiteElo;
-        networkBlackName = std::move(blackName);
-        networkBlackElo = blackElo;
-        networkSpectatorCount = spectatorCount;
-    } catch (const std::exception& e) {
-        std::cerr << "[client] failed to parse server message: " << e.what() << std::endl;
-    }
+    ClickOutcomeType outcome = controller.handleMouseClick(x - ViewConfig::PANEL_WIDTH, y - ViewConfig::BOARD_MARGIN);
+    soundPlayer.play(outcome == ClickOutcomeType::SendJump ? "jump.wav" : "click.wav");
 }
 
 void GraphicalApplication::run() {
@@ -136,47 +76,35 @@ void GraphicalApplication::run() {
     }
     view.setRoomName(home.roomName);//שומרים את שם החדר שהמשתמש הצטרף אליו כדי להציג אותו על המסך
     view.setPlayerNames(playerLabel(home.whiteName, home.whiteElo), playerLabel(home.blackName, home.blackElo));
+    // Restricts selection to this player's own pieces from here on (see
+    // Controller::setMyColor/ClickResolver's comments) - unknown any
+    // earlier, since role only comes back on the room join/GameFound reply.
+    controller.setMyColor(home.role);
 
     // One-time backfill for a room already in progress (Stage I) - safe to
-    // touch networkWhiteMoves/networkBlackMoves without the lock here,
-    // since onMessage isn't installed yet (a couple of lines below).
+    // call before networkHandler.onMessage is ever installed (a couple of
+    // lines below), so there's no concurrent access yet.
     MoveLogBundle backfill = MoveLogCodec::decodeAll(home.moveLog);
-    networkWhiteMoves = std::move(backfill.white);
-    networkBlackMoves = std::move(backfill.black);
+    networkHandler.seedMoveLog(std::move(backfill.white), std::move(backfill.black));
 
     // Only installed now that a room is actually joined - runHomeScreen()
     // needed the connection free for its own blocking CreateRoom/JoinRoom
     // exchange (same reasoning as LoginFlow, in the constructor).
-    client.setOnMessage([this](const std::string& text) { onMessage(text); });//אני מחכה עש שיהיה לי תשובה
+    client.setOnMessage([this](const std::string& text) { networkHandler.onMessage(text); });//אני מחכה עש שיהיה לי תשובה
 
     cv::namedWindow(ViewConfig::WINDOW_NAME);
-    cv::setMouseCallback(ViewConfig::WINDOW_NAME, onMouseEvent, this);
+    cv::setMouseCallback(ViewConfig::WINDOW_NAME, mouseCallback, this);
     std::cout << "[client] window opened, entering render loop" << std::endl;
 
     int frame = 0;
     bool wasGameOver = false;
     while (true) {
-        bool        disconnectActive;
-        std::string disconnectMessage;
-        int         whiteScore, blackScore;
-        std::vector<MoveEntry> whiteMoves, blackMoves;
-        std::string whiteName, blackName;
-        int         whiteElo, blackElo, spectatorCount;
-        {
-            std::lock_guard<std::mutex> lock(snapshotMutex);
-            latestSnapshot = networkSnapshot;
-            disconnectActive = networkDisconnectActive;
-            disconnectMessage = networkDisconnectMessage;
-            whiteScore = networkWhiteScore;
-            blackScore = networkBlackScore;
-            whiteMoves = networkWhiteMoves;
-            blackMoves = networkBlackMoves;
-            whiteName = networkWhiteName;
-            whiteElo = networkWhiteElo;
-            blackName = networkBlackName;
-            blackElo = networkBlackElo;
-            spectatorCount = networkSpectatorCount;
-        }
+        NetworkState net = networkHandler.currentState();
+        // Controller holds a reference to latestSnapshot specifically (bound
+        // once, at construction) - assign into it in place rather than
+        // rebinding to net.snapshot directly.
+        latestSnapshot = std::move(net.snapshot);
+
         // Edge-triggered (only the frame game_over first becomes true, not
         // every frame it stays true) - game_over already rides on every
         // snapshot (see ImageView's own game-over message), so no new
@@ -185,11 +113,11 @@ void GraphicalApplication::run() {
             soundPlayer.play("game over.wav");
         wasGameOver = latestSnapshot.game_over;
 
-        view.setDisconnectStatus(disconnectActive, disconnectMessage);
-        view.setScore(whiteScore, blackScore);
-        view.setMoveLog(std::move(whiteMoves), std::move(blackMoves));
-        view.setPlayerNames(playerLabel(whiteName, whiteElo), playerLabel(blackName, blackElo));
-        view.setSpectatorCount(spectatorCount);
+        view.setDisconnectStatus(net.disconnectActive, net.disconnectMessage);
+        view.setScore(net.whiteScore, net.blackScore);
+        view.setMoveLog(std::move(net.whiteMoves), std::move(net.blackMoves));
+        view.setPlayerNames(playerLabel(net.whiteName, net.whiteElo), playerLabel(net.blackName, net.blackElo));
+        view.setSpectatorCount(net.spectatorCount);
         try {
             view.render(controller.getSnapshot());
         } catch (const std::exception& e) {

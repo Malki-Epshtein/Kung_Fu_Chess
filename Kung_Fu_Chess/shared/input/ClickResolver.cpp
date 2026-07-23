@@ -11,9 +11,11 @@ namespace {
 
 ClickOutcome ClickResolver::resolve(const GameSnapshot& snapshot,
                                      const std::optional<Position>& selectedPos,
-                                     Position clickedPos) {
+                                     Position clickedPos,
+                                     std::optional<Chess::Color> myColor) {
     if (!selectedPos.has_value()) {
-        if (findAt(snapshot, clickedPos))
+        const SnapshotPiece* piece = findAt(snapshot, clickedPos);
+        if (piece && (!myColor.has_value() || piece->color == *myColor))
             return { ClickOutcomeType::Selected, {}, {}, clickedPos };
         return { ClickOutcomeType::NoOp, {}, {}, {} };
     }
