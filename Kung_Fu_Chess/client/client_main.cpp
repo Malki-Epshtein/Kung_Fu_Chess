@@ -1,13 +1,14 @@
 #include "app/GraphicalApplication.h"
-#include <iostream>
+#include "../shared/log/Log.h"
 
 int main(int /*argc*/, char** /*argv*/) {
+    Log::init("client");
     try {
         GraphicalApplication app;
         app.run();
     }
     catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
+        spdlog::error("{}", e.what());
     }
     return 0;
 }

@@ -4,7 +4,7 @@
 #include "../session/RoleName.h"
 #include "../session/RoomIdentityResolver.h"
 #include "../../../shared/model/Piece.h"
-#include <iostream>
+#include "../../../shared/log/Log.h"
 
 nlohmann::json JoinRoomHandler::handle(ConnectionHandle hdl, const nlohmann::json& payload) {
     std::string name = payload.at("name").get<std::string>();
@@ -13,8 +13,7 @@ nlohmann::json JoinRoomHandler::handle(ConnectionHandle hdl, const nlohmann::jso
 
     registry_.joinRoom(name, hdl);
     Chess::Color role = registry_.roleOf(hdl);
-    std::cout << "[server] joined room '" << name << "', assigned role: "
-               << roleName(role) << std::endl;
+    spdlog::info("joined room '{}', assigned role: {}", name, roleName(role));
     // moveLog backfills a connection joining a room already in progress
     // (e.g. a spectator) - it never received the MOVE_LOGGED pushes that
     // already happened, so this is the one-time catch-up (see

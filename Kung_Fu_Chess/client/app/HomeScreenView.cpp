@@ -4,17 +4,19 @@
 #include "../net/BlockingRequest.h"
 #include "../../shared/protocol/Message.h"
 #include "../../shared/protocol/MessageCodec.h"
+#include "../../shared/log/Log.h"
 #include <opencv2/opencv.hpp>
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
 
 namespace {
-    constexpr const char* kHomeWindowName = "Kung Fu Chess - Home";
+    constexpr const char* kHomeWindowName   = "Kung Fu Chess - Home";
+    constexpr int         kHomeWindowWidth  = 800;
+    constexpr int         kHomeWindowHeight = 500;
 
     // Reverse of the server's roleName() (server/app/session/RoleName.h) -
     // deliberately duplicated here rather than shared, same convention as
@@ -162,7 +164,7 @@ namespace {
 
         if (!reply.value("success", false)) {
             std::string message = reply.value("message", "");
-            std::cout << "[client] Room request failed: " << message << std::endl;
+            spdlog::info("Room request failed: {}", message);
             showRoomError(message);
             return {};
         }
@@ -190,7 +192,7 @@ namespace {
             g_gameFoundResult = j;
         });
         client.send(MessageCodec::encode(Message{ MessageType::FindGame, {} }));
-        std::cout << "[client] FindGame sent, searching for opponent" << std::endl;
+        spdlog::info("FindGame sent, searching for opponent");
     }
 
     // Non-blocking: returns the GAME_FOUND payload once startFindGame()'s
@@ -208,12 +210,12 @@ namespace {
 HomeScreenResult runHomeScreen(WsClient& client) {
     cv::namedWindow(kHomeWindowName);
     cv::setMouseCallback(kHomeWindowName, onHomeMouseEvent, nullptr);//כשמישהו ילחץ עם העכבר על הכפתור של הבית זה יפעיל את הפונקציה הזאת
-    std::cout << "[client] Home screen opened" << std::endl;
+    spdlog::info("Home screen opened");
 
     // Background + title are static (drawn once); buttons are redrawn every
     // frame below since their hover highlight depends on the live mouse
     // position - hitTest()/bounds themselves are unchanged either way.
-    cv::Mat background(500, 800, CV_8UC3);
+    cv::Mat background(kHomeWindowHeight, kHomeWindowWidth, CV_8UC3);
     drawVignette(background);
     drawTitle(background);
 
@@ -233,12 +235,12 @@ HomeScreenResult runHomeScreen(WsClient& client) {
 
         int key = cv::waitKey(30);
         if (key == 27) { // ESC
-            std::cout << "[client] Home screen closed: ESC pressed" << std::endl;
+            spdlog::info("Home screen closed: ESC pressed");
             break;
         }
         double visible = cv::getWindowProperty(kHomeWindowName, cv::WND_PROP_VISIBLE);
         if (visible < 1) {
-            std::cout << "[client] Home screen closed: window no longer visible" << std::endl;
+            spdlog::info("Home screen closed: window no longer visible");
             break;
         }
 
@@ -257,16 +259,16 @@ HomeScreenResult runHomeScreen(WsClient& client) {
                     result.role       = colorFromRole(found->value("role", std::string()));
                     break;
                 }
-                std::cout << "[client] FindGame failed: " << found->value("message", "") << std::endl;
+                spdlog::info("FindGame failed: {}", found->value("message", ""));
                 showRoomError(found->value("message", "no players available"));
             }
         } else if (g_pendingChoice == HomeScreenChoice::Play) {//אם לחצץ על PLAY
-            std::cout << "[client] Home: Play clicked" << std::endl;
+            spdlog::info("Home: Play clicked");
             g_pendingChoice = HomeScreenChoice::None;
             startFindGame(client);
             searching = true;
         } else if (g_pendingChoice == HomeScreenChoice::Room) {//אם לחצת על ROOM
-            std::cout << "[client] Home: Room clicked" << std::endl;
+            spdlog::info("Home: Room clicked");
             g_pendingChoice = HomeScreenChoice::None;
 
             RoomDialogResult dialogResult = showRoomDialog();//פותח את חלון הROOM ומחכה למשתמש לבחור אם הוא רוצה ליצור חדר או להצטרף לחדר קיים

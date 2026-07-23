@@ -1,8 +1,8 @@
 #include "SessionRegistry.h"
+#include "../../../shared/log/Log.h"
 #include <asio/steady_timer.hpp>
 #include <chrono>
 #include <functional>
-#include <iostream>
 
 namespace {
     constexpr int kDisconnectGraceSeconds = 20;
@@ -137,11 +137,11 @@ void SessionRegistry::startDisconnectCountdown(const std::string& roomName, Ches
 
         gameSession->setDisconnectStatus({ true, color, *remaining });
         if (*remaining <= 0) {
-            std::cout << "[server] " << roleName(color) << " auto-resigned (disconnected too long)" << std::endl;
+            spdlog::info("{} auto-resigned (disconnected too long)", roleName(color));
             gameSession->markDisconnectResign(color, disconnectedUsername, disconnectedElo);
             return;
         }
-        std::cout << "[server] " << roleName(color) << " disconnected - auto-resign in " << *remaining << "s" << std::endl;
+        spdlog::info("{} disconnected - auto-resign in {}s", roleName(color), *remaining);
         --(*remaining);
         timer->expires_after(std::chrono::seconds(1));
         timer->async_wait(*handler);

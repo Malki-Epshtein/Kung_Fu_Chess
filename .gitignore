@@ -31,3 +31,7 @@ Release/
 # Runtime-generated SQLite user database (Stage F) - created fresh by
 # UserRepository on first run; never commit real account/password data.
 users.db
+
+# Runtime-generated log files (Log::init, shared/log/Log.h) - one per
+# executable (server.log/client.log), created fresh next to the exe.
+*.log

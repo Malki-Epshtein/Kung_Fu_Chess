@@ -5,6 +5,10 @@ class SessionRegistry;
 class EventBus;
 class UserRepository;
 
+// How often every room's GameSession ticks by default - also the
+// granularity of the game clock itself (see MotionPath's travel-time math).
+constexpr int kDefaultTickMs = 30;
+
 // Owns the WebSocket server itself: creates it, wires connection/message
 // callbacks to the objects that actually handle them (ConnectionHandler,
 // MessageDispatcher, BroadcasterManager), drives every room's tick loop,
@@ -13,5 +17,5 @@ class UserRepository;
 // for connect/disconnect handling.
 class WsServer {
 public:
-    void run(uint16_t port, SessionRegistry& registry, EventBus& bus, UserRepository& users, int tickMs = 30);
+    void run(uint16_t port, SessionRegistry& registry, EventBus& bus, UserRepository& users, int tickMs = kDefaultTickMs);
 };

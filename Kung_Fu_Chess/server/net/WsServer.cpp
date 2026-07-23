@@ -10,12 +10,12 @@
 #include "../app/handlers/MessageDispatcher.h"
 #include "../db/UserRepository.h"
 #include "../concurrency/ThreadPool.h"
+#include "../../shared/log/Log.h"
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 #include <asio/steady_timer.hpp>
 #include <chrono>
 #include <functional>
-#include <iostream>
 #include <string>
 
 namespace {
@@ -41,7 +41,7 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
         websocketpp::lib::error_code ec;
         server.send(hdl, text, websocketpp::frame::opcode::text, ec);
         if (ec)
-            std::cout << "[server] send failed: " << ec.message() << std::endl;
+            spdlog::error("send failed: {}", ec.message());
     };
 
     BroadcasterManager broadcasters(bus, registry, sendToConnection);
@@ -115,6 +115,6 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
 
     server.listen(port);
     server.start_accept();
-    std::cout << "[server] listening on port " << port << std::endl;
+    spdlog::info("listening on port {}", port);
     server.run();
 }

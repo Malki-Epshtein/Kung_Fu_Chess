@@ -33,6 +33,13 @@ namespace {
     // currently selected piece, in the style of common chess UIs.
     const cv::Scalar LEGAL_MOVE_MARKER(60, 60, 60);
 
+    // drawPlayerPanel's own palette - named here alongside the rest of this
+    // file's colors instead of as local variables inside the function.
+    const cv::Scalar PANEL_BORDER_COLOR(0, 0, 0);
+    const cv::Scalar PANEL_HEADER_BG(70, 70, 70);
+    const cv::Scalar PANEL_BODY_BG(50, 50, 50);
+    const cv::Scalar PANEL_TEXT_COLOR(255, 255, 255);
+
     // Shared with the Spectators count below (see render()) so it can be
     // placed under the Black panel instead of guessing at its height.
     constexpr int PANEL_Y      = 10;
@@ -46,15 +53,21 @@ namespace {
     // the PANEL_* constants above.
     constexpr int PLAYER_PANEL_WIDTH = 220;
 
+    // The gap between the board's edge and a player panel - used on both
+    // sides of the right panel (once in the canvas-size computation, once
+    // in the panel's own x-position), so it's named once here instead of
+    // risking the two literals drifting apart.
+    constexpr int PLAYER_PANEL_GAP_PX = 15;
+
     // A bordered panel with a title header, name/score lines, and a
     // "Time | Move" table beneath - one drawn per side (Black/White).
     void drawPlayerPanel(Img& frame, int panelX, const std::string& title,
         const std::string& playerName, int score, const std::vector<MoveEntry>& moves)
     {
-        const cv::Scalar borderColor(0, 0, 0);
-        const cv::Scalar headerBg(70, 70, 70);
-        const cv::Scalar bodyBg(50, 50, 50);
-        const cv::Scalar textColor(255, 255, 255);
+        const cv::Scalar& borderColor = PANEL_BORDER_COLOR;
+        const cv::Scalar& headerBg    = PANEL_HEADER_BG;
+        const cv::Scalar& bodyBg      = PANEL_BODY_BG;
+        const cv::Scalar& textColor   = PANEL_TEXT_COLOR;
         const int panelWidth = PLAYER_PANEL_WIDTH;
         const int panelY     = PANEL_Y;
         const int headerH    = PANEL_HEADER_H;
@@ -127,7 +140,7 @@ void ImageView::render(const GameSnapshot& snapshot) {
     if (cell != lastRenderedCellSize) {
         background.read(assetsRoot + "/board.png", { reloadBoardW, reloadBoardH });
 
-        int totalW = ViewConfig::PANEL_WIDTH + reloadBoardW + ViewConfig::BOARD_MARGIN + 15 + PLAYER_PANEL_WIDTH + 15;
+        int totalW = ViewConfig::PANEL_WIDTH + reloadBoardW + ViewConfig::BOARD_MARGIN + PLAYER_PANEL_GAP_PX + PLAYER_PANEL_WIDTH + PLAYER_PANEL_GAP_PX;
         int totalH = ViewConfig::BOARD_MARGIN + reloadBoardH + ViewConfig::BOARD_MARGIN;
         canvas.read(assetsRoot + "/canvas.png", { totalW, totalH });
 
@@ -239,7 +252,7 @@ void ImageView::render(const GameSnapshot& snapshot) {
     // since neither score nor the move log are part of the board state
     // itself.
     const int leftPanelX  = 10;
-    const int rightPanelX = ViewConfig::PANEL_WIDTH + boardW + ViewConfig::BOARD_MARGIN + 15;
+    const int rightPanelX = ViewConfig::PANEL_WIDTH + boardW + ViewConfig::BOARD_MARGIN + PLAYER_PANEL_GAP_PX;
 
     drawPlayerPanel(frame, leftPanelX, "Black", blackPlayerName, blackScore, blackMoves);
     drawPlayerPanel(frame, rightPanelX, "White", whitePlayerName, whiteScore, whiteMoves);

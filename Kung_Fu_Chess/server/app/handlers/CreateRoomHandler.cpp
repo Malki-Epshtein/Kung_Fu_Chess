@@ -5,7 +5,7 @@
 #include "../session/RoomIdentityResolver.h"
 #include "../logic/StartingBoard.h"
 #include "../../../shared/model/Piece.h"
-#include <iostream>
+#include "../../../shared/log/Log.h"
 
 nlohmann::json CreateRoomHandler::handle(ConnectionHandle hdl, const nlohmann::json& payload) {
     std::string name = payload.at("name").get<std::string>();
@@ -19,8 +19,7 @@ nlohmann::json CreateRoomHandler::handle(ConnectionHandle hdl, const nlohmann::j
     // creating it.
     registry_.joinRoom(name, hdl);
     Chess::Color role = registry_.roleOf(hdl);
-    std::cout << "[server] room '" << name << "' created, creator assigned role: "
-               << roleName(role) << std::endl;
+    spdlog::info("room '{}' created, creator assigned role: {}", name, roleName(role));
     // moveLog is always empty here (the room was just created) - included
     // anyway for shape consistency with JoinRoom/FindGame's replies, which
     // is exactly what a late joiner needs (see GameSession::fullMoveLog).

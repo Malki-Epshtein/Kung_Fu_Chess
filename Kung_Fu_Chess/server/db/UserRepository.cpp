@@ -21,14 +21,16 @@ UserRepository::UserRepository(const std::string& dbPath) {
         throw std::runtime_error(message);
     }
 
-    const char* createTableSql =
+    // kStartingElo interpolated in rather than repeated as a second literal
+    // "1200" here - the two can never drift apart this way.
+    std::string createTableSql =
         "CREATE TABLE IF NOT EXISTS users ("
         "  username TEXT PRIMARY KEY,"
         "  password TEXT NOT NULL,"
-        "  elo INTEGER NOT NULL DEFAULT 1200"
+        "  elo INTEGER NOT NULL DEFAULT " + std::to_string(kStartingElo) +
         ");";
     char* errMsg = nullptr;
-    if (sqlite3_exec(db_, createTableSql, nullptr, nullptr, &errMsg) != SQLITE_OK) {
+    if (sqlite3_exec(db_, createTableSql.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
         std::string message = "Cannot create users table: " + std::string(errMsg);
         sqlite3_free(errMsg);
         sqlite3_close(db_);

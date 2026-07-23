@@ -8,10 +8,16 @@
 #include "../logic/StartingBoard.h"
 #include "../../../shared/protocol/Message.h"
 #include "../../../shared/protocol/MessageCodec.h"
+#include "../../../shared/log/Log.h"
 #include <asio/steady_timer.hpp>
 #include <chrono>
-#include <iostream>
 #include <memory>
+
+namespace {
+    // How long a FindGame request waits in Matchmaker's pool before giving
+    // up and pushing a "no players available" GameFound(success:false).
+    constexpr int kSearchTimeoutSeconds = 60;
+}
 
 nlohmann::json FindGameHandler::handle(ConnectionHandle hdl, const nlohmann::json& /*payload*/) {
     const ClientSession* session = sessions_.sessionFor(hdl);
@@ -50,7 +56,7 @@ nlohmann::json FindGameHandler::handle(ConnectionHandle hdl, const nlohmann::jso
             { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry_.roleOf(hdl))}, {"moveLog", moveLog},
               {"whiteName", identity.whiteUsername}, {"whiteElo", identity.whiteElo},
               {"blackName", identity.blackUsername}, {"blackElo", identity.blackElo} } };
-        std::cout << "[server] matched '" << name << "' via FindGame" << std::endl;
+        spdlog::info("matched '{}' via FindGame", name);
         return nlohmann::json::parse(MessageCodec::encode(senderMsg));
     }
 
@@ -63,14 +69,14 @@ nlohmann::json FindGameHandler::handle(ConnectionHandle hdl, const nlohmann::jso
     Matchmaker&      matchmaker = matchmaker_;
     PushToConnection push       = push_;
     auto timer = std::make_shared<asio::steady_timer>(ioContext_);
-    timer->expires_after(std::chrono::seconds(60));
+    timer->expires_after(std::chrono::seconds(kSearchTimeoutSeconds));
     timer->async_wait([&matchmaker, push, hdl, timer](const asio::error_code& ec) {
         if (ec || !matchmaker.isWaiting(hdl))
             return;
         matchmaker.remove(hdl);
         Message timeoutMsg{ MessageType::GameFound, { {"success", false}, {"message", "no players available"} } };
         push(hdl, MessageCodec::encode(timeoutMsg));
-        std::cout << "[server] FindGame timed out, no match found" << std::endl;
+        spdlog::info("FindGame timed out, no match found");
     });
 
     return { {"success", true}, {"message", "searching for opponent"} };

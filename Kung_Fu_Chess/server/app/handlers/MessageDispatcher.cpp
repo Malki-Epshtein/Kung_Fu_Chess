@@ -13,7 +13,7 @@
 #include "../logic/EloService.h"
 #include "../../../shared/protocol/MessageCodec.h"
 #include "../../../shared/model/Piece.h"
-#include <iostream>
+#include "../../../shared/log/Log.h"
 
 MessageDispatcher::MessageDispatcher(UserRepository& users, ClientSessionRegistry& clientSessions,
                                       SessionRegistry& registry, EventBus& bus, Matchmaker& matchmaker,
@@ -53,8 +53,7 @@ std::string MessageDispatcher::process(ConnectionHandle hdl, const std::string& 
     nlohmann::json reply;
     try {
         Message decoded = MessageCodec::decode(text);
-        std::cout << "[server] received " << MessageCodec::typeName(decoded.type) << " from " << roleName(senderRole)
-                   << ": " << text << std::endl;
+        spdlog::debug("received {} from {}: {}", MessageCodec::typeName(decoded.type), roleName(senderRole), text);
 
         if (IMessageHandler* handler = router_->find(decoded.type)) {
             reply = handler->handle(hdl, decoded.payload);
@@ -65,8 +64,7 @@ std::string MessageDispatcher::process(ConnectionHandle hdl, const std::string& 
                 throw std::runtime_error("connection is not in a room");
 
             DispatchResult result = CommandDispatcher::dispatch(decoded, gameSession->engine(), senderRole);
-            std::cout << "[server] dispatch " << (result.success ? "OK" : "FAILED")
-                       << ": " << result.message << std::endl;
+            spdlog::debug("dispatch {}: {}", result.success ? "OK" : "FAILED", result.message);
 
             reply = { {"success", result.success}, {"message", result.message}, {"role", roleName(senderRole)} };
         }
@@ -82,11 +80,10 @@ std::string MessageDispatcher::process(ConnectionHandle hdl, const std::string& 
         if (!reply.contains("type"))
             reply["type"] = MessageCodec::typeName(decoded.type);
     } catch (const std::exception& e) {
-        std::cout << "[server] received non-protocol text: " << text
-                   << " (decode failed: " << e.what() << ")" << std::endl;
+        spdlog::warn("received non-protocol text: {} (decode failed: {})", text, e.what());
         reply = { {"success", false}, {"message", std::string("decode failed: ") + e.what()} };
     }
 
-    std::cout << "[server] replied: " << reply.dump() << std::endl;
+    spdlog::debug("replied: {}", reply.dump());
     return reply.dump();
 }

@@ -2,8 +2,8 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
+#include "../../shared/log/Log.h"
 #include <cctype>
-#include <iostream>
 
 namespace {
     constexpr int kEditId    = 101;
@@ -209,8 +209,7 @@ RoomDialogResult showRoomDialog() {
     }
 
     g_result = nullptr;
-    std::cout << "[client] Room dialog result: " << actionName(result.action)
-               << " name='" << result.roomName << "'" << std::endl;
+    spdlog::info("Room dialog result: {} name='{}'", actionName(result.action), result.roomName);
     return result;
 }
 

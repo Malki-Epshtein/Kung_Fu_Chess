@@ -4,7 +4,7 @@
 #include "RoleName.h"
 #include "../logic/Matchmaker.h"
 #include "../../../shared/model/Piece.h"
-#include <iostream>
+#include "../../../shared/log/Log.h"
 
 ConnectionHandler::ConnectionHandler(SessionRegistry& registry, ClientSessionRegistry& clientSessions,
                                       Matchmaker& matchmaker, asio::io_context& ioContext)
@@ -13,7 +13,7 @@ ConnectionHandler::ConnectionHandler(SessionRegistry& registry, ClientSessionReg
 void ConnectionHandler::onOpen(ConnectionHandle /*hdl*/) {
     // No room assignment happens here (Stage G): a connection stays
     // roomless until it explicitly sends CreateRoom or JoinRoom.
-    std::cout << "[server] client connected" << std::endl;
+    spdlog::info("client connected");
 }
 
 void ConnectionHandler::onClose(ConnectionHandle hdl) {
@@ -23,7 +23,7 @@ void ConnectionHandler::onClose(ConnectionHandle hdl) {
         roomName = *name;
 
     Chess::Color role = registry_.leave(hdl);
-    std::cout << "[server] client disconnected (was " << roleName(role) << ")" << std::endl;
+    spdlog::info("client disconnected (was {})", roleName(role));
 
     // Captured before onDisconnect() erases it below - needed later (see
     // GameSession::markDisconnectResign) to apply an ELO update once this

@@ -1,7 +1,7 @@
 #include "WsClient.h"
+#include "../../shared/log/Log.h"
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
-#include <iostream>
 #include <mutex>
 #include <thread>
 
@@ -45,7 +45,7 @@ void WsClient::connect(const std::string& host, uint16_t port) {//הפונקצי
     client.set_open_handler([this](websocketpp::connection_hdl hdl) {//כאשר החיבור נפתח
         impl->hdl = hdl;
         impl->connected = true;
-        std::cout << "[client] connected" << std::endl;
+        spdlog::info("connected");
         // Copy the handler out under the lock, then call it unlocked - so
         // the handler itself (arbitrary caller code) is never invoked
         // while handlerMutex is held.
@@ -67,18 +67,18 @@ void WsClient::connect(const std::string& host, uint16_t port) {//הפונקצי
             handler(msg->get_payload());
     });
     client.set_fail_handler([this](websocketpp::connection_hdl hdl) {//כאשר החיבור נכשל
-        std::cout << "[client] connection failed: " << impl->client.get_con_from_hdl(hdl)->get_ec().message() << std::endl;
+        spdlog::error("connection failed: {}", impl->client.get_con_from_hdl(hdl)->get_ec().message());
     });
     client.set_close_handler([this](websocketpp::connection_hdl) {
         impl->connected = false;
-        std::cout << "[client] connection closed" << std::endl;
+        spdlog::info("connection closed");
     });
 
     websocketpp::lib::error_code ec;
     std::string uri = "ws://" + host + ":" + std::to_string(port);
     auto con = client.get_connection(uri, ec);
     if (ec) {
-        std::cout << "[client] could not create connection: " << ec.message() << std::endl;
+        spdlog::error("could not create connection: {}", ec.message());
         return;
     }
     client.connect(con);//כאן זה עדיין לא באמת מתחבר הסרד יחבר
@@ -99,7 +99,13 @@ void WsClient::send(const std::string& text) {//שליחת הודעה לשרת
         websocketpp::lib::error_code ec;
         impl->client.send(impl->hdl, text, websocketpp::frame::opcode::text, ec);//פה באמת נשלח ההודעה
         if (ec)
-            std::cout << "[client] send failed: " << ec.message() << std::endl;
+            spdlog::error("send failed: {}", ec.message());
+        else
+            // The one chokepoint every outgoing message passes through
+            // regardless of caller (login, room join, moves, ...) - traces
+            // full outbound traffic without needing a log line in every
+            // individual call site.
+            spdlog::debug("sending: {}", text);
     });
 }
 

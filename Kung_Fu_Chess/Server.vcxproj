@@ -221,6 +221,7 @@
     <ClInclude Include="shared\protocol\Message.h" />
     <ClInclude Include="shared\protocol\MessageCodec.h" />
     <ClInclude Include="shared\bus\EventBus.h" />
+    <ClInclude Include="shared\log\Log.h" />
     <ClInclude Include="shared\input\ClickResolver.h" />
     <ClInclude Include="shared\protocol\GameSnapshotCodec.h" />
     <ClInclude Include="shared\protocol\MoveEntry.h" />
