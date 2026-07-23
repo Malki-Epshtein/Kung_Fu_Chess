@@ -3,7 +3,8 @@
 #include "../../shared/protocol/MessageCodec.h"
 #include "../../shared/protocol/GameSnapshotCodec.h"
 #include "../../shared/protocol/CaptureEventCodec.h"
-#include <iostream>
+#include "../audio/SoundNames.h"
+#include "../../shared/log/Log.h"
 
 namespace {
     // "White"/"Black" -> the other color's display name, for the
@@ -32,15 +33,21 @@ void NetworkMessageHandler::handleMoveLogged(const nlohmann::json& payload) {
         else if (event.color == Chess::Color::Black)
             state_.blackMoves.push_back(event.entry);
     }
-    soundPlayer_.play("move.wav");
+    soundPlayer_.play(Sounds::MOVE);
 }
 
 void NetworkMessageHandler::handleCaptureEvent(const nlohmann::json& payload) {
     CaptureEvent event = CaptureEventCodec::decode(payload);
-    std::cout << "[client] capture event received: kind=" << static_cast<int>(event.kind)
-               << " color=" << static_cast<int>(event.color)
-               << " cell=" << event.cell << std::endl;
-    soundPlayer_.play("capture.wav");
+    spdlog::info("capture event received: kind={} color={} cell={} capturingPieceId={} impactProgress={}",
+                  static_cast<int>(event.kind), static_cast<int>(event.color), event.cell,
+                  event.capturingPieceId, event.impactProgress);
+    // Doesn't play the sound here - queued for checkPendingCaptureSounds()
+    // (called once per rendered frame) to fire once the capturing piece's
+    // own live travelProgress actually reaches impactProgress, so the
+    // sound lines up with what's on screen instead of the raw moment this
+    // message arrived.
+    std::lock_guard<std::mutex> lock(mutex_);
+    pendingCaptures_.push_back(event);
 }
 
 // The direct reply to a MOVE/JUMP we just sent - rejected (e.g. illegal,
@@ -48,7 +55,7 @@ void NetworkMessageHandler::handleCaptureEvent(const nlohmann::json& payload) {
 // sound; a successful one is already covered by MOVE_LOGGED/CAPTURE_EVENT.
 void NetworkMessageHandler::handleCommandAck(const nlohmann::json& j) {
     if (!j.value("success", true))
-        soundPlayer_.play("illegal_move.wav");
+        soundPlayer_.play(Sounds::ILLEGAL_MOVE);
 }
 
 void NetworkMessageHandler::handleSnapshot(const nlohmann::json& j) {
@@ -102,6 +109,11 @@ void NetworkMessageHandler::onMessage(const std::string& text) {
     // raw string comparison happens here or anywhere downstream.
     try {
         nlohmann::json j = nlohmann::json::parse(text);
+        // The one chokepoint every incoming message passes through
+        // regardless of type (snapshot, move log, command ack, ...) -
+        // traces full inbound traffic without needing a log line in every
+        // individual handleX below.
+        spdlog::debug("received: {}", text);
         MessageType type = MessageCodec::typeFromName(j.value("type", std::string()));
 
         switch (type) {
@@ -118,6 +130,39 @@ void NetworkMessageHandler::onMessage(const std::string& text) {
             default: break;
         }
     } catch (const std::exception& e) {
-        std::cerr << "[client] failed to parse server message: " << e.what() << std::endl;
+        spdlog::error("failed to parse server message: {}", e.what());
     }
+}
+
+void NetworkMessageHandler::checkPendingCaptureSounds() {
+    // Resolve which pending captures are ready under the lock (touches
+    // state_/pendingCaptures_), but actually play sounds after releasing
+    // it - same reasoning as handleMoveLogged: soundPlayer_.play() runs a
+    // synchronous MCI call, no reason to hold the lock for that.
+    int readyCount = 0;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        for (auto it = pendingCaptures_.begin(); it != pendingCaptures_.end(); ) {
+            const SnapshotPiece* watched = nullptr;
+            for (const auto& p : state_.snapshot.pieces) {
+                if (p.id == it->capturingPieceId) {
+                    watched = &p;
+                    break;
+                }
+            }
+
+            // See isCaptureSoundReady's own comment for why "not found" and
+            // "no longer Moving" both count as ready, not just reaching
+            // travelProgress >= impactProgress directly.
+            if (isCaptureSoundReady(watched, it->impactProgress)) {
+                ++readyCount;
+                it = pendingCaptures_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    for (int i = 0; i < readyCount; ++i)
+        soundPlayer_.play(Sounds::CAPTURE);
 }

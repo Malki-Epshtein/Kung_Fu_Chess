@@ -11,6 +11,7 @@ TEST_CASE("GameSnapshotCodec - round-trip משמר את שדות הלוח והכ
     original.legalMoves    = { {1, 1}, {2, 2} };
 
     SnapshotPiece piece;
+    piece.id = 7;
     piece.kind = Chess::Kind::Queen;
     piece.color = Chess::Color::White;
     piece.cell = { 4, 4 };
@@ -31,6 +32,7 @@ TEST_CASE("GameSnapshotCodec - round-trip משמר את שדות הלוח והכ
     CHECK(decoded.legalMoves == original.legalMoves);
 
     REQUIRE(decoded.pieces.size() == 1);
+    CHECK(decoded.pieces[0].id == 7);
     CHECK(decoded.pieces[0].kind == Chess::Kind::Queen);
     CHECK(decoded.pieces[0].color == Chess::Color::White);
     CHECK(decoded.pieces[0].cell == Position{4, 4});

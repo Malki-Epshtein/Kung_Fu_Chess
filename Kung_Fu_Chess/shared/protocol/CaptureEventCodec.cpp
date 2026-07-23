@@ -36,6 +36,10 @@ nlohmann::json CaptureEventCodec::encode(const CaptureEvent& event) {
         {"kind", kKindToName.at(event.kind)},
         {"color", kColorToName.at(event.color)},
         {"cell", encodePosition(event.cell)},
+        {"capturedPieceId", event.capturedPieceId},
+        {"capturingPieceId", event.capturingPieceId},
+        {"collisionCell", encodePosition(event.collisionCell)},
+        {"impactProgress", event.impactProgress},
     };
 }
 
@@ -44,5 +48,9 @@ CaptureEvent CaptureEventCodec::decode(const nlohmann::json& j) {
         nameToKind(j.at("kind").get<std::string>()),
         nameToColor(j.at("color").get<std::string>()),
         decodePosition(j.at("cell")),
+        j.at("capturedPieceId").get<int>(),
+        j.at("capturingPieceId").get<int>(),
+        decodePosition(j.at("collisionCell")),
+        j.at("impactProgress").get<double>(),
     };
 }

@@ -14,5 +14,5 @@ public:
     // Fired right after a capture is observed. Empty by default (no-op).
     std::function<void(const CaptureEvent&)> onNewCapture;
 
-    void onPieceCaptured(const Piece& captured) override;
+    void onPieceCaptured(const Piece& captured, const CaptureImpact& impact) override;
 };

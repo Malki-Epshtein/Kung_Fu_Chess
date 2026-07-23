@@ -20,7 +20,7 @@ TEST_CASE("ScoreObserver - אכילת חייל שחור מוסיפה 1 נקוד�
     ScoreObserver score;
     TestPiece blackPawn(1, Chess::Color::Black, Chess::Kind::Pawn, {0, 0});
 
-    score.onPieceCaptured(blackPawn);
+    score.onPieceCaptured(blackPawn, CaptureImpact{});
 
     CHECK(score.getScore(Chess::Color::White) == 1);
     CHECK(score.getScore(Chess::Color::Black) == 0);
@@ -30,7 +30,7 @@ TEST_CASE("ScoreObserver - אכילת מלכה לבנה מוסיפה 9 נקוד�
     ScoreObserver score;
     TestPiece whiteQueen(2, Chess::Color::White, Chess::Kind::Queen, {0, 0});
 
-    score.onPieceCaptured(whiteQueen);
+    score.onPieceCaptured(whiteQueen, CaptureImpact{});
 
     CHECK(score.getScore(Chess::Color::Black) == 9);
     CHECK(score.getScore(Chess::Color::White) == 0);
@@ -42,9 +42,9 @@ TEST_CASE("ScoreObserver - כל ערכי הכלים הסטנדרטיים נכו�
     TestPiece bishop(2, Chess::Color::Black, Chess::Kind::Bishop, {0, 1});
     TestPiece rook(3, Chess::Color::Black, Chess::Kind::Rook, {0, 2});
 
-    score.onPieceCaptured(knight);
-    score.onPieceCaptured(bishop);
-    score.onPieceCaptured(rook);
+    score.onPieceCaptured(knight, CaptureImpact{});
+    score.onPieceCaptured(bishop, CaptureImpact{});
+    score.onPieceCaptured(rook, CaptureImpact{});
 
     CHECK(score.getScore(Chess::Color::White) == 3 + 3 + 5);
 }
@@ -53,7 +53,7 @@ TEST_CASE("ScoreObserver - אכילת מלך לא מוסיפה ניקוד (המ�
     ScoreObserver score;
     TestPiece king(1, Chess::Color::Black, Chess::Kind::King, {0, 0});
 
-    score.onPieceCaptured(king);
+    score.onPieceCaptured(king, CaptureImpact{});
 
     CHECK(score.getScore(Chess::Color::White) == 0);
 }
@@ -63,8 +63,8 @@ TEST_CASE("ScoreObserver - ניקוד מצטבר על פני כמה אכילות
     TestPiece p1(1, Chess::Color::Black, Chess::Kind::Pawn, {0, 0});
     TestPiece p2(2, Chess::Color::Black, Chess::Kind::Pawn, {0, 1});
 
-    score.onPieceCaptured(p1);
-    score.onPieceCaptured(p2);
+    score.onPieceCaptured(p1, CaptureImpact{});
+    score.onPieceCaptured(p2, CaptureImpact{});
 
     CHECK(score.getScore(Chess::Color::White) == 2);
 }

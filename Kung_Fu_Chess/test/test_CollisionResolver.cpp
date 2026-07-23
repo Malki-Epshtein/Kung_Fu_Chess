@@ -14,6 +14,15 @@ static std::shared_ptr<Piece> make(int id, Chess::Color color, Chess::Kind kind,
     return std::make_shared<TestPiece>(id, color, kind, pos);
 }
 
+namespace {
+    struct RecordingCaptureObserver : public CaptureObserver {
+        std::vector<CaptureImpact> impacts;
+        void onPieceCaptured(const Piece& /*captured*/, const CaptureImpact& impact) override {
+            impacts.push_back(impact);
+        }
+    };
+}
+
 // ==================== applyNearMiss ====================
 
 TEST_CASE("CollisionResolver::applyNearMiss - כלי ידידותי שמגיע מאוחר יותר לתא המשותף נעצר משבצת אחת לפניו") {
@@ -97,6 +106,67 @@ TEST_CASE("CollisionResolver::resolveCollisions - שני כלי אויב חוצ�
     CHECK(capturedPieces[0]->getId() == 2);
     REQUIRE(activeMotions.size() == 1);
     CHECK(activeMotions[0].piece_id == 1);
+}
+
+// Animation-event data (see CaptureObserver.h/CaptureEvent.h) - the same
+// scenario as the test above, but checking the impact data the surviving
+// piece's capture actually carries, since that's what the client's
+// capture-sound timing keys off. Hand-computed expected values: white's
+// motion ({0,0}->{0,5}, start=0, arrival=5000) and black's ({0,3}->{0,4},
+// start=3000, arrival=4000) both occupy (0,4) from t=4000 - the collision
+// is detected there, at white's own travelProgress (4000-0)/(5000-0)=0.8.
+TEST_CASE("CollisionResolver::resolveCollisions - האכילה נושאת נתוני animation-event נכונים עבור המנצח") {
+    Board board(8, 8);
+    board.addPiece(make(1, Chess::Color::White, Chess::Kind::Rook, {0, 0}), {0, 0});
+    board.addPiece(make(2, Chess::Color::Black, Chess::Kind::Rook, {0, 3}), {0, 3});
+    std::vector<Motion> activeMotions;
+    std::vector<std::shared_ptr<Piece>> capturedPieces;
+    RecordingCaptureObserver observer;
+    std::vector<CaptureObserver*> captureObservers{ &observer };
+    std::unordered_map<int, int> cooldownUntilMs;
+    CollisionResolver resolver(board, activeMotions, capturedPieces, captureObservers, cooldownUntilMs);
+
+    activeMotions.push_back({ {0, 0}, {0, 5}, 0, 5000, 1 });    // לבן: החל ב-t=0
+    activeMotions.push_back({ {0, 3}, {0, 4}, 3000, 4000, 2 }); // שחור: החל ב-t=3000
+
+    bool kingCaptured = false;
+    resolver.resolveCollisions(3000, 4000, kingCaptured);
+
+    REQUIRE(observer.impacts.size() == 1);
+    CHECK(observer.impacts[0].capturingPieceId == 1);
+    CHECK(observer.impacts[0].collisionCell == Position{0, 4});
+    CHECK(observer.impacts[0].impactProgress == doctest::Approx(0.8));
+}
+
+// Same exact scenario as the test above, colors swapped (Black wins this
+// time) - checking the resolver genuinely doesn't favor either color. If
+// this fails while the White-wins version above passes, the bug is in
+// resolveCollisions itself; if both pass, the reported "no sound when
+// Black captures White" bug must be somewhere else in the pipeline
+// (broadcast wiring, or client-side).
+TEST_CASE("CollisionResolver::resolveCollisions - נתוני animation-event נכונים גם כששחור הוא המנצח (סימטריה בין הצבעים)") {
+    Board board(8, 8);
+    board.addPiece(make(1, Chess::Color::Black, Chess::Kind::Rook, {0, 0}), {0, 0});
+    board.addPiece(make(2, Chess::Color::White, Chess::Kind::Rook, {0, 3}), {0, 3});
+    std::vector<Motion> activeMotions;
+    std::vector<std::shared_ptr<Piece>> capturedPieces;
+    RecordingCaptureObserver observer;
+    std::vector<CaptureObserver*> captureObservers{ &observer };
+    std::unordered_map<int, int> cooldownUntilMs;
+    CollisionResolver resolver(board, activeMotions, capturedPieces, captureObservers, cooldownUntilMs);
+
+    activeMotions.push_back({ {0, 0}, {0, 5}, 0, 5000, 1 });    // שחור: החל ב-t=0
+    activeMotions.push_back({ {0, 3}, {0, 4}, 3000, 4000, 2 }); // לבן: החל ב-t=3000
+
+    bool kingCaptured = false;
+    resolver.resolveCollisions(3000, 4000, kingCaptured);
+
+    REQUIRE(capturedPieces.size() == 1);
+    CHECK(capturedPieces[0]->getId() == 2); // White (piece 2) loses
+    REQUIRE(observer.impacts.size() == 1);
+    CHECK(observer.impacts[0].capturingPieceId == 1); // Black (piece 1) is the one to watch
+    CHECK(observer.impacts[0].collisionCell == Position{0, 4});
+    CHECK(observer.impacts[0].impactProgress == doctest::Approx(0.8));
 }
 
 TEST_CASE("CollisionResolver::resolveCollisions - אם המפסיד הוא מלך, מסמן kingCaptured") {

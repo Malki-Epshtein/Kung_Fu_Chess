@@ -11,6 +11,6 @@ private:
     static int pieceValue(Chess::Kind kind);
 
 public:
-    void onPieceCaptured(const Piece& captured) override;
+    void onPieceCaptured(const Piece& captured, const CaptureImpact& impact) override;
     int  getScore(Chess::Color color) const;
 };

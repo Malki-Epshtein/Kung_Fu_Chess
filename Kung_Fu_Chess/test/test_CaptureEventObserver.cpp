@@ -14,7 +14,7 @@ TEST_CASE("CaptureEventObserver - בלי onNewCapture מוגדר, onPieceCapture
     CaptureEventObserver observer;
     TestPiece pawn(1, Chess::Color::Black, Chess::Kind::Pawn, {3, 4});
 
-    observer.onPieceCaptured(pawn);
+    observer.onPieceCaptured(pawn, CaptureImpact{ 99, {5, 5}, 1.0 });
     // No CHECK needed - the test passes simply by not crashing.
 }
 
@@ -29,12 +29,16 @@ TEST_CASE("CaptureEventObserver - onNewCapture נקרא עם הסוג, הצבע 
         received = event;
     };
 
-    observer.onPieceCaptured(knight);
+    observer.onPieceCaptured(knight, CaptureImpact{ 7, {3, 5}, 0.63 });
 
     REQUIRE(called);
     CHECK(received.kind == Chess::Kind::Knight);
     CHECK(received.color == Chess::Color::White);
     CHECK(received.cell == Position{2, 5});
+    CHECK(received.capturedPieceId == 1);
+    CHECK(received.capturingPieceId == 7);
+    CHECK(received.collisionCell == Position{3, 5});
+    CHECK(received.impactProgress == doctest::Approx(0.63));
 }
 
 TEST_CASE("CaptureEventObserver - כמה אכילות מפעילות את ה-callback כל פעם מחדש") {
@@ -45,8 +49,8 @@ TEST_CASE("CaptureEventObserver - כמה אכילות מפעילות את ה-cal
     int callCount = 0;
     observer.onNewCapture = [&](const CaptureEvent&) { ++callCount; };
 
-    observer.onPieceCaptured(a);
-    observer.onPieceCaptured(b);
+    observer.onPieceCaptured(a, CaptureImpact{ 2, {0, 0}, 1.0 });
+    observer.onPieceCaptured(b, CaptureImpact{ 1, {7, 7}, 1.0 });
 
     CHECK(callCount == 2);
 }

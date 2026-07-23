@@ -446,8 +446,10 @@ TEST_CASE("tick - חסימה נייחת: פרש פטור לגמרי ועובר �
 namespace {
     struct RecordingCaptureObserver : public CaptureObserver {
         std::vector<int> capturedIds;
-        void onPieceCaptured(const Piece& captured) override {
+        std::vector<CaptureImpact> impacts;
+        void onPieceCaptured(const Piece& captured, const CaptureImpact& impact) override {
             capturedIds.push_back(captured.getId());
+            impacts.push_back(impact);
         }
     };
 

@@ -1,8 +1,9 @@
 #include "GraphicalApplication.h"
 #include "HomeScreenView.h"
 #include "../view/ViewConfig.h"
+#include "../audio/SoundNames.h"
+#include "../../shared/log/Log.h"
 #include <opencv2/opencv.hpp>
-#include <iostream>
 
 namespace {
     // "name (elo)", matching how real chess sites always pair a player's
@@ -61,7 +62,7 @@ void GraphicalApplication::onMouseClick(int x, int y) {
     // or the frame margin becomes a negative coordinate, which Controller's
     // existing bounds check already treats as out-of-board.
     ClickOutcomeType outcome = controller.handleMouseClick(x - ViewConfig::PANEL_WIDTH, y - ViewConfig::BOARD_MARGIN);
-    soundPlayer.play(outcome == ClickOutcomeType::SendJump ? "jump.wav" : "click.wav");
+    soundPlayer.play(outcome == ClickOutcomeType::SendJump ? Sounds::JUMP : Sounds::CLICK);
 }
 
 void GraphicalApplication::run() {
@@ -71,7 +72,7 @@ void GraphicalApplication::run() {
     // does today - there's nothing useful to show without a room.
     HomeScreenResult home = runHomeScreen(client);//כל מסך הבית קורה עעכשיו
     if (!home.joinedRoom) {
-        std::cout << "[client] exiting: Home screen closed without joining a room" << std::endl;
+        spdlog::info("exiting: Home screen closed without joining a room");
         return;
     }
     view.setRoomName(home.roomName);//שומרים את שם החדר שהמשתמש הצטרף אליו כדי להציג אותו על המסך
@@ -94,11 +95,18 @@ void GraphicalApplication::run() {
 
     cv::namedWindow(ViewConfig::WINDOW_NAME);
     cv::setMouseCallback(ViewConfig::WINDOW_NAME, mouseCallback, this);
-    std::cout << "[client] window opened, entering render loop" << std::endl;
+    spdlog::info("window opened, entering render loop");
 
     int frame = 0;
     bool wasGameOver = false;
     while (true) {
+        // Animation-event-style capture-sound timing (see NetworkMessageHandler
+        // and CaptureEvent's own comments) - checked every frame, right
+        // alongside pulling the snapshot that drives this same frame's
+        // rendering, so a pending capture fires in sync with the exact
+        // travelProgress value this frame is about to draw.
+        networkHandler.checkPendingCaptureSounds();
+
         NetworkState net = networkHandler.currentState();
         // Controller holds a reference to latestSnapshot specifically (bound
         // once, at construction) - assign into it in place rather than
@@ -110,7 +118,7 @@ void GraphicalApplication::run() {
         // snapshot (see ImageView's own game-over message), so no new
         // server-side event is needed just for this sound.
         if (latestSnapshot.game_over && !wasGameOver)
-            soundPlayer.play("game over.wav");
+            soundPlayer.play(Sounds::GAME_OVER);
         wasGameOver = latestSnapshot.game_over;
 
         view.setDisconnectStatus(net.disconnectActive, net.disconnectMessage);
@@ -124,20 +132,19 @@ void GraphicalApplication::run() {
             // A render failure used to crash the whole client with zero
             // diagnostic output (the window would just vanish) - surfacing
             // it here at least tells us what actually went wrong.
-            std::cerr << "[client] render() failed at frame " << frame << ": " << e.what() << std::endl;
+            spdlog::error("render() failed at frame {}: {}", frame, e.what());
             break;
         }
         ++frame;
 
         int key = cv::waitKey(30);
         if (key == 27) { // ESC
-            std::cout << "[client] exiting: ESC pressed at frame " << frame << std::endl;
+            spdlog::info("exiting: ESC pressed at frame {}", frame);
             break;
         }
         double visible = cv::getWindowProperty(ViewConfig::WINDOW_NAME, cv::WND_PROP_VISIBLE);
         if (visible < 1) {
-            std::cout << "[client] exiting: window no longer visible (property=" << visible
-                       << ") at frame " << frame << std::endl;
+            spdlog::info("exiting: window no longer visible (property={}) at frame {}", visible, frame);
             break;
         }
     }

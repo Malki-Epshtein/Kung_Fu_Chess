@@ -47,6 +47,7 @@ nlohmann::json GameSnapshotCodec::encode(const GameSnapshot& snapshot) {
     auto pieces = nlohmann::json::array();
     for (const auto& p : snapshot.pieces) {
         pieces.push_back({
+            {"id",                   p.id},
             {"kind",                 kKindToName.at(p.kind)},
             {"color",                kColorToName.at(p.color)},
             {"cell",                 encodePosition(p.cell)},
@@ -80,6 +81,7 @@ GameSnapshot GameSnapshotCodec::decode(const nlohmann::json& j) {
 
     for (const auto& pj : j.at("pieces")) {
         SnapshotPiece p;
+        p.id                    = pj.at("id").get<int>();
         p.kind                = nameToKind(pj.at("kind").get<std::string>());
         p.color                = nameToColor(pj.at("color").get<std::string>());
         p.cell                  = decodePosition(pj.at("cell"));

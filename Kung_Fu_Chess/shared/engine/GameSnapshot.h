@@ -4,6 +4,10 @@
 #include "../model/Piece.h"
 
 struct SnapshotPiece {
+    int          id; // stable server-side piece id (Piece::getId()) - lets a
+                      // client correlate the same piece across snapshots,
+                      // e.g. to watch a specific piece's live travelProgress
+                      // (see NetworkMessageHandler's capture-sound timing)
     Chess::Kind  kind;
     Chess::Color color;
     Position     cell;

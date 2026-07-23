@@ -2,6 +2,7 @@
 #include "../audio/SoundPlayer.h"
 #include "../../shared/engine/GameSnapshot.h"
 #include "../../shared/protocol/MoveLogCodec.h"
+#include "../../shared/protocol/CaptureEvent.h"
 #include "json.hpp"
 #include <mutex>
 #include <string>
@@ -46,13 +47,43 @@ public:
 
     NetworkState currentState() const;
 
+    // Animation-event-style capture-sound timing (see CaptureEvent's own
+    // comment) - called once per rendered frame from the render loop
+    // (GraphicalApplication), NOT from onMessage. A CAPTURE_EVENT arriving
+    // (handleCaptureEvent) only queues it; this is what actually decides
+    // when to play the sound, by checking each pending capture's watched
+    // piece against the *current* snapshot's live travelProgress - the
+    // exact same interpolation value already driving where that piece is
+    // drawn this frame. Fires immediately (no further waiting) for a
+    // pending capture whose watched piece is no longer in the snapshot at
+    // all, so a same-tick capture-and-removal (see ArrivalResolver) can
+    // never stall silently forever.
+    void checkPendingCaptureSounds();
+
+    // The pure decision behind checkPendingCaptureSounds(): has the watched
+    // piece's own live animation state reached the recorded impact point
+    // yet? Pulled out as a standalone, header-inline predicate (no
+    // SoundPlayer/mutex involved) so it's directly unit-testable without
+    // needing NetworkMessageHandler.cpp/SoundPlayer.cpp in the test build.
+    // watched == nullptr (piece no longer in the snapshot at all) and
+    // watched->state != Moving (its motion already finished and was
+    // dropped from active_motions - see RealTimeArbiter::tick - before
+    // travelProgress could ever show it "finished") both count as ready,
+    // since travelProgress alone would otherwise never reach a normal
+    // arrival capture's impactProgress==1.0 for a piece no longer moving.
+    static bool isCaptureSoundReady(const SnapshotPiece* watched, double impactProgress) {
+        return !watched || watched->state != Chess::State::Moving
+            || watched->travelProgress >= impactProgress;
+    }
+
 private:
     void handleMoveLogged(const nlohmann::json& payload);
     void handleCaptureEvent(const nlohmann::json& payload);
     void handleCommandAck(const nlohmann::json& j);
     void handleSnapshot(const nlohmann::json& j);
 
-    SoundPlayer&        soundPlayer_;
-    mutable std::mutex  mutex_;
-    NetworkState        state_;
+    SoundPlayer&              soundPlayer_;
+    mutable std::mutex        mutex_;
+    NetworkState              state_;
+    std::vector<CaptureEvent> pendingCaptures_;
 };

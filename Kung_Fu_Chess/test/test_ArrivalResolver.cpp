@@ -17,7 +17,11 @@ static std::shared_ptr<Piece> make(int id, Chess::Color color, Chess::Kind kind,
 namespace {
     struct RecordingCaptureObserver : public CaptureObserver {
         std::vector<int> capturedIds;
-        void onPieceCaptured(const Piece& captured) override { capturedIds.push_back(captured.getId()); }
+        std::vector<CaptureImpact> impacts;
+        void onPieceCaptured(const Piece& captured, const CaptureImpact& impact) override {
+            capturedIds.push_back(captured.getId());
+            impacts.push_back(impact);
+        }
     };
     struct RecordingMoveObserver : public MoveObserver {
         struct Move { int piece_id; Position from; Position to; bool wasCapture; int gameClockMs; };
@@ -86,6 +90,14 @@ TEST_CASE("ArrivalResolver::resolve - הגעה ליעד עם כלי אויב א�
     REQUIRE(moveObs.moves.size() == 1);
     CHECK(moveObs.moves[0].wasCapture);
     CHECK(board.getPiece({3, 4})->getKind() == Chess::Kind::Rook);
+
+    // Animation-event data (see CaptureObserver.h) - a normal capture-on-
+    // arrival is captured at the exact instant it lands, so impactProgress
+    // is always 1.0 and collisionCell is just the landing cell.
+    REQUIRE(captureObs.impacts.size() == 1);
+    CHECK(captureObs.impacts[0].capturingPieceId == 1);
+    CHECK(captureObs.impacts[0].collisionCell == Position{3, 4});
+    CHECK(captureObs.impacts[0].impactProgress == doctest::Approx(1.0));
 }
 
 TEST_CASE("ArrivalResolver::resolve - הגעה ליעד עם מלך אויב מסמנת kingCaptured") {

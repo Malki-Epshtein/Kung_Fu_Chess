@@ -94,8 +94,8 @@ TEST_CASE("print(GameSnapshot) - מזהה זהה בפלט ל-print(GameState) ע
     snap.board_width  = 3;
     snap.board_height = 3;
     snap.game_over     = false;
-    snap.pieces.push_back({Chess::Kind::King, Chess::Color::White, {0, 0}, Chess::State::Idle});
-    snap.pieces.push_back({Chess::Kind::Rook, Chess::Color::Black, {0, 2}, Chess::State::Idle});
+    snap.pieces.push_back({1, Chess::Kind::King, Chess::Color::White, {0, 0}, Chess::State::Idle});
+    snap.pieces.push_back({2, Chess::Kind::Rook, Chess::Color::Black, {0, 2}, Chess::State::Idle});
 
     std::ostringstream snapOut;
     BoardPrinter::print(snap, snapOut);

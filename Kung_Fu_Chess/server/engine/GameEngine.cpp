@@ -136,7 +136,7 @@ GameSnapshot GameEngine::snapshot() const {
             else if (piece->getState() == Chess::State::LongRest)
                 restProgress = std::min(1.0, elapsed / static_cast<double>(RestDurations::LONG_REST_MS));
 
-            snap.pieces.push_back({ piece->getKind(), piece->getColor(), cell, piece->getState(), elapsed, target, progress, restProgress });
+            snap.pieces.push_back({ piece->getId(), piece->getKind(), piece->getColor(), cell, piece->getState(), elapsed, target, progress, restProgress });
         }
     }
     return snap;

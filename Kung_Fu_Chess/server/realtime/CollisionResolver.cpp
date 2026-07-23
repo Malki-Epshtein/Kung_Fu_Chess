@@ -108,7 +108,16 @@ void CollisionResolver::resolveCollisions(int previousClock, int gameClockMs, bo
     collect(board, activeMotions, previousClock, gameClockMs, occ, steps);
 
     std::vector<bool> loses(activeMotions.size(), false);
-    auto mark = [&](size_t idxA, size_t idxB) {
+    // Per losing motion index, the animation-event data the survivor's
+    // capture should carry (see CaptureObserver.h) - the winner's own id,
+    // where the paths crossed, and the winner's own travelProgress at that
+    // exact moment (computed from real overlap timing, not a distance
+    // estimate) so the client can fire the capture sound in sync with what
+    // it's actually drawing, not the instant this resolver decided the
+    // outcome.
+    std::unordered_map<size_t, CaptureImpact> impactFor;
+
+    auto mark = [&](size_t idxA, size_t idxB, Position cellA, Position cellB, int enterA, int enterB) {
         const Motion& mA = activeMotions[idxA];
         const Motion& mB = activeMotions[idxB];
         auto pieceA = board.getPiece(mA.from);
@@ -120,7 +129,20 @@ void CollisionResolver::resolveCollisions(int previousClock, int gameClockMs, bo
             ? (mA.start_time_ms < mB.start_time_ms)
             : (mA.piece_id < mB.piece_id);
 
-        loses[aWins ? idxB : idxA] = true;
+        size_t loserIdx        = aWins ? idxB : idxA;
+        const Motion& winner    = aWins ? mA : mB;
+        Position collisionCell = aWins ? cellA : cellB; // the winner's own proposed cell for this pairing
+
+        // The moment both pieces actually overlap - the later of the two
+        // entries into the shared space, not either one's own entry alone.
+        int collisionTimeMs = std::max(enterA, enterB);
+        int duration = winner.arrival_time_ms - winner.start_time_ms;
+        double impactProgress = duration > 0
+            ? std::clamp(static_cast<double>(collisionTimeMs - winner.start_time_ms) / duration, 0.0, 1.0)
+            : 1.0;
+
+        loses[loserIdx] = true;
+        impactFor[loserIdx] = CaptureImpact{ winner.piece_id, collisionCell, impactProgress };
     };
 
     for (size_t i = 0; i < occ.size(); ++i)
@@ -128,7 +150,7 @@ void CollisionResolver::resolveCollisions(int previousClock, int gameClockMs, bo
             if (occ[i].motionIndex == occ[j].motionIndex) continue;
             if (occ[i].cell != occ[j].cell) continue;
             if (!overlaps(occ[i].enter, occ[i].leave, occ[j].enter, occ[j].leave)) continue;
-            mark(occ[i].motionIndex, occ[j].motionIndex);
+            mark(occ[i].motionIndex, occ[j].motionIndex, occ[i].cell, occ[j].cell, occ[i].enter, occ[j].enter);
         }
 
     for (size_t i = 0; i < steps.size(); ++i)
@@ -136,7 +158,12 @@ void CollisionResolver::resolveCollisions(int previousClock, int gameClockMs, bo
             if (steps[i].motionIndex == steps[j].motionIndex) continue;
             if (!(steps[i].from == steps[j].to && steps[i].to == steps[j].from)) continue;
             if (!overlaps(steps[i].enter, steps[i].leave, steps[j].enter, steps[j].leave)) continue;
-            mark(steps[i].motionIndex, steps[j].motionIndex);
+            // Edge swap: no single shared cell (the two paths cross a shared
+            // edge, never a shared cell) - each side's own "to" is a
+            // reasonable stand-in for where that piece visually was at the
+            // crossing, and mark() already picks whichever belongs to the
+            // winner.
+            mark(steps[i].motionIndex, steps[j].motionIndex, steps[i].to, steps[j].to, steps[i].enter, steps[j].enter);
         }
 
     bool anyLoss = false;
@@ -150,8 +177,13 @@ void CollisionResolver::resolveCollisions(int previousClock, int gameClockMs, bo
             kingCaptured = true;
         piece->transitionTo(Chess::State::Captured);
         capturedPieces.push_back(piece);
+        // impactFor[i] is always populated here (every loses[i]=true is set
+        // in the same mark() call as its impactFor[i] entry) - the fallback
+        // is just defensive.
+        auto it = impactFor.find(i);
+        CaptureImpact impact = it != impactFor.end() ? it->second : CaptureImpact{ piece->getId(), m.from, 1.0 };
         for (auto* observer : captureObservers)
-            observer->onPieceCaptured(*piece);
+            observer->onPieceCaptured(*piece, impact);
         board.removePiece(m.from);
     }
 

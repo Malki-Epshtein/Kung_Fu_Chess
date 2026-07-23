@@ -29,10 +29,18 @@ void ArrivalResolver::resolve(const Motion& m, int gameClockMs, bool& kingCaptur
         (target->getState() == Chess::State::Jump || target->getState() == Chess::State::ShortRest);
 
     if (targetRecentlyJumped) {
+        // piece (the arriver) is the one captured here, and it's removed
+        // from the board this same tick - capturingPieceId names itself
+        // deliberately: it'll simply be absent from the very next snapshot,
+        // which correctly triggers the client's immediate-fire fallback
+        // (see CaptureObserver's comment) rather than waiting on a motion
+        // that no longer exists. impactProgress=1.0 for the same reason
+        // ArrivalResolver's other capture below uses it - captured right
+        // at the end of a motion.
         piece->transitionTo(Chess::State::Captured);
         capturedPieces.push_back(piece);
         for (auto* observer : captureObservers)
-            observer->onPieceCaptured(*piece);
+            observer->onPieceCaptured(*piece, CaptureImpact{ piece->getId(), m.to, 1.0 });
         board.removePiece(m.from);
         return;
     }
@@ -56,8 +64,13 @@ void ArrivalResolver::resolve(const Motion& m, int gameClockMs, bool& kingCaptur
     if (wasCapture) {
         target->transitionTo(Chess::State::Captured);
         capturedPieces.push_back(target);
+        // piece (the mover, m.piece_id) is the one still standing - it's
+        // captured target by landing on it, so impactProgress=1.0: the
+        // capture becomes visible at the exact instant piece finishes
+        // arriving at m.to, the same moment collisionCell (m.to) is where
+        // it visibly is anyway.
         for (auto* observer : captureObservers)
-            observer->onPieceCaptured(*target);
+            observer->onPieceCaptured(*target, CaptureImpact{ piece->getId(), m.to, 1.0 });
     }
 
     board.movePiece(m.from, m.to);
