@@ -9,5 +9,5 @@ private:
 
 public:
     MoveCommand(Position from, Position to) : from(from), to(to) {}
-    void execute(GameEngine& engine) override;
+    MoveResult execute(GameEngine& engine) override;
 };

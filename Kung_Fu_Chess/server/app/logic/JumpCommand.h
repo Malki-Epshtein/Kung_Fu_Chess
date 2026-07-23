@@ -8,5 +8,5 @@ private:
 
 public:
     explicit JumpCommand(Position pos) : pos(pos) {}
-    void execute(GameEngine& engine) override;
+    MoveResult execute(GameEngine& engine) override;
 };

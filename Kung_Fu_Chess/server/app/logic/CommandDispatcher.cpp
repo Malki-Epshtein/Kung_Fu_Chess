@@ -35,8 +35,8 @@ DispatchResult CommandDispatcher::dispatch(const Message& message, GameEngine& e
                 if (!mover || mover->color != senderColor)
                     return { false, "not your piece" };
 
-                MoveCommand(from, to).execute(engine);
-                return { true, "move dispatched" };
+                MoveResult result = MoveCommand(from, to).execute(engine);
+                return { result.is_accepted, result.reason };
             }
             case MessageType::Jump: {
                 if (senderColor == Chess::Color::None)
@@ -49,8 +49,8 @@ DispatchResult CommandDispatcher::dispatch(const Message& message, GameEngine& e
                 if (!mover || mover->color != senderColor)
                     return { false, "not your piece" };
 
-                JumpCommand(pos).execute(engine);
-                return { true, "jump dispatched" };
+                MoveResult result = JumpCommand(pos).execute(engine);
+                return { result.is_accepted, result.reason };
             }
             case MessageType::Hello:
                 return { true, "hello acknowledged" };
