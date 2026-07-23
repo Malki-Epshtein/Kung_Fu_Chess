@@ -103,6 +103,7 @@
     <ClCompile Include="server\engine\CaptureEventObserver.cpp" />
     <ClCompile Include="server\app\logic\MoveCommand.cpp" />
     <ClCompile Include="server\app\logic\JumpCommand.cpp" />
+    <ClCompile Include="server\concurrency\ThreadPool.cpp" />
     <ClCompile Include="server\io\BoardParser.cpp" />
     <ClCompile Include="server\io\BoardPrinter.cpp" />
     <ClCompile Include="server\realtime\MotionPath.cpp" />
@@ -193,6 +194,7 @@
     <ClInclude Include="server\app\logic\Command.h" />
     <ClInclude Include="server\app\logic\MoveCommand.h" />
     <ClInclude Include="server\app\logic\JumpCommand.h" />
+    <ClInclude Include="server\concurrency\ThreadPool.h" />
     <ClInclude Include="server\io\BoardParser.h" />
     <ClInclude Include="server\io\BoardPrinter.h" />
     <ClInclude Include="server\realtime\Motion.h" />

@@ -14,8 +14,16 @@ void BroadcasterManager::attach(const std::string& roomName) {
             sender_(hdl, text);
     };
 
+    // Snapshot delivery is direct now (state, not a one-off event - see
+    // GameSession's class comment) - wired straight onto the session
+    // instead of going through a NetworkBroadcaster/EventBus topic. Always
+    // non-null here: attach() only runs for a room that already exists in
+    // the registry (this constructor's own loop, or CreateRoomHandler/
+    // FindGameHandler calling this right after registry_.createRoom).
+    if (GameSession* session = registry_.room(roomName))
+        session->setSnapshotSender(forwardToRoom);
+
     std::vector<std::unique_ptr<NetworkBroadcaster>> roomBroadcasters;
-    roomBroadcasters.push_back(std::make_unique<NetworkBroadcaster>(bus_, GameSession::snapshotTopic(roomName), forwardToRoom));
     roomBroadcasters.push_back(std::make_unique<NetworkBroadcaster>(bus_, GameSession::moveLogTopic(roomName), forwardToRoom));
     roomBroadcasters.push_back(std::make_unique<NetworkBroadcaster>(bus_, GameSession::captureTopic(roomName), forwardToRoom));
     broadcasters_[roomName] = std::move(roomBroadcasters);

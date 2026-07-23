@@ -45,16 +45,25 @@ GameSession::GameSession(std::shared_ptr<Board> board, EventBus& bus, std::strin
     // client can tell a MOVE_LOGGED push apart from a plain snapshot -
     // same parse(encode(...)) round-trip FindGameHandler already uses to
     // turn a Message into the json a bus/reply actually carries.
+    //
+    // Enqueues into pending_ instead of publishing directly: this callback
+    // fires synchronously from inside engine_.wait() (called by
+    // computeStep(), which may run on a worker thread once WsServer starts
+    // using the thread pool) - EventBus::publish/subscribe are not
+    // synchronized, so the actual bus_.publish() call is deferred to
+    // publishStep(), which only ever runs on the main thread.
     moveLogObserver_.onNewEntry = [this](Chess::Color color, const MoveEntry& entry) {
         Message msg{ MessageType::MoveLogged, MoveLogCodec::encode(color, entry) };
-        bus_.publish(moveLogTopic(roomName_), nlohmann::json::parse(MessageCodec::encode(msg)));
+        std::lock_guard<std::mutex> lock(pendingMutex_);
+        pending_.push_back({ moveLogTopic(roomName_), nlohmann::json::parse(MessageCodec::encode(msg)) });
     };
 
     // Same bridging pattern as moveLogObserver_.onNewEntry above, for a
     // capture instead of a completed move.
     captureEventObserver_.onNewCapture = [this](const CaptureEvent& event) {
         Message msg{ MessageType::CaptureEvent, CaptureEventCodec::encode(event) };
-        bus_.publish(captureTopic(roomName_), nlohmann::json::parse(MessageCodec::encode(msg)));
+        std::lock_guard<std::mutex> lock(pendingMutex_);
+        pending_.push_back({ captureTopic(roomName_), nlohmann::json::parse(MessageCodec::encode(msg)) });
     };
 }
 
@@ -87,10 +96,15 @@ nlohmann::json GameSession::fullMoveLog() const {
     return MoveLogCodec::encodeAll(moveLogObserver_.getMoves(Chess::Color::White), moveLogObserver_.getMoves(Chess::Color::Black));
 }
 
-void GameSession::tick(int ms) {
+nlohmann::json GameSession::computeStep(int ms) {
     engine_.wait(ms);
 
     nlohmann::json payload = GameSnapshotCodec::encode(engine_.snapshot());
+    // Tagged (flat, not re-enveloped under "payload" - every existing
+    // field/consumer of this broadcast stays as-is) so the client can tell
+    // it apart from a command-ack reply without guessing from field
+    // presence - see MessageCodec::typeName.
+    payload["type"] = MessageCodec::typeName(MessageType::Snapshot);
     payload["score"] = {
         {"white", scoreObserver_.getScore(Chess::Color::White)},//זב כן מספיק בSNAPSHOT
         {"black", scoreObserver_.getScore(Chess::Color::Black)},
@@ -107,15 +121,37 @@ void GameSession::tick(int ms) {
             {"secondsRemaining", disconnectStatus_.secondsRemaining},
         };
     }
-    bus_.publish(snapshotTopic(roomName_), payload);
+    return payload;
+}
+
+void GameSession::publishStep(const nlohmann::json& snapshotPayload) {
+    // Drain whatever moveLogObserver_/captureEventObserver_ queued during
+    // the computeStep() that just ran (see their onNewEntry/onNewCapture
+    // lambdas in the constructor) - this is the one place guaranteed to run
+    // on the main thread, so it's the only place that actually touches
+    // EventBus for these two.
+    std::vector<PendingPublish> pending;
+    {
+        std::lock_guard<std::mutex> lock(pendingMutex_);
+        pending.swap(pending_);
+    }
+    for (const auto& p : pending)
+        bus_.publish(p.topic, p.data);
+
+    // Direct delivery (see setSnapshotSender/class comment) instead of
+    // EventBus - this is continuously-changing state, not a one-off event.
+    // .dump() matches what NetworkBroadcaster does internally for
+    // moveLogTopic/captureTopic above, so the wire format is unaffected.
+    if (snapshotSender_)
+        snapshotSender_(snapshotPayload.dump());
 
     // King-capture game-over detection rides on the same engine_.snapshot()
-    // this tick already computed above for the broadcast - checking here
-    // costs nothing extra, and publishes gameEndedTopic the moment it's
-    // first true (edge-triggered via gameResultPublished_), the same tick
-    // clients see game_over:true on the snapshot. A disconnect-caused
-    // ending instead reaches gameEndedTopic via markDisconnectResign,
-    // called directly by SessionRegistry's timer - not from here.
+    // computeStep() already advanced above - checking here costs nothing
+    // extra, and publishes gameEndedTopic the moment it's first true
+    // (edge-triggered via gameResultPublished_), the same tick clients see
+    // game_over:true on the snapshot. A disconnect-caused ending instead
+    // reaches gameEndedTopic via markDisconnectResign, called directly by
+    // SessionRegistry's timer - not from here.
     if (!gameResultPublished_ && engine_.snapshot().game_over) {
         Chess::Color winner = survivingKingColor(engine_.snapshot());
         bool winnerIsWhite = winner == Chess::Color::White;

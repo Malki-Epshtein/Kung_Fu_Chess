@@ -72,9 +72,26 @@ Chess::Color SessionRegistry::leave(ConnectionHandle hdl) {
             role = roleIt->second;
             roles.erase(roleIt);
         }
+        if (roles.empty()) {
+            // Erasing here would destroy the GameSession - if a
+            // computeStep() for it is still running on a worker thread
+            // (tickInFlight), that worker would be left touching freed
+            // memory. Defer to reapIfSafe() instead in that case; otherwise
+            // free the name for reuse immediately, same as before.
+            if (rIt->second.session->tickInFlight())
+                rIt->second.pendingRemoval = true;
+            else
+                rooms_.erase(rIt);
+        }
     }
     connectionRoom_.erase(roomIt);
     return role;
+}
+
+void SessionRegistry::reapIfSafe(const std::string& name) {
+    auto it = rooms_.find(name);
+    if (it != rooms_.end() && it->second.pendingRemoval && !it->second.session->tickInFlight())
+        rooms_.erase(it);
 }
 
 std::vector<SessionRegistry::ConnectionHandle> SessionRegistry::connectionsInRoom(const std::string& name) const {

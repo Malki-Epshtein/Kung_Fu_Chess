@@ -42,7 +42,18 @@ public:
     // Removes a connection from whichever room it was in (no-op, returns
     // None, if it wasn't in one). Returns the role it held there, so the
     // caller (disconnect handling) knows whether to start a countdown.
+    // If this empties the room and its GameSession has a computeStep() in
+    // flight on a worker thread (see GameSession::tickInFlight), the actual
+    // erase is deferred - see reapIfSafe - rather than destroying the
+    // GameSession out from under that worker.
     Chess::Color leave(ConnectionHandle hdl);
+
+    // Erases room `name` if it was emptied out by leave() while its tick was
+    // still in flight (pendingRemoval) and that tick has since finished. A
+    // no-op otherwise - safe to call every tick. WsServer calls this right
+    // after a room's publishStep()/endTick() complete, since that's the one
+    // moment guaranteed to observe tickInFlight() go false.
+    void reapIfSafe(const std::string& name);
 
     // Every connection currently in room `name` (players and spectators
     // alike) - empty if the room doesn't exist. Used to scope broadcasts to
@@ -72,6 +83,10 @@ private:
         std::unique_ptr<GameSession> session;
         std::map<ConnectionHandle, Chess::Color, std::owner_less<ConnectionHandle>> roles;//את כל המשתמשים פלוס הלקוחות
         int connectionCount = 0;
+        // Set by leave() instead of erasing immediately, when the room
+        // emptied out while session->tickInFlight() was still true -
+        // reapIfSafe() finishes the erase once that tick completes.
+        bool pendingRemoval = false;
     };
 
     std::unordered_map<std::string, Room> rooms_;

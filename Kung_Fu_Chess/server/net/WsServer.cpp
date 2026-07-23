@@ -9,6 +9,7 @@
 #include "../app/networking/BroadcasterManager.h"
 #include "../app/handlers/MessageDispatcher.h"
 #include "../db/UserRepository.h"
+#include "../concurrency/ThreadPool.h"
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 #include <asio/steady_timer.hpp>
@@ -59,10 +60,21 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
         server.send(hdl, reply, msg->get_opcode());//שולח בחזרה ללקוח
     });
 
-    // Drives every room's GameSession::tick on a periodic asio timer, on
-    // the same thread as the message handlers above - no locking needed,
-    // single writer. Iterating the registry means this scales to however
-    // many rooms currently exist without changing again later.
+    // Fixed-size pool (one shared job queue, no room pinned to a
+    // particular worker) that actually runs each room's computeStep() -
+    // defaults to hardware_concurrency() workers.
+    ThreadPool tickPool;
+
+    // Drives every room's GameSession tick on a periodic asio timer. The
+    // timer callback itself still only ever runs on the main io_service
+    // thread (same as the message handlers above), but the per-room work it
+    // hands out is split across tickPool: computeStep() (the actual engine
+    // simulation) runs on a worker thread, and publishStep() (the part that
+    // touches EventBus/sends over the socket - see GameSession.h) is posted
+    // back onto the io_service so it still only ever runs on the main
+    // thread, same as before. tryBeginTick()/endTick() (GameSession.h) stop
+    // a room whose previous tick hasn't finished publishing yet from being
+    // submitted a second time.
     asio::steady_timer timer(server.get_io_service());
     std::function<void(const asio::error_code&)> onTick = [&](const asio::error_code& ec) {
         if (ec)
@@ -70,14 +82,29 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
         for (const std::string& roomName : registry.roomNames()) {
             if (GameSession* gameSession = registry.room(roomName)) {
                 gameSession->setIdentity(RoomIdentityResolver::resolve(registry, clientSessions, roomName));
-                gameSession->tick(tickMs);//לכח אחד מפעילה את השעון
-                // Game-over detection/ELO application both moved off this
-                // loop entirely - GameSession publishes gameEndedTopic
-                // itself (from within tick(), or from
-                // markDisconnectResign() via the disconnect timer), and
-                // EloService (attached per-room in MessageDispatcher)
-                // reacts independently. This loop no longer needs to know
-                // ELO exists at all.
+                if (!gameSession->tryBeginTick())
+                    continue; // previous tick for this room still in flight - skip this cycle
+                auto& io = server.get_io_service();
+                tickPool.submit([gameSession, tickMs, &io, &registry, roomName]() {
+                    nlohmann::json payload = gameSession->computeStep(tickMs);
+                    io.post([gameSession, payload, &registry, roomName]() {
+                        gameSession->publishStep(payload);
+                        // Game-over detection/ELO application both stay off
+                        // this loop entirely - GameSession publishes
+                        // gameEndedTopic itself (from publishStep(), or from
+                        // markDisconnectResign() via the disconnect timer),
+                        // and EloService (attached per-room in
+                        // MessageDispatcher) reacts independently.
+                        gameSession->endTick();
+                        // If the room emptied out while this tick was in
+                        // flight, leave() deferred the actual erase (see
+                        // SessionRegistry::leave/reapIfSafe) rather than
+                        // destroying gameSession out from under this same
+                        // tick - now that endTick() just ran, it's safe to
+                        // finish that erase.
+                        registry.reapIfSafe(roomName);
+                    });
+                });
             }
         }
         timer.expires_after(std::chrono::milliseconds(tickMs));
