@@ -37,7 +37,7 @@ TEST_CASE("BroadcasterManager - attach שולח snapshot רק לחיבורים �
     registry.joinRoom("room-a", hdlB);
 
     manager.attach("room-a");
-    bus.publish(GameSession::snapshotTopic("room-a"), { {"board_width", 8} });
+    registry.room("room-a")->tick(30); // snapshot delivery goes through tick()'s direct callback now, not EventBus
 
     CHECK(sentTo.size() == 2); // both occupants of room-a
 }
@@ -103,7 +103,9 @@ TEST_CASE("BroadcasterManager - חדרים שונים לא מקבלים שידו
     registry.joinRoom("room-a", hdlA);
     registry.joinRoom("room-b", hdlB);
 
-    bus.publish(GameSession::snapshotTopic("room-a"), { {"board_width", 8} });
+    // manager's constructor already attached both rooms (they existed before
+    // it was constructed) - no explicit attach() needed here.
+    registry.room("room-a")->tick(30); // snapshot delivery goes through tick()'s direct callback now, not EventBus
 
     REQUIRE(recipients.size() == 1);
     CHECK(recipients[0].lock() == std::static_pointer_cast<void>(a)); // only room-a's occupant, not room-b's
@@ -124,7 +126,7 @@ TEST_CASE("BroadcasterManager - חדרים קיימים מראש (בזמן ה-co
         sendCount++;
     });
 
-    bus.publish(GameSession::snapshotTopic("room-a"), { {"board_width", 8} });
+    registry.room("room-a")->tick(30); // snapshot delivery goes through tick()'s direct callback now, not EventBus
 
     CHECK(sendCount == 1);
 }

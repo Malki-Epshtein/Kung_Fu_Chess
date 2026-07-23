@@ -63,16 +63,19 @@ TEST_CASE("ConnectionHandler - onClose של שחקן מושב (White) מפעיל
     ConnectionHandler handler(registry, clientSessions, matchmaker, io);
 
     registry.createRoom("room-a", makeBoard(), bus);
-    std::shared_ptr<int> a;
+    std::shared_ptr<int> a, b;
     auto hdlA = handleFrom(a);
+    auto hdlB = handleFrom(b);
     registry.joinRoom("room-a", hdlA); // first joiner -> White
+    registry.joinRoom("room-a", hdlB); // second joiner -> Black - stays seated, so the room isn't emptied (and freed) by White's disconnect below
 
     handler.onClose(hdlA);
     io.run_for(std::chrono::milliseconds(50)); // let the immediately-scheduled countdown tick run once
 
-    nlohmann::json received;
-    bus.subscribe(GameSession::snapshotTopic("room-a"), [&](const nlohmann::json& data) { received = data; });
-    registry.room("room-a")->tick(30);
+    // computeStep() builds the same payload tick() sends, without needing a
+    // snapshotSender_/EventBus subscriber wired up - disconnect status rides
+    // on it directly (see GameSession::computeStep).
+    nlohmann::json received = registry.room("room-a")->computeStep(30);
 
     REQUIRE(received.contains("disconnect"));
     CHECK(received.at("disconnect").at("active") == true);

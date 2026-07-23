@@ -132,7 +132,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)OpenCV_451\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world451d.lib;ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world451d.lib;ws2_32.lib;mswsock.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(ProjectDir)OpenCV_451\bin\opencv_world451d.dll" "$(OutDir)"</Command>
@@ -155,7 +155,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)OpenCV_451\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world451.lib;ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world451.lib;ws2_32.lib;mswsock.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(ProjectDir)OpenCV_451\bin\opencv_world451.dll" "$(OutDir)"</Command>
@@ -172,6 +172,22 @@
     <ClCompile Include="server\engine\CaptureEventObserver.cpp" />
     <ClCompile Include="client\input\BoardMapper.cpp" />
     <ClCompile Include="client\app\HomeScreen.cpp" />
+    <ClCompile Include="client\app\HomeScreenView.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="client\app\RoomDialog.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="client\audio\SoundPlayer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="client\net\NetworkMessageHandler.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="client\input\Controller.cpp" />
     <ClCompile Include="server\app\logic\MoveCommand.cpp" />
     <ClCompile Include="server\app\logic\JumpCommand.cpp" />
@@ -221,6 +237,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="server\net\WsServer.cpp" />
+    <ClCompile Include="server\concurrency\ThreadPool.cpp" />
     <ClCompile Include="server\app\logic\CommandDispatcher.cpp" />
     <ClCompile Include="server\app\logic\StartingBoard.cpp" />
     <ClCompile Include="server\app\handlers\LoginHandler.cpp" />
@@ -511,6 +528,7 @@
     <ClInclude Include="ThirdParty\sqlite3.h" />
     <ClInclude Include="ThirdParty\sqlite3ext.h" />
     <ClInclude Include="server\net\WsServer.h" />
+    <ClInclude Include="server\concurrency\ThreadPool.h" />
     <ClInclude Include="server\app\logic\CommandDispatcher.h" />
     <ClInclude Include="server\app\logic\StartingBoard.h" />
     <ClInclude Include="server\app\session\RoleName.h" />
@@ -530,6 +548,10 @@
     <ClInclude Include="server\engine\CaptureEventObserver.h" />
     <ClInclude Include="client\input\BoardMapper.h" />
     <ClInclude Include="client\app\HomeScreen.h" />
+    <ClInclude Include="client\app\HomeScreenView.h" />
+    <ClInclude Include="client\app\RoomDialog.h" />
+    <ClInclude Include="client\audio\SoundPlayer.h" />
+    <ClInclude Include="client\net\NetworkMessageHandler.h" />
     <ClInclude Include="client\input\Controller.h" />
     <ClInclude Include="server\app\logic\Command.h" />
     <ClInclude Include="server\app\logic\MoveCommand.h" />

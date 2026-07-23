@@ -18,21 +18,13 @@ namespace {
     }
 }
 
-TEST_CASE("GameSession - tick מפרסם snapshot לנושא הנכון על ה-bus") {
+TEST_CASE("GameSession - tick מחזיר snapshot עם שדות הלוח הנכונים") {
     auto board = std::make_shared<Board>(8, 8);
     EventBus bus;
     GameSession session(board, bus, "room-a");
 
-    nlohmann::json received;
-    bool called = false;
-    bus.subscribe(GameSession::snapshotTopic("room-a"), [&](const nlohmann::json& data) {
-        called = true;
-        received = data;
-    });
+    nlohmann::json received = session.computeStep(30);
 
-    session.tick(30);
-
-    CHECK(called);
     CHECK(received.at("board_width") == 8);
     CHECK(received.at("board_height") == 8);
 }
@@ -52,10 +44,7 @@ TEST_CASE("GameSession - ללא ניתוק פעיל, השידור לא מכיל 
     EventBus bus;
     GameSession session(board, bus, "room-a");
 
-    nlohmann::json received;
-    bus.subscribe(GameSession::snapshotTopic("room-a"), [&](const nlohmann::json& data) { received = data; });
-
-    session.tick(30);
+    nlohmann::json received = session.computeStep(30);
 
     CHECK_FALSE(received.contains("disconnect"));
 }
@@ -66,10 +55,7 @@ TEST_CASE("GameSession - ניתוק פעיל מתווסף לשידור הרגי�
     GameSession session(board, bus, "room-a");
     session.setDisconnectStatus({ true, Chess::Color::White, 17 });
 
-    nlohmann::json received;
-    bus.subscribe(GameSession::snapshotTopic("room-a"), [&](const nlohmann::json& data) { received = data; });
-
-    session.tick(30);
+    nlohmann::json received = session.computeStep(30);
 
     REQUIRE(received.contains("disconnect"));
     CHECK(received.at("disconnect").at("active") == true);
@@ -84,10 +70,7 @@ TEST_CASE("GameSession - score מתחיל 0-0 בשידור") {
     EventBus bus;
     GameSession session(board, bus, "room-a");
 
-    nlohmann::json received;
-    bus.subscribe(GameSession::snapshotTopic("room-a"), [&](const nlohmann::json& data) { received = data; });
-
-    session.tick(30);
+    nlohmann::json received = session.computeStep(30);
 
     REQUIRE(received.contains("score"));
     CHECK(received.at("score").at("white") == 0);
@@ -99,16 +82,13 @@ TEST_CASE("GameSession - identity ריק כברירת מחדל, ומתעדכן �
     EventBus bus;
     GameSession session(board, bus, "room-a");
 
-    nlohmann::json received;
-    bus.subscribe(GameSession::snapshotTopic("room-a"), [&](const nlohmann::json& data) { received = data; });
-
-    session.tick(30);
+    nlohmann::json received = session.computeStep(30);
     REQUIRE(received.contains("identity"));
     CHECK(received.at("identity").at("whiteName") == "");
     CHECK(received.at("identity").at("spectatorCount") == 0);
 
     session.setIdentity(RoomIdentity{ "alice", 1250, "bob", 1400, 2 });
-    session.tick(30);
+    received = session.computeStep(30);
     CHECK(received.at("identity").at("whiteName") == "alice");
     CHECK(received.at("identity").at("whiteElo") == 1250);
     CHECK(received.at("identity").at("blackName") == "bob");
@@ -123,12 +103,9 @@ TEST_CASE("GameSession - אכילה מעדכנת את הניקוד בשידור 
     EventBus bus;
     GameSession session(board, bus, "room-a");
 
-    nlohmann::json received;
-    bus.subscribe(GameSession::snapshotTopic("room-a"), [&](const nlohmann::json& data) { received = data; });
-
     MoveResult result = session.engine().requestMove({3, 3}, {3, 4});
     REQUIRE(result.is_accepted);
-    session.tick(1000); // one square -> 1000ms travel time, arrives and resolves this same tick
+    nlohmann::json received = session.computeStep(1000); // one square -> 1000ms travel time, arrives and resolves this same tick
 
     CHECK(received.at("score").at("white") == 1); // captured a Pawn (value 1)
     CHECK(received.at("score").at("black") == 0);
