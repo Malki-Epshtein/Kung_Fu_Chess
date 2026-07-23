@@ -81,8 +81,13 @@ TEST_CASE("MessageDispatcher - FIND_GAME מנותב ל-FindGameHandler ומשד�
 
     nlohmann::json waiting = send(f, hdlA, MessageType::FindGame);
     CHECK(waiting.at("message").get<std::string>() == "searching for opponent");
-    CHECK_FALSE(waiting.contains("type")); // plain ack, not a GAME_FOUND envelope
+    CHECK(waiting.at("type").get<std::string>() == "FIND_GAME"); // plain ack, tagged with the request's own type - not a GAME_FOUND envelope
 
+    // hdlB's own FindGame reply is the immediate-match case - FindGameHandler
+    // stamps this one itself as GameFound (see FindGameHandler.cpp), and
+    // MessageDispatcher::process must not overwrite that back to FIND_GAME
+    // (it used to - see the comment at its `reply["type"]` line - which left
+    // the matching player's client stuck on "Searching for opponent...").
     nlohmann::json matched = send(f, hdlB, MessageType::FindGame);
     CHECK(matched.at("type").get<std::string>() == "GAME_FOUND");
     CHECK(matched.at("payload").at("role").get<std::string>() == "Black");

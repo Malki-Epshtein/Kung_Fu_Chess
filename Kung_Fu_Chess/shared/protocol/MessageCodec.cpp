@@ -17,17 +17,11 @@ namespace {
         { MessageType::CaptureEvent, "CAPTURE_EVENT" },
     };
 
-    MessageType nameToType(const std::string& name) {
-        for (const auto& [type, typeName] : kTypeToName)
-            if (typeName == name)
-                return type;
-        throw std::runtime_error("Unknown message type: " + name);
-    }
 }
 
 std::string MessageCodec::encode(const Message& message) {
     nlohmann::json j;
-    j["type"]    = kTypeToName.at(message.type);
+    j["type"]    = typeName(message.type);
     j["payload"] = message.payload;
     return j.dump();
 }
@@ -35,7 +29,18 @@ std::string MessageCodec::encode(const Message& message) {
 Message MessageCodec::decode(const std::string& text) {
     nlohmann::json j = nlohmann::json::parse(text);
     Message message;
-    message.type    = nameToType(j.at("type").get<std::string>());
+    message.type    = typeFromName(j.at("type").get<std::string>());
     message.payload = j.value("payload", nlohmann::json::object());
     return message;
+}
+
+std::string MessageCodec::typeName(MessageType type) {
+    return kTypeToName.at(type);
+}
+
+MessageType MessageCodec::typeFromName(const std::string& name) {
+    for (const auto& [type, typeName] : kTypeToName)
+        if (typeName == name)
+            return type;
+    throw std::runtime_error("Unknown message type: " + name);
 }

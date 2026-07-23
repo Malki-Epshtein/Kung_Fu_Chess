@@ -15,25 +15,6 @@
 #include "../../../shared/model/Piece.h"
 #include <iostream>
 
-namespace {
-    const char* typeName(MessageType type) {
-        switch (type) {
-            case MessageType::Hello:      return "HELLO";
-            case MessageType::Move:       return "MOVE";
-            case MessageType::Jump:       return "JUMP";
-            case MessageType::Snapshot:   return "SNAPSHOT";
-            case MessageType::Login:      return "LOGIN";
-            case MessageType::CreateRoom: return "CREATE_ROOM";
-            case MessageType::JoinRoom:   return "JOIN_ROOM";
-            case MessageType::FindGame:   return "FIND_GAME";
-            case MessageType::GameFound:  return "GAME_FOUND";
-            case MessageType::MoveLogged: return "MOVE_LOGGED";
-            case MessageType::CaptureEvent: return "CAPTURE_EVENT";
-        }
-        return "UNKNOWN";
-    }
-}
-
 MessageDispatcher::MessageDispatcher(UserRepository& users, ClientSessionRegistry& clientSessions,
                                       SessionRegistry& registry, EventBus& bus, Matchmaker& matchmaker,
                                       BroadcasterManager& broadcasters, EloService& eloService, ConnectionSender push,
@@ -72,7 +53,7 @@ std::string MessageDispatcher::process(ConnectionHandle hdl, const std::string& 
     nlohmann::json reply;
     try {
         Message decoded = MessageCodec::decode(text);
-        std::cout << "[server] received " << typeName(decoded.type) << " from " << roleName(senderRole)
+        std::cout << "[server] received " << MessageCodec::typeName(decoded.type) << " from " << roleName(senderRole)
                    << ": " << text << std::endl;
 
         if (IMessageHandler* handler = router_->find(decoded.type)) {
@@ -89,6 +70,17 @@ std::string MessageDispatcher::process(ConnectionHandle hdl, const std::string& 
 
             reply = { {"success", result.success}, {"message", result.message}, {"role", roleName(senderRole)} };
         }
+        // Every reply tagged with the request's own type - the client
+        // switches on this instead of guessing the message's shape from
+        // which fields happen to be present (see MessageCodec::typeName).
+        // Skipped if the handler already stamped its own type (only
+        // FindGameHandler does this today, for the immediate-match case,
+        // where the reply's real shape is GameFound, not FindGame - blindly
+        // overwriting it here used to silently break that player's client,
+        // which filters incoming messages on "type" == "GAME_FOUND" and
+        // discards anything else).
+        if (!reply.contains("type"))
+            reply["type"] = MessageCodec::typeName(decoded.type);
     } catch (const std::exception& e) {
         std::cout << "[server] received non-protocol text: " << text
                    << " (decode failed: " << e.what() << ")" << std::endl;
