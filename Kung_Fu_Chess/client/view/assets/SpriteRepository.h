@@ -3,6 +3,7 @@
 #include "AssetPathBuilder.h"
 #include "IImageLoader.h"
 #include "AnimationConfig.h"
+#include "../BoardScale.h"
 #include <unordered_map>
 
 // Orchestrates turning a piece's (kind, color, state, elapsed time) into
@@ -34,13 +35,14 @@ private:
 
     AssetPathBuilder& pathBuilder;
     IImageLoader&     imageLoader;
+    const BoardScale& boardScale;
     std::unordered_map<StateKey, AnimationConfig, StateKeyHash> configCache;
 
     const AnimationConfig& getConfig(const StateKey& key);
 
 public:
-    SpriteRepository(AssetPathBuilder& pathBuilder, IImageLoader& imageLoader)
-        : pathBuilder(pathBuilder), imageLoader(imageLoader) {}
+    SpriteRepository(AssetPathBuilder& pathBuilder, IImageLoader& imageLoader, const BoardScale& boardScale)
+        : pathBuilder(pathBuilder), imageLoader(imageLoader), boardScale(boardScale) {}
 
     Img getSprite(Chess::Kind kind, Chess::Color color, Chess::State state, int elapsedMs) override;
 };

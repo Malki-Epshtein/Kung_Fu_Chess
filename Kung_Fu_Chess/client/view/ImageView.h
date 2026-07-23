@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "src/img.hpp"
 #include "ViewConfig.h"
+#include "BoardScale.h"
 #include "assets/ISpriteSource.h"
 #include "../../shared/protocol/MoveEntry.h"
 #include <string>
@@ -10,11 +11,16 @@
 class ImageView : public Renderer {
 private:
     Img background;
-    bool backgroundLoaded = false;
     Img canvas;
-    bool canvasLoaded = false;
+    // The cell size board.png/canvas.png were last reloaded at (-1 means
+    // "never loaded yet") - render() reloads both, sized to boardScale's
+    // current cell size, only when this is stale. Replaces the old
+    // load-once-ever backgroundLoaded/canvasLoaded bools now that the size
+    // can change.
+    int lastRenderedCellSize = -1;
     std::string             assetsRoot;
     ISpriteSource&          spriteSource;
+    const BoardScale&       boardScale;
     int                     whiteScore = 0;
     int                     blackScore = 0;
     std::vector<MoveEntry>  whiteMoves;
@@ -35,8 +41,8 @@ public:
     // fake sprite source in tests, with no disk access for sprites. The
     // resolved assetsRoot is passed in rather than read here, so this
     // class no longer needs to know paths_config.txt exists.
-    ImageView(ISpriteSource& spriteSource, std::string assetsRoot)
-        : assetsRoot(std::move(assetsRoot)), spriteSource(spriteSource) {}
+    ImageView(ISpriteSource& spriteSource, std::string assetsRoot, const BoardScale& boardScale)
+        : assetsRoot(std::move(assetsRoot)), spriteSource(spriteSource), boardScale(boardScale) {}
 
     // Setters, not constructor params: both are optional (render() works
     // fine with neither set - scores start 0-0, move lists start empty)

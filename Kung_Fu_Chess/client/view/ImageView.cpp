@@ -33,6 +33,19 @@ namespace {
     // currently selected piece, in the style of common chess UIs.
     const cv::Scalar LEGAL_MOVE_MARKER(60, 60, 60);
 
+    // Shared with the Spectators count below (see render()) so it can be
+    // placed under the Black panel instead of guessing at its height.
+    constexpr int PANEL_Y      = 10;
+    constexpr int PANEL_HEADER_H = 28;
+    constexpr int PANEL_INFO_H   = 40;
+    constexpr int PANEL_LINE_H   = 18;
+    constexpr int PANEL_MAX_LINES = 20;
+    constexpr int PANEL_TOTAL_H  = PANEL_HEADER_H + PANEL_INFO_H + PANEL_MAX_LINES * PANEL_LINE_H;
+
+    // Shared with render()'s canvas-size computation below, same reason as
+    // the PANEL_* constants above.
+    constexpr int PLAYER_PANEL_WIDTH = 220;
+
     // A bordered panel with a title header, name/score lines, and a
     // "Time | Move" table beneath - one drawn per side (Black/White).
     void drawPlayerPanel(Img& frame, int panelX, const std::string& title,
@@ -42,13 +55,13 @@ namespace {
         const cv::Scalar headerBg(70, 70, 70);
         const cv::Scalar bodyBg(50, 50, 50);
         const cv::Scalar textColor(255, 255, 255);
-        const int panelWidth = 220; // must fit both panels within canvas.png's 1360px width
-        const int panelY     = 10;
-        const int headerH    = 28;
-        const int infoH      = 40;
-        const int lineHeight = 18;
-        const int maxLines   = 20;
-        int totalHeight = headerH + infoH + maxLines * lineHeight;
+        const int panelWidth = PLAYER_PANEL_WIDTH;
+        const int panelY     = PANEL_Y;
+        const int headerH    = PANEL_HEADER_H;
+        const int infoH      = PANEL_INFO_H;
+        const int lineHeight = PANEL_LINE_H;
+        const int maxLines   = PANEL_MAX_LINES;
+        int totalHeight = PANEL_TOTAL_H;
 
         // Panel background, then a thin border on all four sides.
         frame.fill_rect(panelX, panelY, panelWidth, totalHeight, bodyBg, 1.0);
@@ -84,13 +97,41 @@ namespace {
 }
 
 void ImageView::render(const GameSnapshot& snapshot) {
-    if (!backgroundLoaded) {
-        background.read(assetsRoot + "/board.png");
-        backgroundLoaded = true;
-    }
-    if (!canvasLoaded) {
-        canvas.read(assetsRoot + "/canvas.png");
-        canvasLoaded = true;
+    int cell = boardScale.cellSize();
+    int boardW = snapshot.board_width  * cell;
+    int boardH = snapshot.board_height * cell;
+
+    // Reload board.png and canvas.png only when the cell size actually
+    // changed (not every frame). board.png is sized to exactly fill the
+    // current grid - same technique SpriteRepository already uses to size
+    // piece sprites to one cell. canvas.png is a plain backdrop (every
+    // panel/label/piece is painted on top of it fresh each frame anyway),
+    // so stretching it to a newly-computed total window size is cosmetically
+    // fine - it's just resized to contain the board at its new size plus
+    // both side panels, which keep their own fixed pixel width.
+    //
+    // The very first frame(s) after the window opens can still have a
+    // default-constructed, all-zero snapshot (no real one has arrived from
+    // the server yet) - board_width/height would be 0 then, and Img::read
+    // treats a {0,0} target size as "don't resize" rather than "resize to
+    // zero", so board.png would stay at its native size while canvas.png
+    // (never zero, since it also adds the fixed panel/margin widths) still
+    // shrank to fit a 0-wide board - the two would then disagree and
+    // draw_on below would throw. Falling back to 8x8 here for sizing
+    // purposes only keeps both reloads consistent with each other even
+    // before the real board size is known.
+    int reloadCols = snapshot.board_width  > 0 ? snapshot.board_width  : 8;
+    int reloadRows = snapshot.board_height > 0 ? snapshot.board_height : 8;
+    int reloadBoardW = reloadCols * cell;
+    int reloadBoardH = reloadRows * cell;
+    if (cell != lastRenderedCellSize) {
+        background.read(assetsRoot + "/board.png", { reloadBoardW, reloadBoardH });
+
+        int totalW = ViewConfig::PANEL_WIDTH + reloadBoardW + ViewConfig::BOARD_MARGIN + 15 + PLAYER_PANEL_WIDTH + 15;
+        int totalH = ViewConfig::BOARD_MARGIN + reloadBoardH + ViewConfig::BOARD_MARGIN;
+        canvas.read(assetsRoot + "/canvas.png", { totalW, totalH });
+
+        lastRenderedCellSize = cell;
     }
 
     // Fresh deep copy every frame - canvas is the cached, reusable "clean"
@@ -111,8 +152,6 @@ void ImageView::render(const GameSnapshot& snapshot) {
     // never overlapping it - with coordinates printed inside the frame.
     const cv::Scalar FRAME_COLOR(0, 0, 0);
     const cv::Scalar LABEL_COLOR(255, 255, 255);
-    int boardW = snapshot.board_width  * ViewConfig::CELL_SIZE;
-    int boardH = snapshot.board_height * ViewConfig::CELL_SIZE;
     int margin = ViewConfig::BOARD_MARGIN;
 
     frame.fill_rect(boardX, boardY - margin, boardW, margin, FRAME_COLOR, 1.0);          // top band
@@ -125,13 +164,13 @@ void ImageView::render(const GameSnapshot& snapshot) {
     // how White's back rank is set up in the starting position.
     for (int c = 0; c < snapshot.board_width; ++c) {
         std::string file(1, static_cast<char>('A' + c));
-        int labelX = boardX + c * ViewConfig::CELL_SIZE + ViewConfig::CELL_SIZE / 2 - 6;
+        int labelX = boardX + c * cell + cell / 2 - 6;
         frame.put_text(file, labelX, boardY - margin / 2 + 5, 0.5, LABEL_COLOR);
         frame.put_text(file, labelX, boardY + boardH + margin / 2 + 5, 0.5, LABEL_COLOR);
     }
     for (int r = 0; r < snapshot.board_height; ++r) {
         std::string rank = std::to_string(snapshot.board_height - r);
-        int labelY = boardY + r * ViewConfig::CELL_SIZE + ViewConfig::CELL_SIZE / 2 + 5;
+        int labelY = boardY + r * cell + cell / 2 + 5;
         frame.put_text(rank, boardX - margin + 8, labelY, 0.5, LABEL_COLOR);
         frame.put_text(rank, boardX + boardW + margin / 2 - 4, labelY, 0.5, LABEL_COLOR);
     }
@@ -154,9 +193,9 @@ void ImageView::render(const GameSnapshot& snapshot) {
             if (friendlyOccupied && !selectedIsKnight)
                 continue;
 
-            int centerX = boardX + dest.col * ViewConfig::CELL_SIZE + ViewConfig::CELL_SIZE / 2;
-            int centerY = boardY + dest.row * ViewConfig::CELL_SIZE + ViewConfig::CELL_SIZE / 2;
-            frame.fill_circle(centerX, centerY, ViewConfig::CELL_SIZE / 6, LEGAL_MOVE_MARKER, 0.5);
+            int centerX = boardX + dest.col * cell + cell / 2;
+            int centerY = boardY + dest.row * cell + cell / 2;
+            frame.fill_circle(centerX, centerY, cell / 6, LEGAL_MOVE_MARKER, 0.5);
         }
     }
 
@@ -169,10 +208,10 @@ void ImageView::render(const GameSnapshot& snapshot) {
         // lets the draw position slide smoothly between origin and target
         // instead of jumping there when the motion resolves. boardX/boardY
         // shift everything to match the now-framed, centered board.
-        int fromX = boardX + piece.cell.col * ViewConfig::CELL_SIZE;
-        int fromY = boardY + piece.cell.row * ViewConfig::CELL_SIZE;
-        int toX   = boardX + piece.targetCell.col * ViewConfig::CELL_SIZE;
-        int toY   = boardY + piece.targetCell.row * ViewConfig::CELL_SIZE;
+        int fromX = boardX + piece.cell.col * cell;
+        int fromY = boardY + piece.cell.row * cell;
+        int toX   = boardX + piece.targetCell.col * cell;
+        int toY   = boardY + piece.targetCell.row * cell;
         int drawX = fromX + static_cast<int>((toX - fromX) * piece.travelProgress);
         int drawY = fromY + static_cast<int>((toY - fromY) * piece.travelProgress);
 
@@ -185,8 +224,8 @@ void ImageView::render(const GameSnapshot& snapshot) {
         if (piece.state == Chess::State::LongRest || piece.state == Chess::State::ShortRest) {
             const cv::Scalar& color = (piece.state == Chess::State::LongRest)//תצבע לפי התא
                 ? LONG_REST_HIGHLIGHT : SHORT_REST_HIGHLIGHT;
-            int fillHeight = static_cast<int>(ViewConfig::CELL_SIZE * (1.0 - piece.restProgress));
-            frame.fill_rect(fromX, fromY + (ViewConfig::CELL_SIZE - fillHeight), ViewConfig::CELL_SIZE, fillHeight, color);
+            int fillHeight = static_cast<int>(cell * (1.0 - piece.restProgress));
+            frame.fill_rect(fromX, fromY + (cell - fillHeight), cell, fillHeight, color);
         }
 
         Img sprite = spriteSource.getSprite(piece.kind, piece.color, piece.state, piece.elapsed_in_state_ms);
@@ -200,7 +239,7 @@ void ImageView::render(const GameSnapshot& snapshot) {
     // since neither score nor the move log are part of the board state
     // itself.
     const int leftPanelX  = 10;
-    const int rightPanelX = ViewConfig::PANEL_WIDTH + ViewConfig::BOARD_WIDTH_PX + ViewConfig::BOARD_MARGIN + 15;
+    const int rightPanelX = ViewConfig::PANEL_WIDTH + boardW + ViewConfig::BOARD_MARGIN + 15;
 
     drawPlayerPanel(frame, leftPanelX, "Black", blackPlayerName, blackScore, blackMoves);
     drawPlayerPanel(frame, rightPanelX, "White", whitePlayerName, whiteScore, whiteMoves);
@@ -212,10 +251,8 @@ void ImageView::render(const GameSnapshot& snapshot) {
         if (winner == Chess::Color::White) message += " - White Wins!";
         else if (winner == Chess::Color::Black) message += " - Black Wins!";
 
-        int boardPixelWidth  = snapshot.board_width  * ViewConfig::CELL_SIZE;
-        int boardPixelHeight = snapshot.board_height * ViewConfig::CELL_SIZE;
-        int textX = ViewConfig::PANEL_WIDTH + boardPixelWidth / 2 - 180;
-        int textY = ViewConfig::BOARD_MARGIN + boardPixelHeight / 2;
+        int textX = ViewConfig::PANEL_WIDTH + boardW / 2 - 180;
+        int textY = ViewConfig::BOARD_MARGIN + boardH / 2;
         frame.put_text(message, textX, textY, 1.0);
     }
 
@@ -229,19 +266,40 @@ void ImageView::render(const GameSnapshot& snapshot) {
         titledRoomName = roomName;
     }
 
-    // A count, not a name list (see setSpectatorCount) - drawn in the
-    // top-left corner freed up when the room name moved to the window
-    // title above.
-    frame.put_text("Spectators: " + std::to_string(spectatorCount), 10, 20, 0.6, cv::Scalar(255, 255, 255));
+    // A count, not a name list (see setSpectatorCount) - drawn just below
+    // the Black panel (leftPanelX, PANEL_Y..PANEL_Y+PANEL_TOTAL_H), not in
+    // the top-left corner itself: that corner is where the Black panel's
+    // own header sits, and the two were overlapping there.
+    frame.put_text("Spectators: " + std::to_string(spectatorCount), leftPanelX, PANEL_Y + PANEL_TOTAL_H + 20, 0.6, cv::Scalar(255, 255, 255));
 
     // Stage D: disconnect grace-period countdown - shown in the bottom
     // margin band (reserved space below the board, otherwise empty) rather
     // than the top band, which is where the A-H file labels already live.
     if (disconnectActive) {
-        int boardPixelWidth = snapshot.board_width * ViewConfig::CELL_SIZE;
-        int textX = ViewConfig::PANEL_WIDTH + boardPixelWidth / 2 - 200;
+        int textX = ViewConfig::PANEL_WIDTH + boardW / 2 - 200;
         int textY = boardY + boardH + margin - 8;
         frame.put_text(disconnectMessage, textX, textY, 0.8, cv::Scalar(0, 0, 255));
+    }
+
+    // Drag-to-resize handle - drawn last so it's always visible on top of
+    // pieces/frame near the board's bottom-right corner. Geometry (the
+    // clickable square) comes from BoardScale, shared with
+    // GraphicalApplication's hit-testing, so it can never drift from what's
+    // drawn here. The classic "resize grip" glyph (three short parallel
+    // diagonal strokes, growing outward from the corner) - matches how
+    // lichess/chess.com mark their own resize handles, deliberately subtle
+    // rather than a solid block.
+    {
+        int hx, hy;
+        boardScale.handleTopLeft(snapshot.board_width, snapshot.board_height, hx, hy);
+        const cv::Scalar STROKE_OUTLINE(0, 0, 0);
+        const cv::Scalar STROKE_COLOR(230, 230, 230);
+        int right  = hx + BoardScale::HANDLE_SIZE - 2;
+        int bottom = hy + BoardScale::HANDLE_SIZE - 2;
+        for (int offset : { 5, 10, 15 }) {
+            frame.line(right - offset, bottom, right, bottom - offset, STROKE_OUTLINE, 2);
+            frame.line(right - offset, bottom, right, bottom - offset, STROKE_COLOR, 1);
+        }
     }
 
     // Not using Img::show() here - it blocks on waitKey(0) every call, which

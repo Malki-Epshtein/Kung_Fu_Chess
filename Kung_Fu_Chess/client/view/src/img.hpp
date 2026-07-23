@@ -91,6 +91,18 @@ public:
     void fill_circle(int centerX, int centerY, int radius,
                       const cv::Scalar& color, double alpha = 0.4);
 
+    /**
+     * Draw a straight line segment (e.g. the diagonal strokes of a
+     * resize-grip icon).
+     *
+     * @param x1, y1 One endpoint
+     * @param x2, y2 The other endpoint
+     * @param color Line color (BGR or BGRA)
+     * @param thickness Line thickness in pixels
+     */
+    void line(int x1, int y1, int x2, int y2,
+              const cv::Scalar& color, int thickness = 1);
+
 private:
     cv::Mat img;
 }; 

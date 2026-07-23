@@ -134,6 +134,13 @@ void Img::fill_rect(int x, int y, int width, int height,
     cv::addWeighted(overlay, alpha, roi, 1.0 - alpha, 0.0, roi);
 }
 
+void Img::line(int x1, int y1, int x2, int y2, const cv::Scalar& color, int thickness) {
+    if (img.empty()) {
+        throw std::runtime_error("Image not loaded.");
+    }
+    cv::line(img, cv::Point(x1, y1), cv::Point(x2, y2), color, thickness, cv::LINE_AA);
+}
+
 void Img::fill_circle(int centerX, int centerY, int radius,
                        const cv::Scalar& color, double alpha) {
     if (img.empty()) {

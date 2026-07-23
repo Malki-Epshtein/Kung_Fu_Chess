@@ -1,5 +1,4 @@
 #include "SpriteRepository.h"
-#include "../ViewConfig.h"
 #include "AnimationFrameSelector.h"
 
 const AnimationConfig& SpriteRepository::getConfig(const StateKey& key) {
@@ -17,5 +16,6 @@ Img SpriteRepository::getSprite(Chess::Kind kind, Chess::Color color, Chess::Sta
     int frameIndex = selectAnimationFrame(elapsedMs, config.frames_per_sec, config.is_loop, config.frame_count);
 
     std::string path = pathBuilder.spritePath(kind, color, state, frameIndex);
-    return imageLoader.load(path, { ViewConfig::CELL_SIZE, ViewConfig::CELL_SIZE });
+    int cellSize = boardScale.cellSize();
+    return imageLoader.load(path, { cellSize, cellSize });
 }
