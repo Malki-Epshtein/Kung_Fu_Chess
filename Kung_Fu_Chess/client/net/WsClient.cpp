@@ -39,7 +39,7 @@ struct WsClient::Impl {
 WsClient::WsClient() : impl(std::make_unique<Impl>()) {}
 WsClient::~WsClient() = default;
 
-void WsClient::connect(const std::string& host, uint16_t port) {//הפונקציה שמתחברת לשרת
+void WsClient::connect(const std::string& host, uint16_t port, const std::string& shardHint) {//הפונקציה שמתחברת לשרת
     auto& client = impl->client;
 
     client.set_open_handler([this](websocketpp::connection_hdl hdl) {//כאשר החיבור נפתח
@@ -81,6 +81,8 @@ void WsClient::connect(const std::string& host, uint16_t port) {//הפונקצי
         spdlog::error("could not create connection: {}", ec.message());
         return;
     }
+    if (!shardHint.empty())
+        con->append_header("X-Shard-Hint", shardHint);
     client.connect(con);//כאן זה עדיין לא באמת מתחבר הסרד יחבר
 
     // Dedicated thread, entirely separate from any window/message loop the

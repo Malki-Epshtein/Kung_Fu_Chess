@@ -97,7 +97,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;mswsock.lib;winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -116,7 +116,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;mswsock.lib;winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -132,7 +132,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)OpenCV_451\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world451d.lib;ws2_32.lib;mswsock.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world451d.lib;ws2_32.lib;mswsock.lib;winmm.lib;winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(ProjectDir)OpenCV_451\bin\opencv_world451d.dll" "$(OutDir)"</Command>
@@ -155,7 +155,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)OpenCV_451\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world451.lib;ws2_32.lib;mswsock.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world451.lib;ws2_32.lib;mswsock.lib;winmm.lib;winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(ProjectDir)OpenCV_451\bin\opencv_world451.dll" "$(OutDir)"</Command>
@@ -246,8 +246,11 @@
     <ClCompile Include="server\app\handlers\FindGameHandler.cpp" />
     <ClCompile Include="server\app\handlers\MessageRouter.cpp" />
     <ClCompile Include="server\app\handlers\MessageDispatcher.cpp" />
+    <ClCompile Include="server\app\handlers\EnterRoomHandler.cpp" />
+    <ClCompile Include="server\app\handlers\AuthHandler.cpp" />
     <ClCompile Include="client\net\WsClient.cpp" />
     <ClCompile Include="client\net\BlockingRequest.cpp" />
+    <ClCompile Include="client\net\HttpClient.cpp" />
     <ClCompile Include="client\app\LoginFlow.cpp" />
     <ClCompile Include="texttests\ScriptParser.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -544,8 +547,13 @@
     <ClInclude Include="server\app\handlers\FindGameHandler.h" />
     <ClInclude Include="server\app\handlers\MessageRouter.h" />
     <ClInclude Include="server\app\handlers\MessageDispatcher.h" />
+    <ClInclude Include="server\app\handlers\EnterRoomHandler.h" />
+    <ClInclude Include="server\app\handlers\AuthHandler.h" />
+    <ClInclude Include="shared\db\IRoomDirectory.h" />
+    <ClInclude Include="shared\db\IClientSessionStore.h" />
     <ClInclude Include="client\net\WsClient.h" />
     <ClInclude Include="client\net\BlockingRequest.h" />
+    <ClInclude Include="client\net\HttpClient.h" />
     <ClInclude Include="client\app\LoginFlow.h" />
     <ClInclude Include="server\engine\MoveResult.h" />
     <ClInclude Include="server\engine\ScoreObserver.h" />

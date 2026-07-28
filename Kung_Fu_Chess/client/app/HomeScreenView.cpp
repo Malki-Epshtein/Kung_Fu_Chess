@@ -157,18 +157,61 @@ namespace {
         Chess::Color   role = Chess::Color::None;
     };
 
-    RoomJoinOutcome sendRoomRequest(WsClient& client, RoomDialogResult::Action action, const std::string& roomName) {
-        MessageType type = (action == RoomDialogResult::Action::Create) ? MessageType::CreateRoom : MessageType::JoinRoom;
-        Message request{ type, { {"name", roomName} } };
-        nlohmann::json reply = sendAndWaitForReply(client, request);
-
+    // Sends AUTH{token} over `client` and blocks for the reply - establishes
+    // this connection's identity (ClientSessionRegistry), which FindGame
+    // needs and EnterRoom re-derives from the token anyway (harmless -
+    // ClientSessionRegistry::onLogin just overwrites the same entry).
+    // Shared by both the Play and Room paths below, since every fresh
+    // connection this client opens needs it exactly once, right after open.
+    bool authenticateConnection(WsClient& client, const std::string& token) {
+        Message request{ MessageType::Auth, { {"token", token} } };
+        nlohmann::json reply = sendAndWaitForReply(client, request, MessageType::Auth);
         if (!reply.value("success", false)) {
             std::string message = reply.value("message", "");
+            spdlog::info("Auth failed: {}", message);
+            showRoomError(message);
+            return false;
+        }
+        return true;
+    }
+
+    // Resolves `roomName` over REST (POST /rooms for Create, POST
+    // /rooms/{name}/join for Join) to find which shard hosts it, connects
+    // there (X-Shard-Hint - see ConnectFn), authenticates, then claims the
+    // seat with EnterRoom. Replaces the old direct CREATE_ROOM/JOIN_ROOM
+    // WebSocket exchange now that LOGIN (and so this connection's identity)
+    // no longer happens on the WebSocket at all.
+    RoomJoinOutcome sendRoomRequest(HttpClient& api, const std::string& token, const ConnectFn& connect,
+                                     RoomDialogResult::Action action, const std::string& roomName) {
+        bool isCreate = action == RoomDialogResult::Action::Create;
+        std::string path = isCreate ? "/rooms" : ("/rooms/" + roomName + "/join");
+        nlohmann::json body = isCreate ? nlohmann::json{ {"token", token}, {"name", roomName} }
+                                        : nlohmann::json{ {"token", token} };
+        nlohmann::json restReply = api.post(path, body);
+
+        if (!restReply.value("success", false)) {
+            std::string message = restReply.value("message", "");
             spdlog::info("Room request failed: {}", message);
             showRoomError(message);
             return {};
         }
-        return { reply.value("roomName", roomName), reply.value("moveLog", HomeScreenResult{}.moveLog),
+        std::string shard          = restReply.value("shard", std::string());
+        std::string resolvedName   = restReply.value("roomName", roomName);
+
+        WsClient& client = connect(shard);
+        if (!authenticateConnection(client, token))
+            return {};
+
+        Message enterRequest{ MessageType::EnterRoom, { {"token", token}, {"roomName", resolvedName} } };
+        nlohmann::json reply = sendAndWaitForReply(client, enterRequest, MessageType::EnterRoom);
+
+        if (!reply.value("success", false)) {
+            std::string message = reply.value("message", "");
+            spdlog::info("EnterRoom failed: {}", message);
+            showRoomError(message);
+            return {};
+        }
+        return { reply.value("roomName", resolvedName), reply.value("moveLog", HomeScreenResult{}.moveLog),
                  reply.value("whiteName", std::string()), reply.value("whiteElo", 0),
                  reply.value("blackName", std::string()), reply.value("blackElo", 0),
                  colorFromRole(reply.value("role", std::string())) };
@@ -207,7 +250,7 @@ namespace {
     }
 }
 
-HomeScreenResult runHomeScreen(WsClient& client) {
+HomeScreenResult runHomeScreen(HttpClient& api, const std::string& token, ConnectFn connect) {
     cv::namedWindow(kHomeWindowName);
     cv::setMouseCallback(kHomeWindowName, onHomeMouseEvent, nullptr);//כשמישהו ילחץ עם העכבר על הכפתור של הבית זה יפעיל את הפונקציה הזאת
     spdlog::info("Home screen opened");
@@ -265,6 +308,11 @@ HomeScreenResult runHomeScreen(WsClient& client) {
         } else if (g_pendingChoice == HomeScreenChoice::Play) {//אם לחצץ על PLAY
             spdlog::info("Home: Play clicked");
             g_pendingChoice = HomeScreenChoice::None;
+            // No room known yet - round-robin (empty shard hint), same as
+            // before the Gateway existed.
+            WsClient& client = connect("");
+            if (!authenticateConnection(client, token))
+                continue;
             startFindGame(client);
             searching = true;
         } else if (g_pendingChoice == HomeScreenChoice::Room) {//אם לחצת על ROOM
@@ -278,7 +326,7 @@ HomeScreenResult runHomeScreen(WsClient& client) {
             if (dialogResult.action == RoomDialogResult::Action::Cancel || dialogResult.roomName.empty())
                 continue;
 
-            RoomJoinOutcome outcome = sendRoomRequest(client, dialogResult.action, dialogResult.roomName);//שולח בקשה לפתיחת חדר או להצטרף לחדר קיים
+            RoomJoinOutcome outcome = sendRoomRequest(api, token, connect, dialogResult.action, dialogResult.roomName);//שולח בקשה לפתיחת חדר או להצטרף לחדר קיים
             if (!outcome.roomName.empty()) {
                 result.joinedRoom = true;
                 result.roomName   = outcome.roomName;

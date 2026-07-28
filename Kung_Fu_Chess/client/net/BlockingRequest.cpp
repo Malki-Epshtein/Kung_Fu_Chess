@@ -5,7 +5,7 @@
 #include <mutex>
 #include <optional>
 
-nlohmann::json sendAndWaitForReply(WsClient& client, const Message& request) {
+nlohmann::json sendAndWaitForReply(WsClient& client, const Message& request, MessageType expectedType) {
     // Held by shared_ptr and captured BY VALUE below (not by reference to
     // this function's locals): client.setOnMessage installs this handler
     // and does not restore whatever was there before, so it can still be
@@ -20,17 +20,23 @@ nlohmann::json sendAndWaitForReply(WsClient& client, const Message& request) {
     auto mutex = std::make_shared<std::mutex>();
     auto cv    = std::make_shared<std::condition_variable>();
     auto reply = std::make_shared<std::optional<nlohmann::json>>();
+    std::string expectedTypeName = MessageCodec::typeName(expectedType);
 
-    client.setOnMessage([mutex, cv, reply](const std::string& text) {
+    client.setOnMessage([mutex, cv, reply, expectedTypeName](const std::string& text) {
         std::lock_guard<std::mutex> lock(*mutex);
         if (reply->has_value())
             return; // already got our reply - a later stray message (e.g.
                      // the room's first periodic snapshot) is not it
+        nlohmann::json parsed;
         try {
-            *reply = nlohmann::json::parse(text);
+            parsed = nlohmann::json::parse(text);
         } catch (const std::exception&) {
             return; // malformed text - not a real reply, keep waiting
         }
+        if (parsed.value("type", std::string()) != expectedTypeName)
+            return; // some other message type (e.g. a periodic snapshot
+                     // arriving before our own reply) - not it, keep waiting
+        *reply = std::move(parsed);
         cv->notify_all();
     });
 

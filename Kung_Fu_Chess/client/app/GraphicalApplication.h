@@ -1,6 +1,7 @@
 #pragma once
 #include "../input/Controller.h"
 #include "../net/WsClient.h"
+#include "../net/HttpClient.h"
 #include "../net/NetworkMessageHandler.h"
 #include "../view/ImageView.h"
 #include "../view/BoardScale.h"
@@ -14,6 +15,7 @@
 #include "HomeScreenView.h"
 #include "../../shared/engine/GameSnapshot.h"
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 
 class GraphicalApplication {
@@ -34,7 +36,19 @@ private:
     SpriteRepository     spriteRepository;
     SoundPlayer          soundPlayer;
 
-    WsClient client;
+    // (Re)created by connect() below, once per WebSocket connection this
+    // client ever opens - a plain WsClient can't be reconnected, and this
+    // one has to be replaceable: Play's round-robin connection and a
+    // Room's shard-pinned one are different connections, and even two Room
+    // attempts can land on different shards. Null until the first
+    // connect() call, which runHomeScreen() makes - no WebSocket exists
+    // during login (see api below), unlike before the Gateway existed.
+    std::unique_ptr<WsClient> client;
+
+    // The HTTP Gateway connection (login/rooms) - separate from `client`,
+    // which now carries only real-time gameplay traffic over a connection
+    // pinned to one specific shard.
+    HttpClient api;
 
     // Owns all inbound-message parsing/dispatch and the network-derived
     // state it produces (snapshot, score, move log, identity, disconnect
@@ -62,8 +76,15 @@ private:
     int  dragStartY_        = 0;
     int  dragStartCellSize_ = 0;
 
-    static constexpr const char* SERVER_HOST       = "localhost";
-    static constexpr uint16_t    SERVER_PORT        = 9002;
+    static constexpr const char* SERVER_HOST = "localhost";
+    static constexpr uint16_t    SERVER_PORT = 9002; // WS Gateway
+    static constexpr uint16_t    API_PORT    = 8081; // API Gateway (REST)
+
+    // This connection's login token (from runLoginFlow, at construction) -
+    // handed to every later REST call (POST /rooms, POST /rooms/{name}/join)
+    // and to the WebSocket-side AUTH/EnterRoom messages, since LOGIN itself
+    // no longer runs on any WebSocket connection.
+    std::string token_;
 
 public:
     GraphicalApplication()
@@ -72,27 +93,18 @@ public:
           cachingImageLoader(fileImageLoader),
           spriteRepository(pathBuilder, cachingImageLoader, boardScale),
           soundPlayer(assetsRoot),
+          api(SERVER_HOST, API_PORT),
           networkHandler(soundPlayer),
-          controller(latestSnapshot, [this](const std::string& text) { client.send(text); }, boardScale),
+          controller(latestSnapshot, [this](const std::string& text) { client->send(text); }, boardScale),
           view(spriteRepository, assetsRoot, boardScale) {
-        client.connect(SERVER_HOST, SERVER_PORT);
-
-        // Shell login handshake (Stage F4) happens over this same
-        // connection, before the game's own onMessage handler is installed
-        // below - a separate login-only connection would grab a
-        // White/Black seat and then immediately disconnect from it,
-        // corrupting join-order role assignment on the server.
-        LoginResult login = runLoginFlow(client);
+        // Purely HTTP - no WebSocket exists yet at this point. The first
+        // WebSocket connection isn't opened until run() calls
+        // runHomeScreen(), which needs api/token_ to resolve a room (or a
+        // round-robin shard for Play) before connecting.
+        LoginResult login = runLoginFlow(api);
         if (!login.success)
             throw std::runtime_error("login failed, exiting");
-
-        // The game's own onMessage handler is installed later, in run() -
-        // only once a room has actually been joined via the Home screen.
-        // Until then, runHomeScreen() below needs the connection free to
-        // run its own blocking CreateRoom/JoinRoom request/reply exchange
-        // (same reasoning as login, just above). Real player names/elo
-        // aren't known yet at this point (they come back from the room
-        // join reply) - set in run() instead, once home.roomName is.
+        token_ = login.token;
     }
 
     void run();
@@ -106,4 +118,12 @@ public:
 
 private:
     void onMouseClick(int x, int y);
+
+    // The ConnectFn passed to runHomeScreen (see HomeScreenView.h) -
+    // (re)creates `client`, connects with `shardHint` (empty for
+    // round-robin), and blocks until the connection is actually open
+    // before returning it. Same open-handshake wait LoginFlow used to do
+    // for the old single persistent connection, now needed here instead
+    // since a fresh connection can be made more than once per run.
+    WsClient& connect(const std::string& shardHint);
 };

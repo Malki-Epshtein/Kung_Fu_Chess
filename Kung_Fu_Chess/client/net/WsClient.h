@@ -16,7 +16,13 @@ public:
     WsClient();
     ~WsClient();
 
-    void connect(const std::string& host, uint16_t port);
+    // `shardHint`, if non-empty, is sent as the "X-Shard-Hint" header on the
+    // WebSocket handshake - the Gateway (WsGateway) routes directly to that
+    // shard instead of round-robining, which matters once a REST call has
+    // already resolved a specific shard for the room being joined (see
+    // HomeScreenView's sendRoomRequest). Empty for the plain round-robin
+    // case (initial connect, or Play/FindGame, where no room is known yet).
+    void connect(const std::string& host, uint16_t port, const std::string& shardHint = "");
     void send(const std::string& text);
     void setOnMessage(std::function<void(const std::string&)> handler);
     void setOnOpen(std::function<void()> handler);

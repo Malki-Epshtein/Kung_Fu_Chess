@@ -1,7 +1,9 @@
 #pragma once
 #include "../net/WsClient.h"
+#include "../net/HttpClient.h"
 #include "../../shared/model/Piece.h"
 #include "json.hpp"
+#include <functional>
 #include <string>
 
 struct HomeScreenResult {
@@ -35,9 +37,22 @@ struct HomeScreenResult {
     Chess::Color role = Chess::Color::None;
 };
 
+// Supplies a live, authenticated-later WebSocket connection on demand -
+// (re)creates and connects a WsClient, blocking until the connection is
+// actually open before returning it. `shardHint` empty means round-robin
+// (Play/FindGame, where no room is known yet); non-empty pins the
+// connection to the exact shard a REST room-resolution call just named
+// (see WsGateway's X-Shard-Hint). Implemented by GraphicalApplication,
+// which owns the actual WsClient and must be able to replace it - a stale
+// connection from an earlier Play search or a different room's shard
+// can't be reused for a later EnterRoom.
+using ConnectFn = std::function<WsClient&(const std::string& shardHint)>;
+
 // Opens the Home Screen window (Play/Room buttons) and blocks until the
 // user either successfully creates/joins a room, or closes the window
-// (ESC or the window's close button). Play doesn't lead anywhere yet
-// (Stage H). Needs OpenCV, so - like GraphicalApplication/ImageView -
+// (ESC or the window's close button). `api`/`token` are the HTTP Gateway
+// connection and the token from runLoginFlow - both Play and Room now
+// resolve identity/room placement over REST before ever touching a
+// WebSocket. Needs OpenCV, so - like GraphicalApplication/ImageView -
 // this stays out of the Win32 test build.
-HomeScreenResult runHomeScreen(WsClient& client);
+HomeScreenResult runHomeScreen(HttpClient& api, const std::string& token, ConnectFn connect);

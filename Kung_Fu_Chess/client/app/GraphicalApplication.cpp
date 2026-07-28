@@ -4,6 +4,8 @@
 #include "../audio/SoundNames.h"
 #include "../../shared/log/Log.h"
 #include <opencv2/opencv.hpp>
+#include <condition_variable>
+#include <mutex>
 
 namespace {
     // "name (elo)", matching how real chess sites always pair a player's
@@ -65,12 +67,42 @@ void GraphicalApplication::onMouseClick(int x, int y) {
     soundPlayer.play(outcome == ClickOutcomeType::SendJump ? Sounds::JUMP : Sounds::CLICK);
 }
 
+WsClient& GraphicalApplication::connect(const std::string& shardHint) {
+    // Replaces any previous connection outright - a stale round-robin
+    // connection from an earlier Play search, or one pinned to a
+    // different room's shard, can't be reused for what comes next (see
+    // HomeScreenView.h's ConnectFn comment). Destroying the old WsClient
+    // (if any) stops its io_service and joins its network thread before
+    // the new one is created.
+    client = std::make_unique<WsClient>();
+
+    // Same open-handshake wait LoginFlow used to do for the old single
+    // persistent connection (waitForConnectionOpen) - moved here since
+    // connect() can now be called more than once per run.
+    auto mutex  = std::make_shared<std::mutex>();
+    auto cv     = std::make_shared<std::condition_variable>();
+    auto opened = std::make_shared<bool>(false);
+    client->setOnOpen([mutex, cv, opened]() {
+        std::lock_guard<std::mutex> lock(*mutex);
+        *opened = true;
+        cv->notify_one();
+    });
+    client->connect(SERVER_HOST, SERVER_PORT, shardHint);
+
+    std::unique_lock<std::mutex> lock(*mutex);
+    cv->wait(lock, [&] { return *opened; });
+    return *client;
+}
+
 void GraphicalApplication::run() {
-    // Shown first; blocks until a room is actually created/joined (Play
-    // isn't wired to anything yet - Stage H) or the user closes the
-    // window, which quits the app the same way closing the game window
-    // does today - there's nothing useful to show without a room.
-    HomeScreenResult home = runHomeScreen(client);//כל מסך הבית קורה עעכשיו
+    // Shown first; blocks until a room is actually created/joined or the
+    // user closes the window, which quits the app the same way closing
+    // the game window does today - there's nothing useful to show without
+    // a room. Login already happened over HTTP in the constructor; Play
+    // and Room both resolve identity/room placement over REST from here,
+    // opening a WebSocket (via connect()) only once a shard is known.
+    HomeScreenResult home = runHomeScreen(api, token_,
+        [this](const std::string& shardHint) -> WsClient& { return connect(shardHint); });//כל מסך הבית קורה עעכשיו
     if (!home.joinedRoom) {
         spdlog::info("exiting: Home screen closed without joining a room");
         return;
@@ -80,18 +112,19 @@ void GraphicalApplication::run() {
     // Restricts selection to this player's own pieces from here on (see
     // Controller::setMyColor/ClickResolver's comments) - unknown any
     // earlier, since role only comes back on the room join/GameFound reply.
-    controller.setMyColor(home.role);
+    controller.setMyColor(home.role);//כדי שהשחקן יוכל לבחור רק את החלקים שלו ולא את של היריב
 
     // One-time backfill for a room already in progress (Stage I) - safe to
     // call before networkHandler.onMessage is ever installed (a couple of
     // lines below), so there's no concurrent access yet.
-    MoveLogBundle backfill = MoveLogCodec::decodeAll(home.moveLog);
+    MoveLogBundle backfill = MoveLogCodec::decodeAll(home.moveLog);//את כל המהלכים שכבר היו קיימים בחדר אני שומר בBACKFILL
     networkHandler.seedMoveLog(std::move(backfill.white), std::move(backfill.black));
 
     // Only installed now that a room is actually joined - runHomeScreen()
-    // needed the connection free for its own blocking CreateRoom/JoinRoom
-    // exchange (same reasoning as LoginFlow, in the constructor).
-    client.setOnMessage([this](const std::string& text) { networkHandler.onMessage(text); });//אני מחכה עש שיהיה לי תשובה
+    // needed the connection free for its own blocking EnterRoom/FindGame
+    // exchange (same reasoning as LoginFlow used to have, back when login
+    // itself still ran over this same connection).
+    client->setOnMessage([this](const std::string& text) { networkHandler.onMessage(text); });//אני מחכה עש שיהיה לי תשובה
 
     cv::namedWindow(ViewConfig::WINDOW_NAME);
     cv::setMouseCallback(ViewConfig::WINDOW_NAME, mouseCallback, this);
@@ -105,7 +138,7 @@ void GraphicalApplication::run() {
         // alongside pulling the snapshot that drives this same frame's
         // rendering, so a pending capture fires in sync with the exact
         // travelProgress value this frame is about to draw.
-        networkHandler.checkPendingCaptureSounds();
+        networkHandler.checkPendingCaptureSounds();//הגיע ארוע אכילה?
 
         NetworkState net = networkHandler.currentState();
         // Controller holds a reference to latestSnapshot specifically (bound
