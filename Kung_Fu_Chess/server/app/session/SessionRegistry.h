@@ -1,5 +1,6 @@
 #pragma once
 #include "GameSession.h"
+#include "../../../shared/db/IRoomDirectory.h"
 #include "../../../shared/bus/EventBus.h"
 #include "../../../shared/model/Piece.h"
 #include <websocketpp/common/connection_hdl.hpp>
@@ -21,6 +22,12 @@
 class SessionRegistry {
 public:
     using ConnectionHandle = websocketpp::connection_hdl;
+
+    // `directory`/`shardAddress` are optional (default: no-op) - only
+    // server_main.cpp's Docker/Linux build ever passes a real
+    // RedisRoomDirectory + this shard's address; every test and the native
+    // Windows build get the same behavior as before this existed.
+    explicit SessionRegistry(IRoomDirectory* directory = nullptr, std::string shardAddress = "");
 
     // Creates a new room under `name`. Returns false (does nothing) if that
     // name is already taken.
@@ -91,4 +98,7 @@ private:
 
     std::unordered_map<std::string, Room> rooms_;
     std::map<ConnectionHandle, std::string, std::owner_less<ConnectionHandle>> connectionRoom_;//לבדוק באיזה חדר נמצא המתשמש הספציפי שלי עשכיו
+
+    IRoomDirectory* directory_ = nullptr;
+    std::string     shardAddress_;
 };

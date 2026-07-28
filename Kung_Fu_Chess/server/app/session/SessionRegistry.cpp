@@ -16,6 +16,9 @@ namespace {
     }
 }
 
+SessionRegistry::SessionRegistry(IRoomDirectory* directory, std::string shardAddress)
+    : directory_(directory), shardAddress_(std::move(shardAddress)) {}
+
 bool SessionRegistry::createRoom(const std::string& name, std::shared_ptr<Board> board, EventBus& bus, bool simultaneousMode) {
     if (rooms_.count(name))
         return false;
@@ -23,6 +26,8 @@ bool SessionRegistry::createRoom(const std::string& name, std::shared_ptr<Board>
     Room room;
     room.session = std::make_unique<GameSession>(board, bus, name, simultaneousMode);
     rooms_.emplace(name, std::move(room));
+    if (directory_)
+        directory_->set(name, shardAddress_);
     return true;
 }
 
@@ -80,8 +85,11 @@ Chess::Color SessionRegistry::leave(ConnectionHandle hdl) {
             // free the name for reuse immediately, same as before.
             if (rIt->second.session->tickInFlight())
                 rIt->second.pendingRemoval = true;
-            else
+            else {
+                if (directory_)
+                    directory_->erase(roomIt->second);
                 rooms_.erase(rIt);
+            }
         }
     }
     connectionRoom_.erase(roomIt);
@@ -90,8 +98,11 @@ Chess::Color SessionRegistry::leave(ConnectionHandle hdl) {
 
 void SessionRegistry::reapIfSafe(const std::string& name) {
     auto it = rooms_.find(name);
-    if (it != rooms_.end() && it->second.pendingRemoval && !it->second.session->tickInFlight())
+    if (it != rooms_.end() && it->second.pendingRemoval && !it->second.session->tickInFlight()) {
+        if (directory_)
+            directory_->erase(name);
         rooms_.erase(it);
+    }
 }
 
 std::vector<SessionRegistry::ConnectionHandle> SessionRegistry::connectionsInRoom(const std::string& name) const {

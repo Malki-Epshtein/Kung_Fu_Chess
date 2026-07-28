@@ -3,7 +3,8 @@
 
 class SessionRegistry;
 class EventBus;
-class UserRepository;
+class IUserRepository;
+class IClientSessionStore;
 
 // How often every room's GameSession ticks by default - also the
 // granularity of the game clock itself (see MotionPath's travel-time math).
@@ -17,5 +18,6 @@ constexpr int kDefaultTickMs = 30;
 // for connect/disconnect handling.
 class WsServer {
 public:
-    void run(uint16_t port, SessionRegistry& registry, EventBus& bus, UserRepository& users, int tickMs = kDefaultTickMs);
+    void run(uint16_t port, SessionRegistry& registry, EventBus& bus, IUserRepository& users,
+             IClientSessionStore* sessionStore = nullptr, int tickMs = kDefaultTickMs);
 };

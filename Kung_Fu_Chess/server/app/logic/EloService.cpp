@@ -2,7 +2,7 @@
 #include "EloCalculator.h"
 #include "../session/GameSession.h"
 #include "../session/GameResultCodec.h"
-#include "../../db/UserRepository.h"
+#include "../../db/IUserRepository.h"
 #include "../../../shared/log/Log.h"
 
 void EloService::attach(EventBus& bus, const std::string& roomName) {

@@ -8,7 +8,8 @@
 #include "../app/logic/EloService.h"
 #include "../app/networking/BroadcasterManager.h"
 #include "../app/handlers/MessageDispatcher.h"
-#include "../db/UserRepository.h"
+#include "../db/IUserRepository.h"
+#include "../../shared/db/IClientSessionStore.h"
 #include "../concurrency/ThreadPool.h"
 #include "../../shared/log/Log.h"
 #include <websocketpp/config/asio_no_tls.hpp>
@@ -22,7 +23,8 @@ namespace {
     using WsppServer = websocketpp::server<websocketpp::config::asio>;
 }
 
-void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, UserRepository& users, int tickMs) {
+void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, IUserRepository& users,
+                    IClientSessionStore* sessionStore, int tickMs) {
     WsppServer server;
     server.clear_access_channels(websocketpp::log::alevel::all);
     server.clear_error_channels(websocketpp::log::elevel::all);
@@ -47,7 +49,7 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, User
     BroadcasterManager broadcasters(bus, registry, sendToConnection);
     ConnectionHandler  connectionHandler(registry, clientSessions, matchmaker, server.get_io_service());
     MessageDispatcher  dispatcher(users, clientSessions, registry, bus, matchmaker,
-                                   broadcasters, eloService, sendToConnection, server.get_io_service());
+                                   broadcasters, eloService, sendToConnection, server.get_io_service(), sessionStore);
 
     server.set_open_handler([&connectionHandler](websocketpp::connection_hdl hdl) {
         connectionHandler.onOpen(hdl);

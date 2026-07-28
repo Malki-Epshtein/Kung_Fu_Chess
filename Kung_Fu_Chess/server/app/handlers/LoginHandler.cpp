@@ -1,5 +1,5 @@
 #include "LoginHandler.h"
-#include "../../db/UserRepository.h"
+#include "../../db/IUserRepository.h"
 #include "../session/ClientSessionRegistry.h"
 #include "../../../shared/log/Log.h"
 
