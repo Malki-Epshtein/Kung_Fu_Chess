@@ -4,6 +4,8 @@
 #include "CreateRoomHandler.h"
 #include "JoinRoomHandler.h"
 #include "FindGameHandler.h"
+#include "EnterRoomHandler.h"
+#include "AuthHandler.h"
 #include "MessageRouter.h"
 #include "../session/RoleName.h"
 #include "../session/SessionRegistry.h"
@@ -15,10 +17,10 @@
 #include "../../../shared/model/Piece.h"
 #include "../../../shared/log/Log.h"
 
-MessageDispatcher::MessageDispatcher(UserRepository& users, ClientSessionRegistry& clientSessions,
+MessageDispatcher::MessageDispatcher(IUserRepository& users, ClientSessionRegistry& clientSessions,
                                       SessionRegistry& registry, EventBus& bus, Matchmaker& matchmaker,
                                       BroadcasterManager& broadcasters, EloService& eloService, ConnectionSender push,
-                                      asio::io_context& ioContext)
+                                      asio::io_context& ioContext, IClientSessionStore* sessionStore)
     : registry_(registry) {
     // Called once a new room actually exists (room creation or a Play
     // match) - attaches every per-room subscriber a fresh room needs:
@@ -43,6 +45,14 @@ MessageDispatcher::MessageDispatcher(UserRepository& users, ClientSessionRegistr
     router_->registerHandler(MessageType::CreateRoom, *createRoomHandler_);
     router_->registerHandler(MessageType::JoinRoom, *joinRoomHandler_);
     router_->registerHandler(MessageType::FindGame, *findGameHandler_);
+
+    if (sessionStore) {
+        enterRoomHandler_ = std::make_unique<EnterRoomHandler>(registry, clientSessions, *sessionStore);
+        router_->registerHandler(MessageType::EnterRoom, *enterRoomHandler_);
+
+        authHandler_ = std::make_unique<AuthHandler>(clientSessions, *sessionStore);
+        router_->registerHandler(MessageType::Auth, *authHandler_);
+    }
 }
 
 MessageDispatcher::~MessageDispatcher() = default;
@@ -55,7 +65,7 @@ std::string MessageDispatcher::process(ConnectionHandle hdl, const std::string& 
         Message decoded = MessageCodec::decode(text);
         spdlog::debug("received {} from {}: {}", MessageCodec::typeName(decoded.type), roleName(senderRole), text);
 
-        if (IMessageHandler* handler = router_->find(decoded.type)) {
+        if (IMessageHandler* handler = router_->find(decoded.type)) {//עשיתי ממשק וככה זה חוסך לי
             reply = handler->handle(hdl, decoded.payload);
         } else {
             const std::string* roomName = registry_.roomOf(hdl);

@@ -82,6 +82,11 @@ DispatchResult CommandDispatcher::dispatch(const Message& message, GameEngine& e
             case MessageType::CaptureEvent:
                 // Same reasoning again: server->client push only.
                 return { false, "CaptureEvent is server-to-client only" };
+            case MessageType::EnterRoom:
+                // Same reasoning as CreateRoom/JoinRoom: WsServer intercepts
+                // this before dispatch (it acts on SessionRegistry +
+                // ClientSessionRegistry, not on a specific room's GameEngine).
+                return { false, "EnterRoom must be handled before dispatch" };
         }
         return { false, "unknown message type" };
     } catch (const std::exception& e) {

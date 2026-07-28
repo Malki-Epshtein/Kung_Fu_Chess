@@ -5,17 +5,20 @@
 #include <memory>
 #include <string>
 
-class UserRepository;
+class IUserRepository;
 class ClientSessionRegistry;
 class SessionRegistry;
 class EventBus;
 class Matchmaker;
 class BroadcasterManager;
 class EloService;
+class IClientSessionStore;
 class LoginHandler;
 class CreateRoomHandler;
 class JoinRoomHandler;
 class FindGameHandler;
+class EnterRoomHandler;
+class AuthHandler;
 class MessageRouter;
 
 // The composition root for the network protocol layer: owns the concrete
@@ -32,10 +35,14 @@ public:
     using ConnectionHandle = websocketpp::connection_hdl;
     using ConnectionSender = std::function<void(ConnectionHandle, const std::string&)>;
 
-    MessageDispatcher(UserRepository& users, ClientSessionRegistry& clientSessions,
+    // `sessionStore` may be null (no ENTER_ROOM support - the native
+    // Windows build, or a Docker build with no REDIS_HOST set, never
+    // registers that handler; a client using the old direct-WS LOGIN flow
+    // never needs it anyway).
+    MessageDispatcher(IUserRepository& users, ClientSessionRegistry& clientSessions,
                        SessionRegistry& registry, EventBus& bus, Matchmaker& matchmaker,
                        BroadcasterManager& broadcasters, EloService& eloService, ConnectionSender push,
-                       asio::io_context& ioContext);
+                       asio::io_context& ioContext, IClientSessionStore* sessionStore = nullptr);
     ~MessageDispatcher();
 
     // Decodes `text`, routes it to a registered handler or the
@@ -51,5 +58,7 @@ private:
     std::unique_ptr<CreateRoomHandler> createRoomHandler_;
     std::unique_ptr<JoinRoomHandler>   joinRoomHandler_;
     std::unique_ptr<FindGameHandler>   findGameHandler_;
+    std::unique_ptr<EnterRoomHandler>  enterRoomHandler_;
+    std::unique_ptr<AuthHandler>       authHandler_;
     std::unique_ptr<MessageRouter>     router_;
 };

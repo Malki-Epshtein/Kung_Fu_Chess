@@ -14,6 +14,16 @@ nlohmann::json CreateRoomHandler::handle(ConnectionHandle hdl, const nlohmann::j
 
     registry_.createRoom(name, makeStartingBoard(), bus_, /*simultaneousMode=*/true);
     attachBroadcaster_(name);//פה נוצרת ההרשמה
+
+    // The API Gateway's internal relay (POST /rooms) sets this false: it
+    // creates the room shell over a throwaway connection that's about to
+    // close, and closing it would immediately free (and likely delete) an
+    // auto-assigned seat. The real client claims the seat later, over its
+    // own WebSocket, via EnterRoom - see EnterRoomHandler.
+    bool autoJoin = payload.value("autoJoin", true);
+    if (!autoJoin)
+        return { {"success", true}, {"message", "room created"}, {"roomName", name} };
+
     // The creator becomes the room's first occupant (White) - otherwise
     // they'd have to immediately send a separate JoinRoom right after
     // creating it.

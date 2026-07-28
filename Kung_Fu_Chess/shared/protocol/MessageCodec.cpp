@@ -15,6 +15,8 @@ namespace {
         { MessageType::GameFound,  "GAME_FOUND"  },
         { MessageType::MoveLogged, "MOVE_LOGGED" },
         { MessageType::CaptureEvent, "CAPTURE_EVENT" },
+        { MessageType::EnterRoom, "ENTER_ROOM" },
+        { MessageType::Auth,      "AUTH"       },
     };
 
 }

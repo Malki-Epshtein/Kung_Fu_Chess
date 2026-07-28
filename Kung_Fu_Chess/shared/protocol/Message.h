@@ -17,7 +17,18 @@ enum class MessageType {
     FindGame,
     GameFound,
     MoveLogged,
-    CaptureEvent
+    CaptureEvent,
+    // Claims a seat in a room by token instead of by "this connection
+    // already ran LOGIN" - what a client sends over WebSocket right after
+    // the HTTP-based login/room flow (API Gateway) instead of CreateRoom/
+    // JoinRoom, since LOGIN itself never happens on this connection.
+    EnterRoom,
+    // Establishes this connection's identity from a token (minted by the
+    // Gateway's POST /login) without claiming a room seat - what a client
+    // sends right after connecting so FindGame (Play) has a
+    // ClientSession to read, the same way EnterRoom establishes it for the
+    // Room path. See AuthHandler.
+    Auth
 };
 
 struct Message {
