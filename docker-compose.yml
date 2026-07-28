@@ -1,0 +1,135 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: kfc
+      POSTGRES_PASSWORD: kfc
+      POSTGRES_DB: kfc
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No published port - only the shards talk to it, at
+    # postgres:5432 inside this compose network.
+    healthcheck:
+      # Plain `depends_on: [postgres]` only waits for the container to
+      # start, not for Postgres itself to be accepting connections yet -
+      # gameserver crashed on that gap (connection refused) before this was
+      # added. pg_isready is postgres:16-alpine's own readiness probe.
+      test: ["CMD-SHELL", "pg_isready -U kfc -d kfc"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    # Room directory (roomName -> shard address) - a plain key/value store,
+    # not pub/sub (Server_Design.md: "a room is fully owned by one pod", no
+    # broadcast fan-out needed). Both shards write to it on room
+    # create/destroy; the API Gateway reads it to resolve POST
+    # /rooms/{name}/join. The WS Gateway itself still just round-robins
+    # (see WsGateway.h) - it never reads the directory, only trusts the
+    # X-Shard-Hint header the client sets from the API Gateway's answer.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  # Two shards sharing the same Postgres/Redis data tier - each is the exact
+  # same image, differing only in SHARD_ADDRESS (what it registers itself as
+  # in the room directory). The WS Gateway below round-robins new
+  # connections across both (see its UPSTREAM_URIS) unless a client's
+  # X-Shard-Hint header already names one.
+  gameserver-a:
+    build:
+      context: .
+      target: server
+    # Explicit shared tag - without this, Compose auto-names an image per
+    # *service* (kung_fu_chess-gameserver-a / -b), even though both build
+    # from the identical target/context. Naming both the same makes it one
+    # literal image, built once, run as two containers differing only in
+    # SHARD_ADDRESS below.
+    image: kung_fu_chess-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://kfc:kfc@postgres:5432/kfc"
+      REDIS_HOST: "redis"
+      SHARD_ADDRESS: "ws://gameserver-a:9002"
+    # No published port here - only reachable from other containers on this
+    # compose network. Real clients only ever talk to the Gateway; this is
+    # what makes the split real instead of cosmetic.
+    volumes:
+      # server.log is written relative to CWD (WORKDIR /data) - bind-mounting
+      # keeps it on the host, surviving `docker compose down`. Each shard
+      # gets its own subdirectory so their logs don't collide.
+      - ./docker-data/a:/data
+
+  gameserver-b:
+    build:
+      context: .
+      target: server
+    image: kung_fu_chess-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://kfc:kfc@postgres:5432/kfc"
+      REDIS_HOST: "redis"
+      SHARD_ADDRESS: "ws://gameserver-b:9002"
+    volumes:
+      - ./docker-data/b:/data
+
+  # Two separate processes/containers now (Server_Design.md's target
+  # architecture: "the boundary that matters for this design is API
+  # Gateway vs. WS Gateway") - they don't actually share a runtime
+  # dependency, so there's no reason to scale or restart them together.
+  ws-gateway:
+    build:
+      context: .
+      target: ws-gateway
+    depends_on:
+      gameserver-a:
+        condition: service_started
+      gameserver-b:
+        condition: service_started
+    environment:
+      GATEWAY_PORT: "8080"
+      # Comma-separated - round-robins every new connection across these
+      # at connect time, unless X-Shard-Hint already names one (see
+      # WsGateway.h for why it's round-robin and not directory-aware).
+      UPSTREAM_URIS: "ws://gameserver-a:9002,ws://gameserver-b:9002"
+    ports:
+      # Host port matches the game server's old port on purpose - the
+      # existing client (GraphicalApplication.h: ws://localhost:9002) reaches
+      # the WS Gateway with zero client-side changes.
+      - "9002:8080"
+
+  api-gateway:
+    build:
+      context: .
+      target: api-gateway
+    depends_on:
+      gameserver-a:
+        condition: service_started
+      gameserver-b:
+        condition: service_started
+      # ApiGateway talks to Redis directly for the room directory/session
+      # store - unlike ws-gateway's traffic, that's never just relayed
+      # through a shard.
+      redis:
+        condition: service_healthy
+    environment:
+      API_PORT: "8081"
+      UPSTREAM_URIS: "ws://gameserver-a:9002,ws://gameserver-b:9002"
+      REDIS_HOST: "redis"
+    ports:
+      # Matches GraphicalApplication.h's API_PORT.
+      - "8081:8081"
+
+volumes:
+  pgdata:

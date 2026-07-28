@@ -1,0 +1,36 @@
+# Only the server (CMakeLists.txt) and its shared/ dependency get built in
+# Docker - everything below is either irrelevant to that build or huge
+# (OpenCV/.git), so keeping it out of the build context keeps `docker build`
+# fast instead of uploading hundreds of MB it will never read.
+
+.git/
+.vs/
+.vscode/
+.claude/
+build_cmake_test/
+
+# Windows-only GUI client and its vendored dependency - not part of the
+# Server/Gateway CMake targets, and OpenCV_451 alone is ~176MB.
+**/OpenCV_451/
+**/client/
+
+# MSBuild artifacts / IDE project files - irrelevant to the CMake build.
+**/*.vcxproj
+**/*.vcxproj.filters
+**/*.vcxproj.user
+**/*.sln
+**/Debug/
+**/Release/
+**/x64/
+**/x86/
+**/build/
+**/bin/
+**/obj/
+**/*.obj
+**/*.exe
+**/*.pdb
+
+# Runtime-generated, never wanted inside the image.
+**/users.db
+**/*.log
+docker-data/
