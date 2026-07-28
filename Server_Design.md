@@ -207,6 +207,14 @@ allocate-a-dedicated-gameserver-per-match model). At this scale:
 
 ## 6. Proposed architecture (target shape)
 
+Updated after the review feedback and the KamaTech reference diagram: the
+shape below names each service the way that diagram does (API Gateway
+split from the WS Gateway, Matchmaker split from Game Allocator, an
+explicit NATS event bus, an explicit Observability tier), and — the part
+missed in the first draft of this doc — **everything except the clients
+runs inside one Kubernetes/K3s cluster**, not as a loose set of services
+with no shared deployment boundary.
+
 ```mermaid
 flowchart TB
     subgraph Clients
@@ -214,67 +222,250 @@ flowchart TB
         C2[Player client]
     end
 
-    subgraph Edge["Gateway tier (stateless, autoscaled)"]
-        GW1[Gateway pod]
-        GW2[Gateway pod]
+    subgraph Cluster["One region: Kubernetes / K3s cluster"]
+        subgraph Edge["Edge tier (stateless, autoscaled)"]
+            APIGW["API Gateway (REST/HTTP)<br/>login, rooms, history"]
+            AUTH[Auth Service]
+            ROOMSAPI[Rooms API]
+            WSGW1[WS Gateway pod]
+            WSGW2[WS Gateway pod]
+        end
+
+        BUS[(NATS Event Bus)]
+
+        subgraph Coord["Matchmaking & allocation (stateless)"]
+            MM["Matchmaker<br/>pairs waiting players by ELO"]
+            ALLOC["Game Allocator<br/>picks a shard, registers the room"]
+        end
+
+        AGONES["Agones (optional)<br/>fleet manager for game-server shards"]
+
+        subgraph Game["Game-server tier (autoscaled)"]
+            GS1["Game-server shard A<br/>(SessionRegistry + ThreadPool,<br/>today's C++ WsServer, authoritative GameEngine)"]
+            GS2["Game-server shard B"]
+        end
+
+        subgraph Data["Data tier"]
+            PG[(PostgreSQL<br/>users, games, results, move history)]
+            REDIS[(Redis<br/>sessions, active rooms,<br/>reconnect, matchmaking queue)]
+        end
+
+        OBS["Observability<br/>logs, metrics, health checks, load tests"]
     end
 
-    subgraph Coord["Shared coordination"]
-        DIR[(Room directory<br/>Redis Cluster)]
-        MM[Matchmaking service]
-    end
+    C1 -- WebSocket --> WSGW1
+    C2 -- WebSocket --> WSGW2
+    C1 -. "REST: login / rooms / history" .-> APIGW
+    APIGW --> AUTH
+    APIGW --> ROOMSAPI
 
-    subgraph Game["Game-server tier (autoscaled)"]
-        GS1["Game-server pod A<br/>(SessionRegistry + ThreadPool,<br/>today's C++ server)"]
-        GS2["Game-server pod B"]
-    end
+    WSGW1 <--> BUS
+    WSGW2 <--> BUS
+    APIGW <--> BUS
+    MM <--> BUS
+    ALLOC <--> BUS
+    GS1 <--> BUS
+    GS2 <--> BUS
 
-    subgraph Data["Data tier"]
-        USERDB[(Sharded Postgres/Vitess<br/>accounts + ELO)]
-        HISTDB[(Cassandra/DynamoDB<br/>match history, logs)]
-    end
+    MM -- "match found" --> ALLOC
+    ALLOC -- "create room on<br/>least-loaded shard" --> GS1
+    ALLOC -. manages via .-> AGONES
+    AGONES -. controls .-> GS1
+    AGONES -. controls .-> GS2
 
-    C1 -- WebSocket --> GW1
-    C2 -- WebSocket --> GW2
-    GW1 -- "who owns room X?" --> DIR
-    GW2 -- "who owns room X?" --> DIR
-    GW1 -- proxy to owner pod --> GS1
-    GW2 -- proxy to owner pod --> GS1
-    MM -- "pick least-loaded pod,<br/>create room, register" --> DIR
-    MM --> GS2
-    GS1 --> USERDB
-    GS1 --> HISTDB
+    WSGW1 -- "proxy to owning shard" --> GS1
+    WSGW2 -- "proxy to owning shard" --> GS1
+
+    AUTH --> PG
+    ROOMSAPI --> REDIS
+    GS1 --> PG
+    GS1 --> REDIS
+    GS2 --> PG
+    GS2 --> REDIS
+
+    Edge -.-> OBS
+    Coord -.-> OBS
+    Game -.-> OBS
 ```
 
-Key point of this diagram vs. today's code: `GS1`/`GS2` are **today's
-`WsServer` binary, unmodified in its core logic**, just running as N
-replicas instead of 1, each with its own local registry/thread-pool, no
-longer talking to a local SQLite file but to the shared data tier.
+Component-by-component, what changes vs. today's single process:
 
-## 7. Phased plan for this week
+- **API Gateway** (REST/HTTP) is new: today login/rooms/history all ride
+  the same WebSocket as live game commands. Splitting it out means the
+  non-real-time stuff (auth, room listing, match history) doesn't share a
+  connection or a thread with live gameplay traffic. `Auth Service` and
+  `Rooms API` are its two sub-responsibilities, matching the reference
+  diagram — they can start as functions inside the one API Gateway
+  process rather than three separate binaries; the boundary that matters
+  for this design is API Gateway vs. WS Gateway, not how many processes
+  the API Gateway itself is split into.
+- **WS Gateway** is what today's `WsServer` does for live traffic, minus
+  the game logic: terminate the client's WebSocket, then either proxy or
+  hand off to whichever game-server shard owns that room.
+- **NATS Event Bus** is new — today there's an in-process `EventBus`
+  (single-process pub/sub, no network involved). NATS is that same
+  publish/subscribe idea, but reachable over the network, so the gateway,
+  matchmaker, allocator, and shards can all react to the same events
+  (`room created`, `room closed`, `shard heartbeat`) without polling each
+  other or sharing memory.
+- **Matchmaker** already exists in code
+  ([Matchmaker.h](Kung_Fu_Chess/Kung_Fu_Chess/server/app/logic/Matchmaker.h))
+  but today it's an in-process `std::map` inside the one `WsServer`. Its
+  job stays identical (pair two waiting players within `kEloRange`) — it
+  just becomes a small stateless service reachable over the bus instead of
+  a private data structure.
+- **Game Allocator** is a new responsibility that today's code doesn't
+  have at all, because there's only one shard to put a room on. Once
+  there are N game-server shards, something has to decide "shard B has
+  capacity, create the room there" and write `roomName → shard B` into
+  Redis so the WS Gateway can look it up later. Matchmaker and Allocator
+  are kept as two separate boxes (per the reference diagram) because they
+  answer two different questions — "who plays whom" vs. "which machine
+  hosts it" — even though a small deployment could run both as one
+  process.
+- **Game Server Shards** are **today's `WsServer` binary, unmodified in
+  its core logic** (`SessionRegistry` + `ThreadPool` + authoritative
+  `GameEngine`) — just running as N replicas instead of 1, each owning
+  its own rooms in memory, no longer talking to a local SQLite file but to
+  the shared Postgres/Redis tier.
+- **Agones** stays **optional**, exactly as the reference diagram marks
+  it (dashed lines = control path, not data flow): it's a fleet manager
+  for the shard tier, relevant once shard churn/scaling is itself a
+  problem worth automating. Not needed to prove the architecture at small
+  scale — see the phased plan below.
+- **Data tier is simplified to two stores** (Postgres + Redis), matching
+  the reference diagram exactly, rather than the three-store sketch
+  (Postgres/Vitess + a separate Cassandra/DynamoDB history store) explored
+  in §2 above. §2's answer is still a defensible *fuller* answer for
+  extreme scale, but "the most professional architecture we're actually
+  capable of building" this week is the simpler, recommended two-store
+  shape: Postgres holds users/games/results/move history, Redis holds
+  everything ephemeral (sessions, active rooms, reconnect state,
+  matchmaking queue).
+- **Observability** becomes an explicit tier (logs, metrics, health
+  checks, load tests) instead of a side mention — every other tier reports
+  into it, per the reference diagram's dashed arrows.
+- **Everything above sits inside one Kubernetes/K3s cluster** (one region
+  per the diagram's own label) — Docker Compose is how we'd run a small
+  version of this same set of containers locally before there's a cluster
+  at all.
 
-1. **Containerize what exists** — Dockerfile for the server, confirm it
-   builds/runs identically inside a container (no behavior change).
-2. **Externalize the DB** — swap the SQLite `UserRepository` for a
-   networked DB (even a single Postgres instance is a correct *first*
-   step — sharding is a later optimization, not a day-1 requirement).
-   This also removes the single-file-on-disk assumption that blocks
-   running more than one server replica.
-3. **Extract the room directory** — replace `SessionRegistry` being the
-   *only* source of truth with a thin Redis-backed layer recording
-   `roomName → this pod's address`, written on `createRoom`/erased on
-   `reapIfSafe`. Single-pod behavior stays identical; this just makes the
-   information other pods would need to look up.
-4. **Add a gateway** — even a minimal reverse-proxy that consults the
-   directory before opening/forwarding a WebSocket connection, so two pods
-   can coexist and still let any player reach any room.
-5. **Deploy to K3s locally** (learning goal #1 from the assignment) —
-   Deployment + Service manifests for gateway and game-server tiers,
-   confirm horizontal scaling (2+ replicas) actually works end-to-end
+## 7. Threading model, and what happens when a pod crashes
+
+**Thread-per-room (or thread-per-tick-action) vs. a shared thread pool.**
+Looking at how real servers are built (not game-specific, but the pattern
+holds): a thread/process **per connection or per unit of work** is the
+textbook example of what *not* to do at scale — thread creation is
+expensive (OS stack allocation + context setup), and with millions of
+concurrent units of work you'd exhaust memory and choke the scheduler
+before you exhaust CPU. A **bounded thread pool**, where a small,
+fixed number of OS threads pull work from a shared queue, is the standard
+answer, because it decouples "how much concurrent work exists" from "how
+many OS threads exist." That is *exactly* what our `ThreadPool`/`tickPool`
+already does — each room's tick is a job on the shared queue, not a
+dedicated thread, so this scales to however many rooms one pod hosts
+without the pod's thread count growing with room count. **We don't need
+to change this for the multi-server design** — it stays the right model
+*inside* one pod; what changes is how many pods there are, not the
+threading model within each.
+
+Sources: [Thread pools vs thread-per-connection](https://dev.to/min38/thread-pool-3ema), [Shared threads vs dedicated cores](https://eastgate.host/shared-threads-vs-dedicated-cores-game-servers/)
+
+Worth naming the axis this is *not* about: some real games (e.g. Agones-
+orchestrated dedicated-server titles) run one whole **process/container
+per match**, not one thread per match inside a shared process. That's a
+different lever — process isolation for fault containment (one crashed
+match can't corrupt another's memory) and trivial cleanup (kill the
+container, done) — bought at the cost of a fresh container per match. Per
+Q4's math (~83k room-creations/sec at our scale), that lever isn't
+available to us: container-per-match assumes match creation is rare enough
+that scheduling overhead is negligible, which is true for those titles'
+volumes and false for ours. So we get isolation a cheaper way instead (see
+below), and keep rooms as in-process objects.
+
+**What happens when a game-server pod crashes.** Today, a room's entire
+state lives only in that process's RAM — nothing is persisted or
+replicated. So if a pod dies mid-match, every room it was hosting is gone:
+both players lose their connection and there is no state anywhere to
+resume from. The standard failover patterns that come up in the research
+— active-passive/active-active failover, or continuously replicating game
+state to a standby so it can take over — all assume the *cost of losing a
+match* is high enough to justify that complexity. For us, given Q4 (a
+match is worth ~30–90s of play), that assumption is probably backwards:
+**replicating every room's live simulation state to a second store on
+every tick, just so a crash can resume a ~60s match instead of voiding
+it, likely costs more (extra writes on every single tick, for every
+room, forever) than it saves (avoiding an occasional voided short match).**
+The more proportionate response:
+- **Detect and contain fast**: the gateway/load balancer stops routing to
+  a pod the moment it fails a health check, so a crash only affects rooms
+  already on that pod, not new ones.
+- **Fail the in-flight matches cleanly**: the affected players get
+  disconnected and see the same "opponent disconnected" flow that already
+  exists for a normal disconnect (`SessionRegistry::startDisconnectCountdown`)
+  — or, if we want to be kinder about it, a clear "your match was
+  interrupted by a server issue, no ELO penalty" message rather than an
+  auto-resign, if we want the two cases to keep being disambiguated.
+- **Kubernetes restarts the pod** (that's what it does natively for a
+  crashed container) and it rejoins the pool empty, ready for new rooms.
+- **Probe hygiene matters here**: the research is explicit that a
+  *liveness* probe should only fail on a truly unrecoverable state (not
+  "DB is briefly slow"), because failing it kills the pod — misusing it
+  is a common cause of crash loops. A *readiness* probe is the right tool
+  for "temporarily can't take new rooms" (e.g. draining before a planned
+  restart) without killing whatever it's already hosting.
+
+Sources: [Failover mechanisms — GeeksforGeeks](https://www.geeksforgeeks.org/system-design/failover-mechanisms-in-system-design/), [How game servers handle failover — Tencent Cloud](https://www.tencentcloud.com/techpedia/113168), [Kubernetes probes](https://kubernetes.io/docs/concepts/workloads/pods/probes/), [Probe failure modes](https://resolve.ai/glossary/how-to-debug-kubernetes-probe-issues)
+
+**Splitting the server itself into several servers** — yes, and this is
+already the core of §2/§6 above: the game-server tier is many independent
+pods, each a full copy of today's `WsServer` process (own `SessionRegistry`
++ `ThreadPool`), with no shared memory between pods. A crash only ever
+takes down *that pod's* rooms, never the whole fleet — which is the main
+practical payoff of splitting in the first place, independent of raw
+throughput.
+
+## 8. Phased plan for this week
+
+1. **Containerize what exists** — Dockerfile for today's `WsServer`
+   (renamed conceptually to "game-server shard"), confirm it builds/runs
+   identically inside a container (no behavior change).
+2. **Externalize the DB** — swap the SQLite `UserRepository` for a single
+   Postgres instance (sharding is a later optimization, not a day-1
+   requirement), and add a Redis instance for session/room state. This
+   also removes the single-file-on-disk assumption that blocks running
+   more than one shard replica.
+3. **Add NATS + a Redis-backed room directory** — a thin layer recording
+   `roomName → this shard's address`, written on `createRoom`/erased on
+   `reapIfSafe`, with NATS as the bus other services subscribe to for
+   `room created`/`room closed` events. Single-shard behavior stays
+   identical; this just makes the information other services would need
+   to look up.
+4. **Split off a WS Gateway** — a minimal reverse-proxy process that
+   consults the room directory before opening/forwarding a WebSocket
+   connection, so two shards can coexist and any player can still reach
+   any room. Keep it a *separate container* from the game-server shard,
+   even before it does anything fancier than proxying.
+5. **Add a thin API Gateway** for login/rooms/history (Auth Service +
+   Rooms API can start as functions inside this one process), so
+   real-time WS traffic and request/response REST traffic stop sharing a
+   connection.
+6. **Extract Matchmaker into its own service reachable over NATS**, and
+   add the Game Allocator responsibility (pick a least-loaded shard,
+   register it in the directory) — today both are conflated inside the
+   one `WsServer` process.
+7. **Wire it all up in `docker-compose.yml`**: gateway(s) + game-server
+   shard(s) + NATS + Redis + Postgres as separate containers talking over
+   the network — this is the concrete "small working version" the
+   assignment asks for, and the point where cross-service communication
+   becomes real instead of a diagram.
+8. **Deploy to K3s locally** (learning goal #1 from the assignment) —
+   Deployment + Service manifests for every tier above, confirm
+   horizontal scaling (2+ shard replicas) actually works end-to-end
    before assuming it would at 10M scale.
-6. **Only then**: matchmaking-picks-least-loaded-pod, autoscaling policy,
-   multi-region — these matter at 10M concurrent but aren't needed to
-   prove the architecture works at small scale first.
+9. **Only then**: Agones, autoscaling policy, multi-region — these matter
+   at 10M concurrent but aren't needed to prove the architecture works at
+   small scale first.
 
 ## Open questions to bring to reviewers
 
