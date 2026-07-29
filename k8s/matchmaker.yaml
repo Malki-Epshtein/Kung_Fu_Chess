@@ -42,7 +42,9 @@ spec:
       containers:
         - name: matchmaker
           image: kung-fu-chess/matchmaker:latest
-          imagePullPolicy: IfNotPresent
+          # Always - see gameserver.yaml's comment on this same setting for why
+          # IfNotPresent silently serves a stale rebuild on this cluster.
+          imagePullPolicy: Always
           env:
             - name: NATS_URL
               value: "nats://nats:4222"

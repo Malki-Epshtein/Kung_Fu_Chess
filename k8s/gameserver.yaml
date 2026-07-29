@@ -37,7 +37,15 @@ spec:
       containers:
         - name: gameserver
           image: kung-fu-chess/server:latest
-          imagePullPolicy: IfNotPresent
+          # Always, not IfNotPresent - this cluster's node runs its own
+          # containerd, separate from the Docker Engine's image store (confirmed
+          # by a stale binary mtime surviving a rollout restart after rebuilding
+          # this same :latest tag) - IfNotPresent silently keeps serving
+          # whatever was cached under this tag the first time it was resolved,
+          # never noticing a local rebuild moved the tag to new image content.
+          # Always forces re-resolution against the shared local image on every
+          # new pod, which is what "rebuild, then redeploy" actually needs here.
+          imagePullPolicy: Always
           ports:
             - containerPort: 9002
           env:

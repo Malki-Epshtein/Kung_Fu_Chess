@@ -20,7 +20,9 @@ spec:
       containers:
         - name: ws-gateway
           image: kung-fu-chess/ws-gateway:latest
-          imagePullPolicy: IfNotPresent
+          # Always - see gameserver.yaml's comment on this same setting for why
+          # IfNotPresent silently serves a stale rebuild on this cluster.
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:

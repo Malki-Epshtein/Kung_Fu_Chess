@@ -27,8 +27,16 @@ for stage in server:kung-fu-chess/server ws-gateway:kung-fu-chess/ws-gateway \
 done
 ```
 
-Every Deployment sets `imagePullPolicy: IfNotPresent` for exactly this reason - it'll use the
-imported image instead of trying (and failing) to pull from a registry.
+The 5 app-tier Deployments (gameserver/ws-gateway/api-gateway/matchmaker/game-allocator) set
+`imagePullPolicy: Always` rather than `IfNotPresent` - counterintuitive with no registry to pull
+from, but necessary in practice: this cluster's node runs its own containerd, separate from
+whatever local image store `docker build` writes to. `IfNotPresent` was found to silently keep
+serving whatever image content was cached under a given `:latest` tag the *first* time it was
+resolved - confirmed by rebuilding an image, `kubectl rollout restart`-ing, and finding the new
+pod's binary still had the old build's mtime. `Always` forces every new pod to re-resolve the tag
+against whatever's currently there, which for this locally-built/imported setup is exactly the
+freshly rebuilt image, not a real network pull. The 3 data-tier Deployments (postgres/redis/nats)
+stay on `IfNotPresent`, since those images are unmodified public tags that never change under us.
 
 ## Apply order
 
