@@ -74,3 +74,37 @@ TEST_CASE("ClientSessionRegistry - onLogin חוזר על אותו חיבור מ�
 
     CHECK(registry.sessionFor(hdlA)->elo == 1250);
 }
+
+TEST_CASE("ClientSessionRegistry - size מתחיל באפס ועולה עם onLogin") {
+    ClientSessionRegistry registry;
+    CHECK(registry.size() == 0);
+
+    std::shared_ptr<int> a, b;
+    auto hdlA = handleFrom(a);
+    auto hdlB = handleFrom(b);
+    registry.onLogin(hdlA, "alice", 1200);
+    CHECK(registry.size() == 1);
+    registry.onLogin(hdlB, "bob", 1400);
+    CHECK(registry.size() == 2);
+}
+
+TEST_CASE("ClientSessionRegistry - size יורד עם onDisconnect") {
+    ClientSessionRegistry registry;
+    std::shared_ptr<int> a;
+    auto hdlA = handleFrom(a);
+    registry.onLogin(hdlA, "alice", 1200);
+
+    registry.onDisconnect(hdlA);
+
+    CHECK(registry.size() == 0);
+}
+
+TEST_CASE("ClientSessionRegistry - size לא משתנה כשאותו חיבור עושה onLogin פעמיים") {
+    ClientSessionRegistry registry;
+    std::shared_ptr<int> a;
+    auto hdlA = handleFrom(a);
+    registry.onLogin(hdlA, "alice", 1200);
+    registry.onLogin(hdlA, "alice", 1250);
+
+    CHECK(registry.size() == 1);
+}

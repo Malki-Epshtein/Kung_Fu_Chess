@@ -1,5 +1,6 @@
 #include "WsGateway.h"
 #include "../shared/log/Log.h"
+#include "../shared/metrics/PrometheusText.h"
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/server.hpp>
@@ -70,8 +71,17 @@ void WsGateway::run(asio::io_context& io, uint16_t listenPort, ShardRegistry& sh
     // Reaching this at all means this gateway's own io_context just
     // completed a real request/response round trip - see k8s/ws-gateway.yaml's
     // probes, the reason this exists.
-    downstream.set_http_handler([&downstream](ConnectionHandle hdl) {
+    downstream.set_http_handler([&downstream, &byDownstream](ConnectionHandle hdl) {
         auto con = downstream.get_con_from_hdl(hdl);
+        if (con->get_request().get_uri() == "/metrics") {
+            std::string body = gaugeMetric("active_links",
+                                            "Client<->shard links currently proxied by this gateway",
+                                            static_cast<double>(byDownstream.size()));
+            con->append_header("Content-Type", "text/plain; version=0.0.4");
+            con->set_status(websocketpp::http::status_code::ok);
+            con->set_body(body);
+            return;
+        }
         con->set_status(websocketpp::http::status_code::ok);
         con->set_body("OK");
     });

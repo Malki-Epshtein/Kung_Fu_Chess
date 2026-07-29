@@ -20,6 +20,10 @@ public:
     // nullptr if this connection never logged in (or has since disconnected).
     const ClientSession* sessionFor(ConnectionHandle hdl) const;
 
+    // Logged-in connections currently tracked - exposed as the
+    // active_connections gauge on GET /metrics (see WsServer.cpp).
+    size_t size() const;
+
 private:
     std::map<ConnectionHandle, ClientSession, std::owner_less<ConnectionHandle>> sessions_;
 };

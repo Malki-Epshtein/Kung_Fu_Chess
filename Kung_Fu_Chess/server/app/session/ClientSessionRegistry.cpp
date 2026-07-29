@@ -12,3 +12,7 @@ const ClientSession* ClientSessionRegistry::sessionFor(ConnectionHandle hdl) con
     auto it = sessions_.find(hdl);
     return it == sessions_.end() ? nullptr : &it->second;
 }
+
+size_t ClientSessionRegistry::size() const {
+    return sessions_.size();
+}

@@ -13,6 +13,7 @@
 #include "../../shared/db/IClientSessionStore.h"
 #include "../concurrency/ThreadPool.h"
 #include "../../shared/log/Log.h"
+#include "../../shared/metrics/PrometheusText.h"
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 #include <asio/steady_timer.hpp>
@@ -63,8 +64,18 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, IUse
     // round trip - a liveness signal tcpSocket can't give (a deadlocked but
     // still-listening process would pass that too). See k8s/gameserver.yaml's
     // probes, the reason this exists.
-    server.set_http_handler([&server](websocketpp::connection_hdl hdl) {
+    server.set_http_handler([&server, &registry, &clientSessions](websocketpp::connection_hdl hdl) {
         auto con = server.get_con_from_hdl(hdl);
+        if (con->get_request().get_uri() == "/metrics") {
+            std::string body = gaugeMetric("active_rooms", "Rooms currently open on this shard",
+                                            static_cast<double>(registry.roomNames().size()))
+                              + gaugeMetric("active_connections", "Logged-in WebSocket connections on this shard",
+                                            static_cast<double>(clientSessions.size()));
+            con->append_header("Content-Type", "text/plain; version=0.0.4");
+            con->set_status(websocketpp::http::status_code::ok);
+            con->set_body(body);
+            return;
+        }
         con->set_status(websocketpp::http::status_code::ok);
         con->set_body("OK");
     });

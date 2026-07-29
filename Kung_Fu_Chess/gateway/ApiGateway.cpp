@@ -1,5 +1,6 @@
 #include "ApiGateway.h"
 #include "../shared/log/Log.h"
+#include "../shared/metrics/PrometheusText.h"
 #include "json.hpp"
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
@@ -403,6 +404,19 @@ void ApiGateway::run(asio::io_context& io, uint16_t listenPort, ShardRegistry& s
 
         if (method == "GET" && uri == "/health") {
             respondSync(con, 200, { {"success", true} });
+            return;
+        }
+
+        if (method == "GET" && uri == "/metrics") {
+            // Not respondSync - that always sets a JSON Content-Type, and
+            // this response is plain text.
+            std::string body = gaugeMetric("pending_play_tickets", "POST /play requests waiting on a match",
+                                            static_cast<double>(playTickets.size()))
+                              + gaugeMetric("in_flight_shard_relays", "Relay connections waiting on a shard reply",
+                                            static_cast<double>(relays.size()));
+            con->append_header("Content-Type", "text/plain; version=0.0.4");
+            con->set_status(websocketpp::http::status_code::ok);
+            con->set_body(body);
             return;
         }
 
