@@ -39,12 +39,15 @@ spec:
               value: "redis"
             - name: DATABASE_URL
               value: "postgresql://kfc:kfc@postgres:5432/kfc"
+          # GET /health - see ApiGateway.cpp's http handler.
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: 8081
             periodSeconds: 5
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: 8081
             periodSeconds: 10
 ---

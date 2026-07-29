@@ -55,6 +55,20 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, IUse
                                    broadcasters, eloService, gameHistoryService, sendToConnection,
                                    server.get_io_service(), sessionStore, nats, shardAddress);
 
+    // Plain HTTP GET (not a WS upgrade) lands here instead of the WS
+    // handlers below - websocketpp's asio config already dispatches that
+    // way on its own, same mechanism ApiGateway.cpp's REST routing uses on
+    // the identical config type. Reaching this at all means the io_service
+    // driving every room's tick loop just completed a real request/response
+    // round trip - a liveness signal tcpSocket can't give (a deadlocked but
+    // still-listening process would pass that too). See k8s/gameserver.yaml's
+    // probes, the reason this exists.
+    server.set_http_handler([&server](websocketpp::connection_hdl hdl) {
+        auto con = server.get_con_from_hdl(hdl);
+        con->set_status(websocketpp::http::status_code::ok);
+        con->set_body("OK");
+    });
+
     server.set_open_handler([&connectionHandler](websocketpp::connection_hdl hdl) {
         connectionHandler.onOpen(hdl);
     });

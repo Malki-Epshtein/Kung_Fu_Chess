@@ -65,15 +65,20 @@ spec:
                   fieldPath: status.podIP
             - name: SHARD_ADDRESS
               value: "ws://$(POD_IP):9002"
-          # The Server binary has no HTTP health endpoint today (WS-only on
-          # 9002) - tcpSocket is a pragmatic stand-in, not the fuller
-          # draining-vs-down distinction Server_Design.md §7 describes.
+          # GET /health rides the same port as real WS traffic - see
+          # WsServer.cpp's set_http_handler, added specifically to close this
+          # gap (previously tcpSocket-only, which can't tell "briefly slow"
+          # from "should stop receiving new rooms" - still not the fuller
+          # draining-vs-down distinction Server_Design.md §7 describes, but a
+          # real request/response round trip now, not just an open TCP port).
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: 9002
             periodSeconds: 5
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: 9002
             periodSeconds: 10
             failureThreshold: 3

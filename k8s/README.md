@@ -88,7 +88,10 @@ TCP connect and `redis-cli` both succeeded, isolating the bug to that one shadow
 
 - `postgres` is a Deployment + PVC, not a StatefulSet - fine at `replicas: 1`, not the more
   correct primitive `Server_Design.md` itself names for a database tier.
-- `gameserver`/`ws-gateway`/`api-gateway` probes are `tcpSocket` only - none of the three
-  binaries expose an HTTP health endpoint today, so this can't distinguish "briefly slow" from
-  "should stop receiving new rooms" the way `Server_Design.md` §7's fuller readiness-probe
-  guidance describes.
+- `gameserver`/`ws-gateway`/`api-gateway` now answer `GET /health` (200 OK) on their existing
+  port, and their probes use `httpGet` against it instead of `tcpSocket` - a real request/
+  response round trip, not just an open TCP port. Still a plain liveness check, not the fuller
+  draining-vs-down distinction `Server_Design.md` §7's readiness-probe guidance describes (no
+  dependency-reachability check against Redis/Postgres/NATS at request time).
+- `matchmaker`/`game-allocator` have no probes at all - both are plain NATS subscribers with no
+  listening port today, so there's nothing for a probe to reach.

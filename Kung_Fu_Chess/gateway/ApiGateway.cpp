@@ -280,7 +280,7 @@ void ApiGateway::run(asio::io_context& io, uint16_t listenPort, ShardRegistry& s
         const std::string uri    = con->get_request().get_uri();
         const std::string body   = con->get_request_body();
 
-        nlohmann::json request;
+        nlohmann::json request = nlohmann::json::object();
         try {
             if (!body.empty()) request = nlohmann::json::parse(body);
         } catch (const std::exception& e) {
@@ -398,6 +398,11 @@ void ApiGateway::run(asio::io_context& io, uint16_t listenPort, ShardRegistry& s
             }
             respondSync(con, 200, { {"success", true}, {"message", "room found"},
                                       {"roomName", joinRoomName}, {"shard", shardUri} });
+            return;
+        }
+
+        if (method == "GET" && uri == "/health") {
+            respondSync(con, 200, { {"success", true} });
             return;
         }
 

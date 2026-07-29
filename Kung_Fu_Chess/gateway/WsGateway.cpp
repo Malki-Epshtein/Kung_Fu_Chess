@@ -64,6 +64,18 @@ void WsGateway::run(asio::io_context& io, uint16_t listenPort, ShardRegistry& sh
     LinkMap& byUpstream   = *new LinkMap();
     size_t&  roundRobinNext = *new size_t(0);
 
+    // Plain HTTP GET (not a WS upgrade) lands here instead of the WS
+    // handlers below - same dispatch websocketpp's asio config already does
+    // for ApiGateway.cpp's REST routing on the identical config type.
+    // Reaching this at all means this gateway's own io_context just
+    // completed a real request/response round trip - see k8s/ws-gateway.yaml's
+    // probes, the reason this exists.
+    downstream.set_http_handler([&downstream](ConnectionHandle hdl) {
+        auto con = downstream.get_con_from_hdl(hdl);
+        con->set_status(websocketpp::http::status_code::ok);
+        con->set_body("OK");
+    });
+
     downstream.set_open_handler([&](ConnectionHandle downstreamHdl) {
         auto link = std::make_shared<Link>();
         link->downstreamHdl = downstreamHdl;

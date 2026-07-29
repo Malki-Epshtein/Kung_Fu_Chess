@@ -30,12 +30,16 @@ spec:
               value: "8080"
             - name: NATS_URL
               value: "nats://nats:4222"
+          # GET /health rides the same port as real WS traffic - see
+          # WsGateway.cpp's set_http_handler.
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: 8080
             periodSeconds: 5
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: 8080
             periodSeconds: 10
 ---
