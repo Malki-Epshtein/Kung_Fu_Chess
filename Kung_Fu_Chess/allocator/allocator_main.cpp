@@ -1,8 +1,14 @@
 #include "../shared/bus/NatsClient.h"
 #include "../shared/bus/SubjectSafe.h"
 #include "../shared/db/RedisSequence.h"
+#include "../shared/metrics/PrometheusText.h"
 #include "../shared/log/Log.h"
+#include <websocketpp/config/asio_no_tls.hpp>
+#include <websocketpp/server.hpp>
+#include <asio/io_context.hpp>
+#include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
 #include <mutex>
@@ -17,6 +23,8 @@ namespace {
     }
 
     constexpr int kAllocateTimeoutMs = 5000;
+
+    using HttpServer = websocketpp::server<websocketpp::config::asio>;
 }
 
 int main() {
@@ -36,9 +44,17 @@ int main() {
     const char* redisPortEnv = std::getenv("REDIS_PORT");
     int redisPort = redisPortEnv ? std::atoi(redisPortEnv) : 6379;
 
+    const char* healthPortEnv = std::getenv("HEALTH_PORT");
+    uint16_t healthPort = healthPortEnv ? static_cast<uint16_t>(std::atoi(healthPortEnv)) : 9102;
+
     try {
         NatsClient nats(natsUrl);
         RedisSequence roomNames(redisHost, redisPort);
+
+        // Cross-thread by necessity: incremented from NATS delivery threads
+        // (libnats's own, not this process's io_context), read from the
+        // HTTP handler below on GET /metrics.
+        std::atomic<uint64_t> allocationsTotal{0};
 
         // shardAddress -> its last-reported room count (server_main.cpp's
         // startHeartbeat publishes this every 5s) - "least loaded" just
@@ -106,6 +122,7 @@ int main() {
                 return;
             }
 
+            ++allocationsTotal;
             nats.publish("matchmaking.assigned",
                           { {"ticketA", event.at("ticketA")}, {"roleA", "White"},
                             {"ticketB", event.at("ticketB")}, {"roleB", "Black"},
@@ -144,13 +161,50 @@ int main() {
             if (!reply->value("success", false))
                 return *reply; // e.g. "room already exists" - pass the shard's own message through
 
+            ++allocationsTotal;
             spdlog::info("allocated room '{}' on {}", roomName, chosenShard);
             return { {"success", true}, {"message", "room created"}, {"roomName", roomName}, {"shard", chosenShard} };
         });
 
-        spdlog::info("game-allocator running, connected to {}", natsUrl);
-        while (true)
-            std::this_thread::sleep_for(std::chrono::hours(1));
+        // HTTP-only (no WS traffic ever uses this) - GET /health and
+        // /metrics, same set_http_handler mechanism WsServer/WsGateway/
+        // ApiGateway already use. Neither this process nor Matchmaker had
+        // any listening port before this - NATS runs entirely on libnats's
+        // own threads, independent of this io_context; io.run() below is
+        // what actually keeps the process alive from here on, the same
+        // role server.run() plays in WsServer.cpp.
+        asio::io_context io;
+        HttpServer http;
+        http.clear_access_channels(websocketpp::log::alevel::all);
+        http.clear_error_channels(websocketpp::log::elevel::all);
+        http.init_asio(&io);
+
+        http.set_http_handler([&](websocketpp::connection_hdl hdl) {
+            auto con = http.get_con_from_hdl(hdl);
+            if (con->get_request().get_uri() == "/metrics") {
+                size_t knownShardCount;
+                {
+                    std::lock_guard<std::mutex> lock(shardLoadMutex);
+                    knownShardCount = shardLoad.size();
+                }
+                std::string body =
+                    counterMetric("allocations_total", "Rooms successfully allocated by this replica",
+                                   static_cast<double>(allocationsTotal.load()))
+                  + gaugeMetric("known_shard_count", "Game-server shards heard from via shard.heartbeat",
+                                 static_cast<double>(knownShardCount));
+                con->append_header("Content-Type", "text/plain; version=0.0.4");
+                con->set_status(websocketpp::http::status_code::ok);
+                con->set_body(body);
+                return;
+            }
+            con->set_status(websocketpp::http::status_code::ok);
+            con->set_body("OK");
+        });
+
+        http.listen(healthPort);
+        http.start_accept();
+        spdlog::info("game-allocator running, connected to {}, health/metrics on :{}", natsUrl, healthPort);
+        io.run();
     } catch (const std::exception& e) {
         spdlog::error("game-allocator failed to start: {}", e.what());
         return 1;

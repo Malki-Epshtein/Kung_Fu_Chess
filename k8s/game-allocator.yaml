@@ -9,8 +9,11 @@
 # names) was never the racy part. shard.heartbeat stays plain pub/sub on
 # purpose - every replica needs its own view of shard load.
 #
-# No Service: nothing reaches this pod through Kubernetes networking, only
-# through NATS.
+# Service is ClusterIP, introspection/scrape-target only, same as
+# gameserver.yaml's own Service - nothing routes real allocation traffic
+# through Kubernetes here, only through NATS. The Service just gives
+# GET /health and /metrics (allocator_main.cpp) a stable address to reach
+# for that purpose.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -35,8 +38,34 @@ spec:
           # Always - see gameserver.yaml's comment on this same setting for why
           # IfNotPresent silently serves a stale rebuild on this cluster.
           imagePullPolicy: Always
+          ports:
+            - containerPort: 9102
           env:
             - name: NATS_URL
               value: "nats://nats:4222"
             - name: REDIS_HOST
               value: "redis"
+            - name: HEALTH_PORT
+              value: "9102"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9102
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9102
+            periodSeconds: 10
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: game-allocator
+spec:
+  selector:
+    app: game-allocator
+  ports:
+    - port: 9102
+      targetPort: 9102

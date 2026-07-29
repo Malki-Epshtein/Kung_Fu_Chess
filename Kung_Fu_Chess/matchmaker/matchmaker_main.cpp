@@ -1,7 +1,13 @@
 #include "../shared/bus/NatsClient.h"
 #include "../shared/matchmaking/RedisMatchPool.h"
+#include "../shared/metrics/PrometheusText.h"
 #include "../shared/log/Log.h"
+#include <websocketpp/config/asio_no_tls.hpp>
+#include <websocketpp/server.hpp>
+#include <asio/io_context.hpp>
+#include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <mutex>
 #include <set>
@@ -37,6 +43,8 @@ namespace {
         const char* value = std::getenv(name);
         return value ? std::string(value) : fallback;
     }
+
+    using HttpServer = websocketpp::server<websocketpp::config::asio>;
 }
 
 int main() {
@@ -60,9 +68,18 @@ int main() {
     const char* redisPortEnv = std::getenv("REDIS_PORT");
     int redisPort = redisPortEnv ? std::atoi(redisPortEnv) : 6379;
 
+    const char* healthPortEnv = std::getenv("HEALTH_PORT");
+    uint16_t healthPort = healthPortEnv ? static_cast<uint16_t>(std::atoi(healthPortEnv)) : 9101;
+
     try {
         NatsClient nats(natsUrl);
         RedisMatchPool pool(redisHost, redisPort);
+
+        // Cross-thread by necessity: incremented from NATS delivery threads
+        // (libnats's own, not this process's io_context), read from the
+        // HTTP handler below on GET /metrics.
+        std::atomic<uint64_t> matchesFoundTotal{0};
+        std::atomic<uint64_t> assignmentTimeoutsTotal{0};
 
         // Adds ticketId to the pool and arms its 60s timeout - shared by
         // both the normal "no match right now" path and the rare fallback
@@ -107,12 +124,14 @@ int main() {
                 pendingAssignment.insert(ticketA);
                 pendingAssignment.insert(ticketB);
             }
-            std::thread([&nats, &pendingAssignmentMutex, &pendingAssignment, ticketA, ticketB] {
+            std::thread([&nats, &pendingAssignmentMutex, &pendingAssignment, &assignmentTimeoutsTotal,
+                         ticketA, ticketB] {
                 std::this_thread::sleep_for(std::chrono::seconds(kAssignmentTimeoutSeconds));
                 std::lock_guard<std::mutex> lock(pendingAssignmentMutex);
                 for (const std::string& ticketId : { ticketA, ticketB }) {
                     if (pendingAssignment.erase(ticketId) == 0)
                         continue; // matchmaking.assigned already cancelled this one
+                    ++assignmentTimeoutsTotal;
                     nats.publish("matchmaking.timeout", { {"ticketId", ticketId} });
                     spdlog::info("ticket {} timed out waiting for room assignment "
                                  "(GameAllocator unreachable or allocation failed)", ticketId);
@@ -137,6 +156,7 @@ int main() {
             if (opponent) {
                 spdlog::info("matched '{}' (ticket {}) with '{}' (ticket {})",
                              opponent->username, opponent->ticketId, username, ticketId);
+                ++matchesFoundTotal;
                 nats.publish("matchmaking.matched",
                               { {"ticketA", opponent->ticketId}, {"usernameA", opponent->username}, {"eloA", opponent->elo},
                                 {"ticketB", ticketId}, {"usernameB", username}, {"eloB", elo} });
@@ -156,9 +176,41 @@ int main() {
             pool.remove(ticketId);
         });
 
-        spdlog::info("matchmaker running, connected to {}", natsUrl);
-        while (true)
-            std::this_thread::sleep_for(std::chrono::hours(1));
+        // HTTP-only (no WS traffic ever uses this) - GET /health and
+        // /metrics, same set_http_handler mechanism WsServer/WsGateway/
+        // ApiGateway already use. Neither this process nor GameAllocator
+        // had any listening port before this - NATS runs entirely on
+        // libnats's own threads, independent of this io_context; io.run()
+        // below is what actually keeps the process alive from here on,
+        // the same role server.run() plays in WsServer.cpp.
+        asio::io_context io;
+        HttpServer http;
+        http.clear_access_channels(websocketpp::log::alevel::all);
+        http.clear_error_channels(websocketpp::log::elevel::all);
+        http.init_asio(&io);
+
+        http.set_http_handler([&](websocketpp::connection_hdl hdl) {
+            auto con = http.get_con_from_hdl(hdl);
+            if (con->get_request().get_uri() == "/metrics") {
+                std::string body =
+                    counterMetric("matches_found_total", "Matches found by this replica",
+                                   static_cast<double>(matchesFoundTotal.load()))
+                  + counterMetric("assignment_timeouts_total",
+                                   "Matches whose room assignment never arrived in time",
+                                   static_cast<double>(assignmentTimeoutsTotal.load()));
+                con->append_header("Content-Type", "text/plain; version=0.0.4");
+                con->set_status(websocketpp::http::status_code::ok);
+                con->set_body(body);
+                return;
+            }
+            con->set_status(websocketpp::http::status_code::ok);
+            con->set_body("OK");
+        });
+
+        http.listen(healthPort);
+        http.start_accept();
+        spdlog::info("matchmaker running, connected to {}, health/metrics on :{}", natsUrl, healthPort);
+        io.run();
     } catch (const std::exception& e) {
         spdlog::error("matchmaker failed to start: {}", e.what());
         return 1;

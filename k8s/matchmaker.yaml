@@ -16,14 +16,14 @@
 # gameserver.yaml's comment) - this one didn't need it before since it
 # never touched Redis.
 #
-# No Service: nothing reaches this pod through Kubernetes networking, only
-# through NATS (both inbound subscriptions and outbound publishes).
+# Service is ClusterIP, introspection/scrape-target only, same as
+# gameserver.yaml's own Service - nothing routes real matchmaking traffic
+# through Kubernetes here, only through NATS (both inbound subscriptions
+# and outbound publishes). The Service just gives GET /health and /metrics
+# (matchmaker_main.cpp) a stable address to reach for that purpose.
 #
-# No readiness/liveness probe: the binary exposes no listening port at all
-# (pure NATS client), so there's nothing honest to tcpSocket-probe; relying
-# on Kubernetes' default crash-restart behavior (process exit code) rather
-# than faking a probe that would always report healthy regardless of
-# actual NATS/Redis connectivity.
+# httpGet probes now that there's an actual listener to check (previously
+# tcpSocket wasn't even possible - no listening port at all before this).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -45,8 +45,34 @@ spec:
           # Always - see gameserver.yaml's comment on this same setting for why
           # IfNotPresent silently serves a stale rebuild on this cluster.
           imagePullPolicy: Always
+          ports:
+            - containerPort: 9101
           env:
             - name: NATS_URL
               value: "nats://nats:4222"
             - name: REDIS_HOST
               value: "redis"
+            - name: HEALTH_PORT
+              value: "9101"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9101
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9101
+            periodSeconds: 10
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matchmaker
+spec:
+  selector:
+    app: matchmaker
+  ports:
+    - port: 9101
+      targetPort: 9101
