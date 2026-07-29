@@ -150,6 +150,9 @@
     <ClCompile Include="server\app\logic\GameHistoryService.cpp">
       <Filter>app\logic</Filter>
     </ClCompile>
+    <ClCompile Include="server\app\logic\GameStateMirrorService.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
     <ClCompile Include="server\app\logic\StartingBoard.cpp">
       <Filter>app\logic</Filter>
     </ClCompile>
@@ -193,6 +196,9 @@
       <Filter>app\logic</Filter>
     </ClCompile>
     <ClCompile Include="test\test_EloService.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_GameStateMirrorService.cpp">
       <Filter>app\logic</Filter>
     </ClCompile>
     <ClCompile Include="server\net\WsServer.cpp">
@@ -498,6 +504,9 @@
       <Filter>app\logic</Filter>
     </ClInclude>
     <ClInclude Include="server\app\logic\GameHistoryService.h">
+      <Filter>app\logic</Filter>
+    </ClInclude>
+    <ClInclude Include="server\app\logic\GameStateMirrorService.h">
       <Filter>app\logic</Filter>
     </ClInclude>
     <ClInclude Include="server\app\logic\StartingBoard.h">

@@ -32,6 +32,7 @@ add_executable(Server
     ${KFC_DIR}/server/app/logic/EloCalculator.cpp
     ${KFC_DIR}/server/app/logic/EloService.cpp
     ${KFC_DIR}/server/app/logic/GameHistoryService.cpp
+    ${KFC_DIR}/server/app/logic/GameStateMirrorService.cpp
     ${KFC_DIR}/server/app/handlers/LoginHandler.cpp
     ${KFC_DIR}/server/app/handlers/JoinRoomHandler.cpp
     ${KFC_DIR}/server/app/handlers/FindGameHandler.cpp
@@ -45,6 +46,7 @@ add_executable(Server
     ${KFC_DIR}/shared/db/RedisRoomDirectory.cpp
     ${KFC_DIR}/shared/db/RedisClientSessionStore.cpp
     ${KFC_DIR}/shared/db/RedisReconnectStore.cpp
+    ${KFC_DIR}/shared/db/RedisGameStateStore.cpp
     ${KFC_DIR}/shared/db/PostgresGameHistoryRepository.cpp
     ${KFC_DIR}/server/engine/GameEngine.cpp
     ${KFC_DIR}/server/engine/ScoreObserver.cpp

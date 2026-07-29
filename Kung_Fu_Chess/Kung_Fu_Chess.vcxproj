@@ -230,6 +230,7 @@
     <ClCompile Include="server\app\logic\EloCalculator.cpp" />
     <ClCompile Include="server\app\logic\EloService.cpp" />
     <ClCompile Include="server\app\logic\GameHistoryService.cpp" />
+    <ClCompile Include="server\app\logic\GameStateMirrorService.cpp" />
     <ClCompile Include="server\db\UserRepository.cpp" />
     <ClCompile Include="ThirdParty\sqlite3.c">
       <!-- Vendored file (not our code): uses the deprecated GetVersionEx
@@ -440,6 +441,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="test\test_GameStateMirrorService.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="test\test_UserRepository.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -536,6 +541,7 @@
     <ClInclude Include="server\app\logic\EloCalculator.h" />
     <ClInclude Include="server\app\logic\EloService.h" />
     <ClInclude Include="server\app\logic\GameHistoryService.h" />
+    <ClInclude Include="server\app\logic\GameStateMirrorService.h" />
     <ClInclude Include="server\db\UserRepository.h" />
     <ClInclude Include="ThirdParty\sqlite3.h" />
     <ClInclude Include="ThirdParty\sqlite3ext.h" />
@@ -555,6 +561,7 @@
     <ClInclude Include="shared\db\IRoomDirectory.h" />
     <ClInclude Include="shared\db\IGameHistoryRepository.h" />
     <ClInclude Include="shared\db\IReconnectStore.h" />
+    <ClInclude Include="shared\db\IGameStateStore.h" />
     <ClInclude Include="shared\db\IClientSessionStore.h" />
     <ClInclude Include="client\net\WsClient.h" />
     <ClInclude Include="client\net\BlockingRequest.h" />

@@ -73,6 +73,11 @@ public:
     // setDisconnectStatus above.
     void setIdentity(RoomIdentity identity) { identity_ = std::move(identity); }
 
+    // Read-only counterpart to setIdentity above - needed by
+    // GameStateMirrorService to grab white/black username+elo for its
+    // Redis record without GameSession needing to know Redis exists.
+    const RoomIdentity& identity() const { return identity_; }
+
     // Called directly by SessionRegistry's disconnect-countdown timer, the
     // moment a grace period fully expires (Stage D) - the game engine
     // itself never learns a network/disconnect exists, so this is the only

@@ -6,6 +6,7 @@
 #include "../server/app/logic/MatchTicketRegistry.h"
 #include "../server/app/logic/EloService.h"
 #include "../server/app/logic/GameHistoryService.h"
+#include "../server/app/logic/GameStateMirrorService.h"
 #include "../server/app/logic/StartingBoard.h"
 #include "../server/db/UserRepository.h"
 #include "../shared/protocol/MessageCodec.h"
@@ -34,6 +35,7 @@ namespace {
         MatchTicketRegistry      tickets{ "test-shard" };
         EloService                eloService{ users };
         GameHistoryService        gameHistoryService{ nullptr }; // no Postgres in tests
+        GameStateMirrorService    gameStateMirror{ nullptr, registry }; // no Redis in tests
         asio::io_context          io;
         BroadcasterManager        broadcasters{ bus, registry, [](MessageDispatcher::ConnectionHandle, const std::string&) {} };
         std::vector<std::string> pushed;
@@ -43,6 +45,7 @@ namespace {
         explicit Fixture(INatsClient* natsArg = nullptr)
             : nats(natsArg),
               dispatcher(users, clientSessions, registry, bus, tickets, broadcasters, eloService, gameHistoryService,
+                         gameStateMirror,
                          [this](MessageDispatcher::ConnectionHandle, const std::string& text) { pushed.push_back(text); },
                          io, nullptr, nats) {}
     };

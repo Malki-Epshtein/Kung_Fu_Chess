@@ -132,6 +132,7 @@
     <ClCompile Include="server\app\logic\EloCalculator.cpp" />
     <ClCompile Include="server\app\logic\EloService.cpp" />
     <ClCompile Include="server\app\logic\GameHistoryService.cpp" />
+    <ClCompile Include="server\app\logic\GameStateMirrorService.cpp" />
     <ClCompile Include="server\app\logic\CommandDispatcher.cpp" />
     <ClCompile Include="server\app\logic\StartingBoard.cpp" />
     <ClCompile Include="server\app\handlers\LoginHandler.cpp" />
@@ -184,6 +185,7 @@
     <ClInclude Include="server\app\logic\EloCalculator.h" />
     <ClInclude Include="server\app\logic\EloService.h" />
     <ClInclude Include="server\app\logic\GameHistoryService.h" />
+    <ClInclude Include="server\app\logic\GameStateMirrorService.h" />
     <ClInclude Include="server\app\logic\CommandDispatcher.h" />
     <ClInclude Include="server\app\logic\StartingBoard.h" />
     <ClInclude Include="server\app\session\RoleName.h" />

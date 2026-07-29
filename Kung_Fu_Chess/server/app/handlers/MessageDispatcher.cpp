@@ -14,6 +14,7 @@
 #include "../logic/CommandDispatcher.h"
 #include "../logic/EloService.h"
 #include "../logic/GameHistoryService.h"
+#include "../logic/GameStateMirrorService.h"
 #include "../../../shared/protocol/MessageCodec.h"
 #include "../../../shared/model/Piece.h"
 #include "../../../shared/bus/SubjectSafe.h"
@@ -22,22 +23,27 @@
 MessageDispatcher::MessageDispatcher(IUserRepository& users, ClientSessionRegistry& clientSessions,
                                       SessionRegistry& registry, EventBus& bus, MatchTicketRegistry& tickets,
                                       BroadcasterManager& broadcasters, EloService& eloService,
-                                      GameHistoryService& gameHistoryService, ConnectionSender push,
+                                      GameHistoryService& gameHistoryService, GameStateMirrorService& gameStateMirror,
+                                      ConnectionSender push,
                                       asio::io_context& ioContext, IClientSessionStore* sessionStore,
                                       INatsClient* nats, std::string shardAddress)
     : registry_(registry) {
     // Called once a new room actually exists (room creation or a Play
     // match) - attaches every per-room subscriber a fresh room needs:
-    // NetworkBroadcaster's three client-facing topics, EloService's and
-    // GameHistoryService's server-internal gameEndedTopic. AllocateRoomHandler
-    // just calls this; it doesn't need to know what "attach" entails.
+    // NetworkBroadcaster's three client-facing topics, EloService's,
+    // GameHistoryService's, and GameStateMirrorService's server-internal
+    // topics. AllocateRoomHandler just calls this; it doesn't need to know
+    // what "attach" entails.
     BroadcasterManager* broadcastersPtr = &broadcasters;
     EloService* eloServicePtr = &eloService;
     GameHistoryService* gameHistoryServicePtr = &gameHistoryService;
-    auto attachBroadcaster = [broadcastersPtr, eloServicePtr, gameHistoryServicePtr, &bus](const std::string& name) {
+    GameStateMirrorService* gameStateMirrorPtr = &gameStateMirror;
+    auto attachBroadcaster = [broadcastersPtr, eloServicePtr, gameHistoryServicePtr, gameStateMirrorPtr,
+                               &bus](const std::string& name) {
         broadcastersPtr->attach(name);
         eloServicePtr->attach(bus, name);
         gameHistoryServicePtr->attach(bus, name);
+        gameStateMirrorPtr->attach(bus, name);
     };
 
     loginHandler_      = std::make_unique<LoginHandler>(users, clientSessions);

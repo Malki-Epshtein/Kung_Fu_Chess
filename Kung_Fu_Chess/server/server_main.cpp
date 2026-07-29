@@ -6,6 +6,7 @@
 #include "../shared/db/IClientSessionStore.h"
 #include "../shared/db/IGameHistoryRepository.h"
 #include "../shared/db/IReconnectStore.h"
+#include "../shared/db/IGameStateStore.h"
 #ifdef KFC_HAVE_POSTGRES
 #include "db/PostgresUserRepository.h"
 #include "../shared/db/PostgresGameHistoryRepository.h"
@@ -14,6 +15,7 @@
 #include "../shared/db/RedisRoomDirectory.h"
 #include "../shared/db/RedisClientSessionStore.h"
 #include "../shared/db/RedisReconnectStore.h"
+#include "../shared/db/RedisGameStateStore.h"
 #endif
 #include "../shared/bus/INatsClient.h"
 #ifdef KFC_HAVE_NATS
@@ -119,6 +121,21 @@ namespace {
         return nullptr;
     }
 
+    // Same REDIS_HOST gate again - shares the connection info, just a
+    // different key prefix ("gamestate:" vs "reconnect:"/"room:"/"session:").
+    // Null (native Windows, or no REDIS_HOST) means in-progress games have
+    // no live Redis mirror at all - see IGameStateStore.h/GameStateMirrorService.
+    std::unique_ptr<IGameStateStore> makeGameStateStore() {
+#ifdef KFC_HAVE_REDIS
+        if (const char* host = std::getenv("REDIS_HOST")) {
+            const char* portEnv = std::getenv("REDIS_PORT");
+            int port = portEnv ? std::atoi(portEnv) : 6379;
+            return std::make_unique<RedisGameStateStore>(host, port);
+        }
+#endif
+        return nullptr;
+    }
+
     // Same REDIS_HOST gate as the room directory above - shares the
     // connection info, just a different key prefix ("session:" vs "room:").
     // Lets EnterRoomHandler resolve a token minted by the API Gateway's
@@ -213,11 +230,12 @@ int main(int /*argc*/, char** /*argv*/) {
         std::unique_ptr<IUserRepository> users = makeUserRepository();
         std::unique_ptr<IClientSessionStore> sessionStore = makeSessionStore();
         std::unique_ptr<IGameHistoryRepository> gameHistory = makeGameHistoryRepository();
+        std::unique_ptr<IGameStateStore> gameStateStore = makeGameStateStore();
         if (nats)
             startHeartbeat(*nats, registry, shardAddressStr);
         WsServer server;
         server.run(kPort, registry, bus, *users, sessionStore.get(), nats.get(), shardAddressStr,
-                   kDefaultTickMs, gameHistory.get());
+                   kDefaultTickMs, gameHistory.get(), gameStateStore.get());
     } catch (const std::exception& e) {
         spdlog::error("failed to start: {} (is port {} already in use by another instance?)", e.what(), kPort);
         return 1;

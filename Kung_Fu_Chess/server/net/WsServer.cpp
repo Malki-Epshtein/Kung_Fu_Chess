@@ -7,6 +7,7 @@
 #include "../app/logic/MatchTicketRegistry.h"
 #include "../app/logic/EloService.h"
 #include "../app/logic/GameHistoryService.h"
+#include "../app/logic/GameStateMirrorService.h"
 #include "../app/networking/BroadcasterManager.h"
 #include "../app/handlers/MessageDispatcher.h"
 #include "../db/IUserRepository.h"
@@ -27,7 +28,7 @@ namespace {
 
 void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, IUserRepository& users,
                     IClientSessionStore* sessionStore, INatsClient* nats, std::string shardAddress, int tickMs,
-                    IGameHistoryRepository* gameHistory) {
+                    IGameHistoryRepository* gameHistory, IGameStateStore* gameStateStore) {
     WsppServer server;
     server.clear_access_channels(websocketpp::log::alevel::all);
     server.clear_error_channels(websocketpp::log::elevel::all);
@@ -37,6 +38,7 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, IUse
     MatchTicketRegistry    tickets(shardAddress);
     EloService             eloService(users);
     GameHistoryService     gameHistoryService(gameHistory);
+    GameStateMirrorService gameStateMirror(gameStateStore, registry);
 
     // The one place any of this subsystem's objects actually touch a
     // socket - wraps server.send for "push this text to some connection
@@ -53,7 +55,7 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, IUse
     BroadcasterManager broadcasters(bus, registry, sendToConnection);
     ConnectionHandler  connectionHandler(registry, clientSessions, tickets, nats, server.get_io_service());
     MessageDispatcher  dispatcher(users, clientSessions, registry, bus, tickets,
-                                   broadcasters, eloService, gameHistoryService, sendToConnection,
+                                   broadcasters, eloService, gameHistoryService, gameStateMirror, sendToConnection,
                                    server.get_io_service(), sessionStore, nats, shardAddress);
 
     // Plain HTTP GET (not a WS upgrade) lands here instead of the WS

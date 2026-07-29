@@ -14,6 +14,7 @@ class MatchTicketRegistry;
 class BroadcasterManager;
 class EloService;
 class GameHistoryService;
+class GameStateMirrorService;
 class IClientSessionStore;
 class LoginHandler;
 class JoinRoomHandler;
@@ -46,7 +47,8 @@ public:
     MessageDispatcher(IUserRepository& users, ClientSessionRegistry& clientSessions,
                        SessionRegistry& registry, EventBus& bus, MatchTicketRegistry& tickets,
                        BroadcasterManager& broadcasters, EloService& eloService,
-                       GameHistoryService& gameHistoryService, ConnectionSender push,
+                       GameHistoryService& gameHistoryService, GameStateMirrorService& gameStateMirror,
+                       ConnectionSender push,
                        asio::io_context& ioContext, IClientSessionStore* sessionStore = nullptr,
                        INatsClient* nats = nullptr, std::string shardAddress = "");
     ~MessageDispatcher();
