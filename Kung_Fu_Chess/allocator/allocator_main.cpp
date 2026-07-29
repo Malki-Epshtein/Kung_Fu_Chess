@@ -1,7 +1,7 @@
 #include "../shared/bus/NatsClient.h"
+#include "../shared/bus/SubjectSafe.h"
 #include "../shared/db/RedisSequence.h"
 #include "../shared/log/Log.h"
-#include <cctype>
 #include <chrono>
 #include <cstdlib>
 #include <limits>
@@ -14,17 +14,6 @@ namespace {
     std::string envString(const char* name, const std::string& fallback) {
         const char* value = std::getenv(name);
         return value ? std::string(value) : fallback;
-    }
-
-    // Must match MessageDispatcher.cpp's identical transform - both sides
-    // independently sanitize the same raw SHARD_ADDRESS into the same NATS
-    // subject token, without coordinating anything else.
-    std::string subjectSafe(const std::string& raw) {
-        std::string safe = raw;
-        for (char& c : safe)
-            if (!std::isalnum(static_cast<unsigned char>(c)))
-                c = '_';
-        return safe;
     }
 
     constexpr int kAllocateTimeoutMs = 5000;

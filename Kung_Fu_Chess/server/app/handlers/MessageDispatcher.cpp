@@ -16,24 +16,8 @@
 #include "../logic/GameHistoryService.h"
 #include "../../../shared/protocol/MessageCodec.h"
 #include "../../../shared/model/Piece.h"
+#include "../../../shared/bus/SubjectSafe.h"
 #include "../../../shared/log/Log.h"
-#include <cctype>
-
-namespace {
-    // NATS subjects can't contain "." (it's the token separator) or
-    // whitespace - a shard address like "ws://gameserver-a:9002" needs
-    // sanitizing before it's usable as one token. Both server_main.cpp's
-    // shard (subscribing) and the Game Allocator (requesting) apply this
-    // same transform to the same raw SHARD_ADDRESS, so they always agree
-    // on the resulting subject without coordinating anything else.
-    std::string subjectSafe(const std::string& raw) {
-        std::string safe = raw;
-        for (char& c : safe)
-            if (!std::isalnum(static_cast<unsigned char>(c)))
-                c = '_';
-        return safe;
-    }
-}
 
 MessageDispatcher::MessageDispatcher(IUserRepository& users, ClientSessionRegistry& clientSessions,
                                       SessionRegistry& registry, EventBus& bus, MatchTicketRegistry& tickets,

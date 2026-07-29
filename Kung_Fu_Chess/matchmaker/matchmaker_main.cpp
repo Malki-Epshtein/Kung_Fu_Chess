@@ -3,6 +3,8 @@
 #include "../shared/log/Log.h"
 #include <chrono>
 #include <cstdlib>
+#include <mutex>
+#include <set>
 #include <string>
 #include <thread>
 
@@ -15,6 +17,21 @@ namespace {
     // shared/matchmaking/Matchmaker.h) - kept here now that pairing no
     // longer goes through that class.
     constexpr int kEloRange = 100;
+
+    // How long a just-matched pair waits for GameAllocator to actually
+    // assign them a room before this service gives up on their behalf.
+    // Once matched, neither ticket has any other timeout watching it - the
+    // popped ticket's own kSearchTimeoutSeconds pool timer (if it still has
+    // one pending) just silently no-ops via pool.isWaiting(), and the
+    // freshly-arrived ticket never had one. Without this, an unreachable
+    // GameAllocator (or one whose shard.*.allocate call fails - see
+    // allocator_main.cpp's own "dropping match" log line) leaves both
+    // players hung forever with no GAME_FOUND and no error. Must exceed
+    // GameAllocator's own kAllocateTimeoutMs (5s) plus NATS round-trip
+    // slack; far shorter than kSearchTimeoutSeconds since this is only
+    // "wait for an already-found opponent to be seated," not "wait to find
+    // one at all."
+    constexpr int kAssignmentTimeoutSeconds = 10;
 
     std::string envString(const char* name, const std::string& fallback) {
         const char* value = std::getenv(name);
@@ -62,6 +79,47 @@ int main() {
             }).detach();
         };
 
+        // Ticket IDs currently matched and waiting on GameAllocator to
+        // publish matchmaking.assigned for them - see kAssignmentTimeoutSeconds
+        // above. Local to this replica: only the one that actually found the
+        // match (and so knows both ticket IDs) arms anything here: another
+        // replica's own subscriber below just finds nothing to erase, the
+        // same harmless no-op shape ApiGateway/FindGameHandler already use
+        // for this same subject.
+        std::mutex pendingAssignmentMutex;
+        std::set<std::string> pendingAssignment;
+
+        // Cancels the watchdog below once GameAllocator actually delivers -
+        // fan-out (not a queue group), since every Matchmaker replica must
+        // check its own pendingAssignment, exactly like ApiGateway.cpp/
+        // FindGameHandler.cpp already do for this identical subject.
+        nats.subscribe("matchmaking.assigned", [&](const nlohmann::json& event) {
+            std::lock_guard<std::mutex> lock(pendingAssignmentMutex);
+            pendingAssignment.erase(event.at("ticketA").get<std::string>());
+            pendingAssignment.erase(event.at("ticketB").get<std::string>());
+        });
+
+        // Arms the matched-but-not-yet-assigned watchdog for both tickets of
+        // a pair this replica just matched - see kAssignmentTimeoutSeconds.
+        auto watchForAssignment = [&](const std::string& ticketA, const std::string& ticketB) {
+            {
+                std::lock_guard<std::mutex> lock(pendingAssignmentMutex);
+                pendingAssignment.insert(ticketA);
+                pendingAssignment.insert(ticketB);
+            }
+            std::thread([&nats, &pendingAssignmentMutex, &pendingAssignment, ticketA, ticketB] {
+                std::this_thread::sleep_for(std::chrono::seconds(kAssignmentTimeoutSeconds));
+                std::lock_guard<std::mutex> lock(pendingAssignmentMutex);
+                for (const std::string& ticketId : { ticketA, ticketB }) {
+                    if (pendingAssignment.erase(ticketId) == 0)
+                        continue; // matchmaking.assigned already cancelled this one
+                    nats.publish("matchmaking.timeout", { {"ticketId", ticketId} });
+                    spdlog::info("ticket {} timed out waiting for room assignment "
+                                 "(GameAllocator unreachable or allocation failed)", ticketId);
+                }
+            }).detach();
+        };
+
         // Queue group ("matchmakers") - exactly one Matchmaker replica
         // handles each request, not all of them. Still required for
         // correctness even with a shared Redis pool: without it, every
@@ -82,6 +140,7 @@ int main() {
                 nats.publish("matchmaking.matched",
                               { {"ticketA", opponent->ticketId}, {"usernameA", opponent->username}, {"eloA", opponent->elo},
                                 {"ticketB", ticketId}, {"usernameB", username}, {"eloB", elo} });
+                watchForAssignment(opponent->ticketId, ticketId);
                 return;
             }
 

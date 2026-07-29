@@ -531,6 +531,7 @@
     <ClInclude Include="server\app\handlers\AllocateRoomHandler.h" />
     <ClInclude Include="shared\matchmaking\Matchmaker.h" />
     <ClInclude Include="shared\bus\INatsClient.h" />
+    <ClInclude Include="shared\bus\SubjectSafe.h" />
     <ClInclude Include="server\app\logic\EloCalculator.h" />
     <ClInclude Include="server\app\logic\EloService.h" />
     <ClInclude Include="server\app\logic\GameHistoryService.h" />
