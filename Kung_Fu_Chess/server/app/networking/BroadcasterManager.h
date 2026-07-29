@@ -30,8 +30,8 @@ public:
     BroadcasterManager(EventBus& bus, SessionRegistry& registry, ConnectionSender sender);
 
     // Creates and stores all of `roomName`'s NetworkBroadcasters. Safe to
-    // call once per room's lifetime (called by CreateRoomHandler/
-    // FindGameHandler right after a room is created).
+    // call once per room's lifetime (called by AllocateRoomHandler right
+    // after a room is created).
     void attach(const std::string& roomName);
 
 private:

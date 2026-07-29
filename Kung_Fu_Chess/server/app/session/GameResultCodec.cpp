@@ -28,6 +28,7 @@ nlohmann::json GameResultCodec::encode(const GameResult& result) {
         {"reason", kReasonToName.at(result.reason)},
         {"winnerUsername", result.winnerUsername}, {"winnerElo", result.winnerElo},
         {"loserUsername", result.loserUsername}, {"loserElo", result.loserElo},
+        {"moveLog", result.moveLog},
     };
 }
 
@@ -37,5 +38,6 @@ GameResult GameResultCodec::decode(const nlohmann::json& j) {
         nameToReason(j.at("reason").get<std::string>()),
         j.at("winnerUsername").get<std::string>(), j.at("winnerElo").get<int>(),
         j.at("loserUsername").get<std::string>(), j.at("loserElo").get<int>(),
+        j.value("moveLog", nlohmann::json::object()),
     };
 }

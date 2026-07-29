@@ -1,0 +1,40 @@
+# replicas: 2 - previously pinned to 1 for the same reason matchmaker.yaml
+# was: matchmaking.matched/allocation.request went through plain NATS
+# pub/sub, so two instances would each independently allocate a room for
+# the same match/request. Fixed: allocator_main.cpp now subscribes to both
+# via a NATS queue group ("allocators"), so exactly one replica handles
+# each - no new Redis structure needed for this one (unlike matchmaker),
+# since GameAllocator has no private mutable pool to begin with; the
+# already-shared, already-atomic RedisSequence (globally-unique room
+# names) was never the racy part. shard.heartbeat stays plain pub/sub on
+# purpose - every replica needs its own view of shard load.
+#
+# No Service: nothing reaches this pod through Kubernetes networking, only
+# through NATS.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: game-allocator
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: game-allocator
+  template:
+    metadata:
+      labels:
+        app: game-allocator
+    spec:
+      # See gameserver.yaml's comment on `enableServiceLinks: false` - same
+      # REDIS_PORT auto-injection collision applies here (this service also
+      # connects to Redis, for RedisSequence).
+      enableServiceLinks: false
+      containers:
+        - name: game-allocator
+          image: kung-fu-chess/game-allocator:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NATS_URL
+              value: "nats://nats:4222"
+            - name: REDIS_HOST
+              value: "redis"

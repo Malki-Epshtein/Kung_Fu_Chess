@@ -9,9 +9,11 @@
 #include <iomanip>
 #include <map>
 #include <memory>
+#include <optional>
 #include <random>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -97,10 +99,17 @@ namespace {
         con->set_body(body.dump());
         con->send_http_response();
     }
+
+    // Must exceed the Game Allocator's own kAllocateTimeoutMs
+    // (allocator_main.cpp) - otherwise the gateway could give up on
+    // allocation.request while the Allocator is still blocked waiting on
+    // the shard's reply to its own downstream shard.<addr>.allocate call.
+    constexpr int kAllocationRequestTimeoutMs = 8000;
 }
 
-void ApiGateway::run(asio::io_context& io, uint16_t listenPort, const std::vector<std::string>& shardUris,
-                      IRoomDirectory& directory, IClientSessionStore& sessionStore) {
+void ApiGateway::run(asio::io_context& io, uint16_t listenPort, ShardRegistry& shards,
+                      IRoomDirectory& directory, IClientSessionStore& sessionStore, INatsClient& nats,
+                      IGameHistoryRepository* gameHistory) {
     // Heap-allocated and intentionally never freed - io.run() (called by
     // gateway_main.cpp/api_gateway_main.cpp, after this function returns)
     // needs all of these to outlive this function's return: run() only
@@ -125,11 +134,38 @@ void ApiGateway::run(asio::io_context& io, uint16_t listenPort, const std::vecto
     RelayMap& relays = *new RelayMap();
     size_t&   roundRobinNext = *new size_t(0);
 
+    // ticketId -> the deferred POST /play connection waiting on it (see
+    // below) - heap-promoted for the same reason as relays/roundRobinNext.
+    // A ticketId here is globally unique across every API Gateway replica
+    // (makeToken(), not MatchTicketRegistry's shard-prefixed counter -
+    // there's no "this shard" concept at the Gateway).
+    std::map<std::string, HttpServer::connection_ptr>& playTickets =
+        *new std::map<std::string, HttpServer::connection_ptr>();
+
+    // Picks the next shard to relay a LOGIN to, round-robin over whichever
+    // shards have sent a heartbeat recently (see ShardRegistry - replaces
+    // the old static UPSTREAM_URIS list). POST /rooms no longer uses this -
+    // it asks the Game Allocator to pick a least-loaded shard instead (see
+    // below). Empty is a real, expected case now (gateway started before
+    // any shard's first heartbeat, or every shard briefly went quiet) where
+    // a static list never could be - callers must handle nullopt rather
+    // than index blindly the way `shardUris[roundRobinNext %
+    // shardUris.size()]` used to.
+    auto& pickShard = *new auto([&]() -> std::optional<std::string> {
+        std::vector<std::string> live = shards.liveShards();
+        if (live.empty())
+            return std::nullopt;
+        const std::string& uri = live[roundRobinNext % live.size()];
+        ++roundRobinNext;
+        return uri;
+    });
+
     // Opens a throwaway WS connection to `uri`, sends the encoded message,
     // and calls `callback(ok, reply)` once a reply arrives (or the
     // connection fails/closes before one does). This is how POST /login
-    // and POST /rooms reuse LoginHandler/CreateRoomHandler unchanged - the
-    // Gateway is just another client from the shard's point of view.
+    // reuses LoginHandler unchanged - the Gateway is just another client
+    // from the shard's point of view. (POST /rooms goes through the Game
+    // Allocator over NATS instead - see the /rooms handler below.)
     //
     // Heap-allocated (new auto(...), same reasoning as http/relay above) -
     // unlike onRelayGone below, this is never passed BY VALUE to a
@@ -193,7 +229,52 @@ void ApiGateway::run(asio::io_context& io, uint16_t listenPort, const std::vecto
     relay.set_close_handler(onRelayGone);
     relay.set_fail_handler(onRelayGone);
 
-    http.set_http_handler([&](ConnectionHandle hdl) {
+    // POST /play's counterpart to FindGameHandler's own matchmaking.assigned/
+    // .timeout subscriptions (see FindGameHandler.cpp) - same subjects, same
+    // "check both ticketA/ticketB, no-op if neither is mine" pattern, just
+    // resolving a deferred HTTP response here instead of pushing a
+    // GAME_FOUND message over a WebSocket. The matched opponent may have
+    // called /play on a *different* Gateway replica, so most receivers of a
+    // given event will legitimately find nothing in their own playTickets.
+    //
+    // cnats callbacks run on their own delivery thread, never the io
+    // thread - io.post() marshals back before touching `con`, same
+    // reasoning as every other NATS handler in this codebase.
+    nats.subscribe("matchmaking.assigned", [&](const nlohmann::json& event) {
+        io.post([&, event] {
+            for (const char* side : {"A", "B"}) {
+                std::string ticketId = event.at(std::string("ticket") + side).get<std::string>();
+                auto it = playTickets.find(ticketId);
+                if (it == playTickets.end())
+                    continue;
+                respondDeferred(it->second, 200, { {"success", true}, {"message", "match found"},
+                                                  {"roomName", event.at("roomName")}, {"shard", event.at("shard")} });
+                playTickets.erase(it);
+            }
+        });
+    });
+    nats.subscribe("matchmaking.timeout", [&](const nlohmann::json& event) {
+        io.post([&, event] {
+            std::string ticketId = event.at("ticketId").get<std::string>();
+            auto it = playTickets.find(ticketId);
+            if (it == playTickets.end())
+                return;
+            respondDeferred(it->second, 200, { {"success", false}, {"message", "no players available"} });
+            playTickets.erase(it);
+        });
+    });
+
+    // gameHistory captured BY VALUE, unlike everything else here - it's a
+    // plain pointer PARAMETER of run(), living on run()'s own stack frame,
+    // not a reference to a caller-owned object the way directory/
+    // sessionStore/nats are. Capturing it via the [&] default would capture
+    // a reference to that stack-local copy, dangling the instant run()
+    // returns (same class of bug relays/roundRobinNext/pickShard/
+    // relayToShard were all heap-promoted to avoid, see the comments
+    // above) - confirmed by an actual segfault on the first GET /history
+    // request. The pointee itself (owned by main()) still outlives run(),
+    // so the plain pointer value is all that needs to survive.
+    http.set_http_handler([&, gameHistory](ConnectionHandle hdl) {
         auto con = http.get_con_from_hdl(hdl);
         const std::string method = con->get_request().get_method();
         const std::string uri    = con->get_request().get_uri();
@@ -210,14 +291,17 @@ void ApiGateway::run(asio::io_context& io, uint16_t listenPort, const std::vecto
         if (method == "POST" && uri == "/login") {
             std::string username = request.value("username", "");
             std::string password = request.value("password", "");
-            const std::string& shardUri = shardUris[roundRobinNext % shardUris.size()];
-            ++roundRobinNext;
+            std::optional<std::string> shardUri = pickShard();
+            if (!shardUri) {
+                respondSync(con, 503, { {"success", false}, {"message", "no game-server shard available"} });
+                return;
+            }
 
             con->defer_http_response();
             // con captured BY VALUE - keeps the connection alive for as
             // long as this callback exists (see respondDeferred's comment
             // above). hdl (a weak_ptr) would not have done that.
-            relayToShard(shardUri, "LOGIN", { {"username", username}, {"password", password} },
+            relayToShard(*shardUri, "LOGIN", { {"username", username}, {"password", password} },
                 [con, &sessionStore, username](bool ok, const nlohmann::json& reply) {
                     if (!ok) {
                         respondDeferred(con, 502, { {"success", false}, {"message", "upstream unavailable"} });
@@ -242,26 +326,59 @@ void ApiGateway::run(asio::io_context& io, uint16_t listenPort, const std::vecto
                 respondSync(con, 401, { {"success", false}, {"message", "invalid or expired token"} });
                 return;
             }
-            const std::string& shardUri = shardUris[roundRobinNext % shardUris.size()];
-            ++roundRobinNext;
 
             con->defer_http_response();
-            // autoJoin:false - this is a throwaway connection, about to
-            // close; the real client claims the seat later, over its own
-            // WebSocket, via EnterRoom (see CreateRoomHandler.cpp).
-            relayToShard(shardUri, "CREATE_ROOM", { {"name", name}, {"autoJoin", false} },
-                [con, shardUri](bool ok, const nlohmann::json& reply) {
-                    if (!ok) {
+            // Asks the Game Allocator to pick a least-loaded shard and
+            // create the room there - the same NATS request/reply the
+            // Allocator already answers for a PLAY match (see
+            // allocator_main.cpp's allocation.request handler and
+            // AllocateRoomHandler), instead of this process round-robining
+            // over shards itself. No whiteUsername/blackUsername is sent -
+            // no seat is reserved, so the real client (over its own
+            // WebSocket, via EnterRoom) claims White by plain arrival
+            // order once it connects.
+            //
+            // nats.request() blocks, and this handler runs on the
+            // gateway's single io thread - std::thread moves the wait off
+            // that thread so other requests keep being served meanwhile,
+            // then asio::post() marshals back before touching `con`
+            // (websocketpp connections aren't safe to use off their own
+            // io thread). Detached: this thread's only job is to run one
+            // blocking call and post its result back, nothing here needs
+            // joining.
+            std::thread([con, name, &io, &nats] {
+                std::optional<nlohmann::json> reply =
+                    nats.request("allocation.request", { {"roomName", name} }, kAllocationRequestTimeoutMs);
+                io.post([con, reply] {
+                    if (!reply) {
                         respondDeferred(con, 502, { {"success", false}, {"message", "upstream unavailable"} });
                         return;
                     }
-                    if (!reply.value("success", false)) {
-                        respondDeferred(con, 409, reply);
+                    if (!reply->value("success", false)) {
+                        respondDeferred(con, 409, *reply);
                         return;
                     }
-                    respondDeferred(con, 200, { {"success", true}, {"message", reply.value("message", "")},
-                                              {"roomName", reply.value("roomName", "")}, {"shard", shardUri} });
+                    respondDeferred(con, 200, { {"success", true}, {"message", reply->value("message", "")},
+                                              {"roomName", reply->value("roomName", "")},
+                                              {"shard", reply->value("shard", "")} });
                 });
+            }).detach();
+            return;
+        }
+
+        if (method == "POST" && uri == "/play") {
+            std::string token = request.value("token", "");
+            std::optional<ClientSessionData> session = sessionStore.get(token);
+            if (!session) {
+                respondSync(con, 401, { {"success", false}, {"message", "invalid or expired token"} });
+                return;
+            }
+
+            std::string ticketId = makeToken();
+            con->defer_http_response();
+            playTickets[ticketId] = con;
+            nats.publish("matchmaking.request",
+                          { {"ticketId", ticketId}, {"username", session->username}, {"elo", session->elo} });
             return;
         }
 
@@ -290,10 +407,20 @@ void ApiGateway::run(asio::io_context& io, uint16_t listenPort, const std::vecto
         }
 
         if (method == "GET" && uri == "/history") {
-            // Stub - real match history needs a games/results table in
-            // Postgres that doesn't exist yet (see the plan's "explicitly
-            // out of scope").
-            respondSync(con, 200, { {"success", true}, {"games", nlohmann::json::array()} });
+            // Empty list (not an error) when gameHistory is null - same
+            // graceful-degrade shape used for every other optional
+            // dependency in this file, not a hard requirement like
+            // REDIS_HOST/NATS_URL.
+            nlohmann::json games = nlohmann::json::array();
+            if (gameHistory) {
+                for (const GameRecord& record : gameHistory->list(50)) {
+                    games.push_back({ {"roomName", record.roomName},
+                                       {"winnerUsername", record.winnerUsername}, {"winnerElo", record.winnerElo},
+                                       {"loserUsername", record.loserUsername}, {"loserElo", record.loserElo},
+                                       {"reason", record.reason}, {"moveLog", record.moveLog} });
+                }
+            }
+            respondSync(con, 200, { {"success", true}, {"games", games} });
             return;
         }
 

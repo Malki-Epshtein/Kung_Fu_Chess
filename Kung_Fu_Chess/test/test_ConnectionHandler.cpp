@@ -3,7 +3,7 @@
 #include "../server/app/session/SessionRegistry.h"
 #include "../server/app/session/ClientSessionRegistry.h"
 #include "../server/app/session/GameSession.h"
-#include "../server/app/logic/Matchmaker.h"
+#include "../server/app/logic/MatchTicketRegistry.h"
 #include "../shared/model/Board.h"
 #include <asio/io_context.hpp>
 #include <chrono>
@@ -18,31 +18,31 @@ namespace {
     }
 }
 
-TEST_CASE("ConnectionHandler - onClose על חיבור שלא היה בחדר מנקה session ומאגר matchmaking בלי לקרוס") {
+TEST_CASE("ConnectionHandler - onClose על חיבור שלא היה בחדר מנקה session וטיקט matchmaking בלי לקרוס") {
     SessionRegistry registry;
     ClientSessionRegistry clientSessions;
-    Matchmaker matchmaker;
+    MatchTicketRegistry tickets{ "shard" };
     asio::io_context io;
-    ConnectionHandler handler(registry, clientSessions, matchmaker, io);
+    ConnectionHandler handler(registry, clientSessions, tickets, nullptr, io);
 
     std::shared_ptr<int> a;
     auto hdlA = handleFrom(a);
     clientSessions.onLogin(hdlA, "alice", 1200);
-    matchmaker.addToPool(hdlA, 1200);
+    tickets.add(hdlA);
 
     handler.onClose(hdlA);
 
     CHECK(clientSessions.sessionFor(hdlA) == nullptr);
-    CHECK_FALSE(matchmaker.isWaiting(hdlA));
+    CHECK_FALSE(tickets.cancel(hdlA).has_value()); // already gone - onClose already cancelled it
 }
 
 TEST_CASE("ConnectionHandler - onClose מוציא את השחקן מהחדר שלו") {
     SessionRegistry registry;
     ClientSessionRegistry clientSessions;
-    Matchmaker matchmaker;
+    MatchTicketRegistry tickets{ "shard" };
     EventBus bus;
     asio::io_context io;
-    ConnectionHandler handler(registry, clientSessions, matchmaker, io);
+    ConnectionHandler handler(registry, clientSessions, tickets, nullptr, io);
 
     registry.createRoom("room-a", makeBoard(), bus);
     std::shared_ptr<int> a;
@@ -57,10 +57,10 @@ TEST_CASE("ConnectionHandler - onClose מוציא את השחקן מהחדר ש�
 TEST_CASE("ConnectionHandler - onClose של שחקן מושב (White) מפעיל disconnect countdown") {
     SessionRegistry registry;
     ClientSessionRegistry clientSessions;
-    Matchmaker matchmaker;
+    MatchTicketRegistry tickets{ "shard" };
     EventBus bus;
     asio::io_context io;
-    ConnectionHandler handler(registry, clientSessions, matchmaker, io);
+    ConnectionHandler handler(registry, clientSessions, tickets, nullptr, io);
 
     registry.createRoom("room-a", makeBoard(), bus);
     std::shared_ptr<int> a, b;
@@ -85,10 +85,10 @@ TEST_CASE("ConnectionHandler - onClose של שחקן מושב (White) מפעיל
 TEST_CASE("ConnectionHandler - onClose של צופה לא מפעיל disconnect countdown") {
     SessionRegistry registry;
     ClientSessionRegistry clientSessions;
-    Matchmaker matchmaker;
+    MatchTicketRegistry tickets{ "shard" };
     EventBus bus;
     asio::io_context io;
-    ConnectionHandler handler(registry, clientSessions, matchmaker, io);
+    ConnectionHandler handler(registry, clientSessions, tickets, nullptr, io);
 
     registry.createRoom("room-a", makeBoard(), bus);
     std::shared_ptr<int> a, b, c;

@@ -12,7 +12,6 @@ enum class MessageType {
     Jump,
     Snapshot,
     Login,
-    CreateRoom,
     JoinRoom,
     FindGame,
     GameFound,
@@ -20,8 +19,8 @@ enum class MessageType {
     CaptureEvent,
     // Claims a seat in a room by token instead of by "this connection
     // already ran LOGIN" - what a client sends over WebSocket right after
-    // the HTTP-based login/room flow (API Gateway) instead of CreateRoom/
-    // JoinRoom, since LOGIN itself never happens on this connection.
+    // the HTTP-based login/room flow (API Gateway) instead of JoinRoom,
+    // since LOGIN itself never happens on this connection.
     EnterRoom,
     // Establishes this connection's identity from a token (minted by the
     // Gateway's POST /login) without claiming a room seat - what a client

@@ -25,8 +25,8 @@ TEST_CASE("BroadcasterManager - attach שולח snapshot רק לחיבורים �
         sentTo.push_back(text);
     });
 
-    // Created AFTER the manager exists (like CreateRoomHandler does: create
-    // the room, then attach exactly once) - attaching a room the
+    // Created AFTER the manager exists (like AllocateRoomHandler does:
+    // create the room, then attach exactly once) - attaching a room the
     // constructor already auto-attached would leave a dangling EventBus
     // subscriber pointing at the overwritten NetworkBroadcaster.
     registry.createRoom("room-a", makeBoard(), bus);
@@ -141,7 +141,7 @@ TEST_CASE("BroadcasterManager - חדר שנוצר אחרי ה-constructor לא �
 
     // Created after the manager already exists, so it's NOT among the
     // rooms the constructor auto-attached - this is exactly the situation
-    // CreateRoomHandler/FindGameHandler handle by calling attach() themselves.
+    // AllocateRoomHandler handles by calling attach() itself.
     registry.createRoom("room-c", makeBoard(), bus);
     std::shared_ptr<int> c;
     auto hdlC = handleFrom(c);

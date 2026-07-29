@@ -1,46 +1,50 @@
 #pragma once
 #include "IMessageHandler.h"
+#include "../../../shared/bus/INatsClient.h"
 #include <asio/io_context.hpp>
 #include <functional>
 #include <string>
 
 class ClientSessionRegistry;
-class Matchmaker;
-class SessionRegistry;
-class EventBus;
+class MatchTicketRegistry;
 
-// The most complex handler: on a miss it also arms a 60s search-timeout
-// asio::steady_timer (same pattern as SessionRegistry's disconnect
-// countdown). `push` is how it reaches a connection OTHER than the one
-// that called handle() - the matched opponent's GameFound push, and the
-// timeout message - since a handler's return value only ever reaches the
-// connection that sent the request.
+// On a FindGame request, mints a ticket (MatchTicketRegistry) and
+// publishes it to the out-of-process Matchmaker service instead of pairing
+// in-process (Server_Design.md step 6 - see MatchTicketRegistry's header
+// for the full reasoning). The eventual pairing result arrives
+// asynchronously over NATS, on subjects every shard subscribes to at
+// construction time - handle() itself only ever sends the request and
+// returns the immediate "searching" ack; matchmaking.assigned/.timeout are
+// handled by the subscriptions below, since they may resolve a ticket
+// belonging to a DIFFERENT call to handle() than the one currently running
+// (possibly even on a different shard, for the ticket that WASN'T waiting
+// here).
 class FindGameHandler : public IMessageHandler {
 public:
-    using AttachBroadcaster = std::function<void(const std::string&)>;
-    using PushToConnection  = std::function<void(ConnectionHandle, const std::string&)>;
+    using PushToConnection = std::function<void(ConnectionHandle, const std::string&)>;
 
-    FindGameHandler(ClientSessionRegistry& sessions, Matchmaker& matchmaker,
-                     SessionRegistry& registry, EventBus& bus,
-                     AttachBroadcaster attachBroadcaster, PushToConnection push,
-                     asio::io_context& ioContext)
-        : sessions_(sessions), matchmaker_(matchmaker), registry_(registry), bus_(bus),
-          attachBroadcaster_(std::move(attachBroadcaster)), push_(std::move(push)),
-          ioContext_(ioContext) {}
+    // `nats` may be null (native Windows build, or a Docker build with no
+    // NATS_URL) - FIND_GAME simply fails gracefully in that case, same
+    // degrade-without-crashing pattern as EnterRoomHandler/AuthHandler's
+    // sessionStore.
+    FindGameHandler(ClientSessionRegistry& sessions, MatchTicketRegistry& tickets,
+                     INatsClient* nats, PushToConnection push, asio::io_context& ioContext);
 
     nlohmann::json handle(ConnectionHandle hdl, const nlohmann::json& payload) override;
 
 private:
+    // NATS subscription callbacks run on cnats' own delivery thread, not
+    // the io_service thread - these two do the actual MatchTicketRegistry/
+    // push work, always invoked via ioContext_.post() from the subscribe
+    // lambdas in the constructor, never directly from that foreign thread
+    // (same reasoning as WsServer.cpp's tickPool worker threads posting
+    // back before touching shared state).
+    void handleAssigned(const nlohmann::json& event);
+    void handleTimeout(const nlohmann::json& event);
+
     ClientSessionRegistry& sessions_;
-    Matchmaker&             matchmaker_;
-    SessionRegistry&        registry_;
-    EventBus&                bus_;
-    AttachBroadcaster        attachBroadcaster_;
+    MatchTicketRegistry&    tickets_;
+    INatsClient*             nats_;
     PushToConnection         push_;
     asio::io_context&        ioContext_;
-
-    // Prefixes matchmaking-created rooms' names so they can never collide
-    // with a user-typed Create/Join room name - owned here now instead of
-    // as a loose WsServer::run local, since only this handler ever uses it.
-    int nextMatchId_ = 1;
 };

@@ -224,9 +224,12 @@
     <ClCompile Include="server\app\session\RoomIdentityResolver.cpp" />
     <ClCompile Include="server\app\session\GameResultCodec.cpp" />
     <ClCompile Include="server\app\session\ConnectionHandler.cpp" />
-    <ClCompile Include="server\app\logic\Matchmaker.cpp" />
+    <ClCompile Include="server\app\logic\MatchTicketRegistry.cpp" />
+    <ClCompile Include="server\app\handlers\AllocateRoomHandler.cpp" />
+    <ClCompile Include="shared\matchmaking\Matchmaker.cpp" />
     <ClCompile Include="server\app\logic\EloCalculator.cpp" />
     <ClCompile Include="server\app\logic\EloService.cpp" />
+    <ClCompile Include="server\app\logic\GameHistoryService.cpp" />
     <ClCompile Include="server\db\UserRepository.cpp" />
     <ClCompile Include="ThirdParty\sqlite3.c">
       <!-- Vendored file (not our code): uses the deprecated GetVersionEx
@@ -241,7 +244,6 @@
     <ClCompile Include="server\app\logic\CommandDispatcher.cpp" />
     <ClCompile Include="server\app\logic\StartingBoard.cpp" />
     <ClCompile Include="server\app\handlers\LoginHandler.cpp" />
-    <ClCompile Include="server\app\handlers\CreateRoomHandler.cpp" />
     <ClCompile Include="server\app\handlers\JoinRoomHandler.cpp" />
     <ClCompile Include="server\app\handlers\FindGameHandler.cpp" />
     <ClCompile Include="server\app\handlers\MessageRouter.cpp" />
@@ -446,10 +448,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="test\test_CreateRoomHandler.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="test\test_JoinRoomHandler.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -529,9 +527,13 @@
     <ClInclude Include="server\app\session\RoomIdentityResolver.h" />
     <ClInclude Include="server\app\session\GameResultCodec.h" />
     <ClInclude Include="server\app\session\ConnectionHandler.h" />
-    <ClInclude Include="server\app\logic\Matchmaker.h" />
+    <ClInclude Include="server\app\logic\MatchTicketRegistry.h" />
+    <ClInclude Include="server\app\handlers\AllocateRoomHandler.h" />
+    <ClInclude Include="shared\matchmaking\Matchmaker.h" />
+    <ClInclude Include="shared\bus\INatsClient.h" />
     <ClInclude Include="server\app\logic\EloCalculator.h" />
     <ClInclude Include="server\app\logic\EloService.h" />
+    <ClInclude Include="server\app\logic\GameHistoryService.h" />
     <ClInclude Include="server\db\UserRepository.h" />
     <ClInclude Include="ThirdParty\sqlite3.h" />
     <ClInclude Include="ThirdParty\sqlite3ext.h" />
@@ -542,7 +544,6 @@
     <ClInclude Include="server\app\session\RoleName.h" />
     <ClInclude Include="server\app\handlers\IMessageHandler.h" />
     <ClInclude Include="server\app\handlers\LoginHandler.h" />
-    <ClInclude Include="server\app\handlers\CreateRoomHandler.h" />
     <ClInclude Include="server\app\handlers\JoinRoomHandler.h" />
     <ClInclude Include="server\app\handlers\FindGameHandler.h" />
     <ClInclude Include="server\app\handlers\MessageRouter.h" />
@@ -550,6 +551,7 @@
     <ClInclude Include="server\app\handlers\EnterRoomHandler.h" />
     <ClInclude Include="server\app\handlers\AuthHandler.h" />
     <ClInclude Include="shared\db\IRoomDirectory.h" />
+    <ClInclude Include="shared\db\IGameHistoryRepository.h" />
     <ClInclude Include="shared\db\IClientSessionStore.h" />
     <ClInclude Include="client\net\WsClient.h" />
     <ClInclude Include="client\net\BlockingRequest.h" />

@@ -35,7 +35,7 @@ with a headless WebSocket server and a native Windows GUI client.
 ## Architecture
 
 One authoritative server holds all game state; every client is a thin
-renderer that sends `MOVE`/`JUMP`/`CreateRoom`/`JoinRoom`/`FindGame`
+renderer that sends `MOVE`/`JUMP`/`JoinRoom`/`FindGame`
 requests and renders whatever snapshot the server broadcasts back. All
 game logic (movement legality, collisions, timing, room membership,
 matchmaking) lives server-side only.

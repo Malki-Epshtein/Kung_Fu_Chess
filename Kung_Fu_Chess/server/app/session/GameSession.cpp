@@ -84,6 +84,7 @@ void GameSession::markDisconnectResign(Chess::Color loser, std::string loserUser
         winnerIsWhite ? identity_.whiteUsername : identity_.blackUsername,
         winnerIsWhite ? identity_.whiteElo : identity_.blackElo,
         std::move(loserUsername), loserElo,
+        fullMoveLog(),
     });
 }
 
@@ -161,6 +162,7 @@ void GameSession::publishStep(const nlohmann::json& snapshotPayload) {
             winnerIsWhite ? identity_.whiteElo : identity_.blackElo,
             winnerIsWhite ? identity_.blackUsername : identity_.whiteUsername,
             winnerIsWhite ? identity_.blackElo : identity_.whiteElo,
+            fullMoveLog(),
         });
     }
 }

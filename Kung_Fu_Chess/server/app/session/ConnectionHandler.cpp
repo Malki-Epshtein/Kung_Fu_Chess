@@ -2,17 +2,18 @@
 #include "SessionRegistry.h"
 #include "ClientSessionRegistry.h"
 #include "RoleName.h"
-#include "../logic/Matchmaker.h"
+#include "../logic/MatchTicketRegistry.h"
 #include "../../../shared/model/Piece.h"
 #include "../../../shared/log/Log.h"
 
 ConnectionHandler::ConnectionHandler(SessionRegistry& registry, ClientSessionRegistry& clientSessions,
-                                      Matchmaker& matchmaker, asio::io_context& ioContext)
-    : registry_(registry), clientSessions_(clientSessions), matchmaker_(matchmaker), ioContext_(ioContext) {}
+                                      MatchTicketRegistry& tickets, INatsClient* nats, asio::io_context& ioContext)
+    : registry_(registry), clientSessions_(clientSessions), tickets_(tickets), nats_(nats), ioContext_(ioContext) {}
 
 void ConnectionHandler::onOpen(ConnectionHandle /*hdl*/) {
     // No room assignment happens here (Stage G): a connection stays
-    // roomless until it explicitly sends CreateRoom or JoinRoom.
+    // roomless until it explicitly sends JoinRoom (or EnterRoom, for the
+    // HTTP-login flow).
     spdlog::info("client connected");
 }
 
@@ -37,7 +38,13 @@ void ConnectionHandler::onClose(ConnectionHandle hdl) {
     }
 
     clientSessions_.onDisconnect(hdl);
-    matchmaker_.remove(hdl); // no-op if it wasn't waiting for a match
+
+    // No-op if hdl wasn't waiting on a ticket. Publishing the cancel lets
+    // the Matchmaker service drop it from its pool immediately instead of
+    // matching a now-dead connection and waiting a full round trip to
+    // discover MatchTicketRegistry::resolve() finds nothing on this side.
+    if (std::optional<std::string> ticketId = tickets_.cancel(hdl); ticketId && nats_)
+        nats_->publish("matchmaking.cancel", { {"ticketId", *ticketId} });
 
     // Disconnect grace-period countdown (Stage D, owned by the registry
     // since Stage E3): started when a seated player (White/Black)

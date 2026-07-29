@@ -2,6 +2,7 @@
 #include "GameSession.h"
 #include "../../../shared/db/IRoomDirectory.h"
 #include "../../../shared/bus/EventBus.h"
+#include "../../../shared/bus/INatsClient.h"
 #include "../../../shared/model/Piece.h"
 #include <websocketpp/common/connection_hdl.hpp>
 #include <asio/io_context.hpp>
@@ -23,11 +24,13 @@ class SessionRegistry {
 public:
     using ConnectionHandle = websocketpp::connection_hdl;
 
-    // `directory`/`shardAddress` are optional (default: no-op) - only
+    // `directory`/`shardAddress`/`nats` are optional (default: no-op) - only
     // server_main.cpp's Docker/Linux build ever passes a real
-    // RedisRoomDirectory + this shard's address; every test and the native
-    // Windows build get the same behavior as before this existed.
-    explicit SessionRegistry(IRoomDirectory* directory = nullptr, std::string shardAddress = "");
+    // RedisRoomDirectory + this shard's address + a real NatsClient; every
+    // test and the native Windows build get the same behavior as before
+    // these existed.
+    explicit SessionRegistry(IRoomDirectory* directory = nullptr, std::string shardAddress = "",
+                              INatsClient* nats = nullptr);
 
     // Creates a new room under `name`. Returns false (does nothing) if that
     // name is already taken.
@@ -41,10 +44,21 @@ public:
     // Every room this registry currently owns - for the tick loop to iterate.
     std::vector<std::string> roomNames() const;
 
-    // Adds `hdl` to `name`'s room and assigns its role by join order within
-    // that room (first = White, second = Black, everyone after = Spectator).
+    // Adds `hdl` to `name`'s room. If `username` matches a seat reserved by
+    // reserveSeats() for this room, it gets that reserved color regardless
+    // of arrival order; otherwise role is assigned by join order within the
+    // room (first = White, second = Black, everyone after = Spectator) -
+    // the original behavior, unaffected for any room with no reservations.
     // Returns false (does nothing) if the room doesn't exist.
-    bool joinRoom(const std::string& name, ConnectionHandle hdl);
+    bool joinRoom(const std::string& name, ConnectionHandle hdl, const std::string& username = "");
+
+    // Reserves White/Black by username for a room before either player has
+    // actually reconnected to claim their seat - set by the shard-side
+    // AllocateRoomHandler right after createRoom, for a room the Game
+    // Allocator matched two players into (Server_Design.md step 6), so
+    // joinRoom can seat them correctly no matter which one reconnects
+    // first. No-op if the room doesn't exist.
+    void reserveSeats(const std::string& name, const std::string& whiteUsername, const std::string& blackUsername);
 
     // Removes a connection from whichever room it was in (no-op, returns
     // None, if it wasn't in one). Returns the role it held there, so the
@@ -90,6 +104,10 @@ private:
         std::unique_ptr<GameSession> session;
         std::map<ConnectionHandle, Chess::Color, std::owner_less<ConnectionHandle>> roles;//את כל המשתמשים פלוס הלקוחות
         int connectionCount = 0;
+        // Set by reserveSeats() - username -> the color joinRoom() should
+        // assign that username regardless of arrival order. Empty for
+        // every room created outside the matchmaking allocate path.
+        std::unordered_map<std::string, Chess::Color> seatReservations;
         // Set by leave() instead of erasing immediately, when the room
         // emptied out while session->tickInFlight() was still true -
         // reapIfSafe() finishes the erase once that tick completes.
@@ -101,4 +119,5 @@ private:
 
     IRoomDirectory* directory_ = nullptr;
     std::string     shardAddress_;
+    INatsClient*    nats_ = nullptr;
 };

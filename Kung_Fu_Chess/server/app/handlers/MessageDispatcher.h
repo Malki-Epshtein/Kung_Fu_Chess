@@ -1,4 +1,5 @@
 #pragma once
+#include "../../../shared/bus/INatsClient.h"
 #include <websocketpp/common/connection_hdl.hpp>
 #include <asio/io_context.hpp>
 #include <functional>
@@ -9,20 +10,21 @@ class IUserRepository;
 class ClientSessionRegistry;
 class SessionRegistry;
 class EventBus;
-class Matchmaker;
+class MatchTicketRegistry;
 class BroadcasterManager;
 class EloService;
+class GameHistoryService;
 class IClientSessionStore;
 class LoginHandler;
-class CreateRoomHandler;
 class JoinRoomHandler;
 class FindGameHandler;
 class EnterRoomHandler;
 class AuthHandler;
+class AllocateRoomHandler;
 class MessageRouter;
 
 // The composition root for the network protocol layer: owns the concrete
-// IMessageHandler implementations (Login/CreateRoom/JoinRoom/FindGame) and
+// IMessageHandler implementations (Login/JoinRoom/FindGame) and
 // the MessageRouter that maps a MessageType to one of them - callers
 // (WsServer) never see those concrete types, only this class's one public
 // method (forward-declared + held by unique_ptr, so not even this header
@@ -38,11 +40,15 @@ public:
     // `sessionStore` may be null (no ENTER_ROOM support - the native
     // Windows build, or a Docker build with no REDIS_HOST set, never
     // registers that handler; a client using the old direct-WS LOGIN flow
-    // never needs it anyway).
+    // never needs it anyway). `nats` may likewise be null (no NATS_URL) -
+    // FindGame degrades to "matchmaking unavailable" and no
+    // shard.<addr>.allocate responder is registered in that case.
     MessageDispatcher(IUserRepository& users, ClientSessionRegistry& clientSessions,
-                       SessionRegistry& registry, EventBus& bus, Matchmaker& matchmaker,
-                       BroadcasterManager& broadcasters, EloService& eloService, ConnectionSender push,
-                       asio::io_context& ioContext, IClientSessionStore* sessionStore = nullptr);
+                       SessionRegistry& registry, EventBus& bus, MatchTicketRegistry& tickets,
+                       BroadcasterManager& broadcasters, EloService& eloService,
+                       GameHistoryService& gameHistoryService, ConnectionSender push,
+                       asio::io_context& ioContext, IClientSessionStore* sessionStore = nullptr,
+                       INatsClient* nats = nullptr, std::string shardAddress = "");
     ~MessageDispatcher();
 
     // Decodes `text`, routes it to a registered handler or the
@@ -55,10 +61,10 @@ private:
     SessionRegistry& registry_;
 
     std::unique_ptr<LoginHandler>      loginHandler_;
-    std::unique_ptr<CreateRoomHandler> createRoomHandler_;
     std::unique_ptr<JoinRoomHandler>   joinRoomHandler_;
     std::unique_ptr<FindGameHandler>   findGameHandler_;
     std::unique_ptr<EnterRoomHandler>  enterRoomHandler_;
     std::unique_ptr<AuthHandler>       authHandler_;
+    std::unique_ptr<AllocateRoomHandler> allocateRoomHandler_;
     std::unique_ptr<MessageRouter>     router_;
 };

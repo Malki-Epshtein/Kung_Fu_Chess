@@ -1,9 +1,9 @@
 #include "../doctest.h"
 #include "../server/app/handlers/FindGameHandler.h"
-#include "../server/app/session/SessionRegistry.h"
 #include "../server/app/session/ClientSessionRegistry.h"
-#include "../server/app/logic/Matchmaker.h"
+#include "../server/app/logic/MatchTicketRegistry.h"
 #include "../shared/protocol/MoveLogCodec.h"
+#include "FakeNatsClient.h"
 #include <asio/io_context.hpp>
 #include <memory>
 #include <vector>
@@ -14,21 +14,23 @@ namespace {
         return keepAlive;
     }
 
-    // Bundles everything FindGameHandler needs so each TEST_CASE can build
-    // one with a single call, same shape as WsServer::run's own wiring.
+    // Bundles everything FindGameHandler needs, using FakeNatsClient
+    // instead of a real broker so the full matchmaking.request/.assigned/
+    // .timeout round trip is testable synchronously (see FakeNatsClient.h).
+    // "shard" is the ticket-ID prefix MatchTicketRegistry mints with
+    // (see its header) - tests below rely on the exact "shard#1" format to
+    // build the matchmaking.assigned/.timeout events a real Matchmaker/
+    // GameAllocator service would have published.
     struct Fixture {
-        SessionRegistry        registry;
-        EventBus                bus;
+        FakeNatsClient          nats;
         ClientSessionRegistry  sessions;
-        Matchmaker              matchmaker;
-        asio::io_context        io;
-        std::vector<std::string> attachedRooms;
+        MatchTicketRegistry      tickets{ "shard" };
+        asio::io_context          io;
         std::vector<std::string> pushed;
-        FindGameHandler          handler;
+        FindGameHandler           handler;
 
         Fixture()
-            : handler(sessions, matchmaker, registry, bus,
-                      [this](const std::string& name) { attachedRooms.push_back(name); },
+            : handler(sessions, tickets, &nats,
                       [this](FindGameHandler::ConnectionHandle, const std::string& text) { pushed.push_back(text); },
                       io) {}
     };
@@ -45,69 +47,109 @@ TEST_CASE("FindGameHandler - חיבור שלא התחבר נכשל") {
     CHECK(f.pushed.empty());
 }
 
-TEST_CASE("FindGameHandler - שחקן ראשון בלי יריב זמין נכנס לרשימת המתנה") {
+TEST_CASE("FindGameHandler - ללא NATS מחזיר matchmaking unavailable") {
+    ClientSessionRegistry sessions;
+    MatchTicketRegistry tickets{ "shard" };
+    asio::io_context io;
+    FindGameHandler handler(sessions, tickets, nullptr, [](FindGameHandler::ConnectionHandle, const std::string&) {}, io);
+
+    std::shared_ptr<int> a;
+    auto hdlA = handleFrom(a);
+    sessions.onLogin(hdlA, "alice", 1200);
+
+    nlohmann::json reply = handler.handle(hdlA, {});
+
+    CHECK_FALSE(reply.at("success").get<bool>());
+    CHECK(reply.at("message").get<std::string>() == "matchmaking unavailable");
+}
+
+TEST_CASE("FindGameHandler - שחקן מפרסם matchmaking.request ונכנס להמתנה") {
     Fixture f;
     std::shared_ptr<int> a;
     auto hdlA = handleFrom(a);
     f.sessions.onLogin(hdlA, "alice", 1200);
 
+    nlohmann::json published;
+    f.nats.subscribe("matchmaking.request", [&](const nlohmann::json& payload) { published = payload; });
+
     nlohmann::json reply = f.handler.handle(hdlA, {});
 
     CHECK(reply.at("success").get<bool>());
     CHECK(reply.at("message").get<std::string>() == "searching for opponent");
-    CHECK(f.matchmaker.isWaiting(hdlA));
+    CHECK(published.at("ticketId").get<std::string>() == "shard#1");
+    CHECK(published.at("username").get<std::string>() == "alice");
+    CHECK(published.at("elo").get<int>() == 1200);
 }
 
-TEST_CASE("FindGameHandler - שני שחקנים בטווח ELO משודכים לאותו חדר") {
+TEST_CASE("FindGameHandler - matchmaking.assigned עבור טיקט של החיבור הזה נדחף כ-GAME_FOUND") {
     Fixture f;
-    std::shared_ptr<int> a, b;
+    std::shared_ptr<int> a;
     auto hdlA = handleFrom(a);
-    auto hdlB = handleFrom(b);
     f.sessions.onLogin(hdlA, "alice", 1200);
-    f.sessions.onLogin(hdlB, "bob", 1250);
+    f.handler.handle(hdlA, {}); // mints ticket "shard#1"
 
-    f.handler.handle(hdlA, {}); // alice waits first -> becomes White
-    nlohmann::json reply = f.handler.handle(hdlB, {}); // bob matches -> Black
+    f.nats.publish("matchmaking.assigned",
+                    { {"ticketA", "shard#1"}, {"roleA", "White"},
+                      {"ticketB", "other-shard#7"}, {"roleB", "Black"},
+                      {"roomName", "match-1"}, {"shard", "ws://gameserver-a:9002"},
+                      {"whiteName", "alice"}, {"whiteElo", 1200},
+                      {"blackName", "bob"}, {"blackElo", 1250} });
+    f.io.poll(); // the subscription marshals the actual push through io_context::post
 
-    CHECK(reply.at("type").get<std::string>() == "GAME_FOUND");
-    nlohmann::json payload = reply.at("payload");
-    CHECK(payload.at("success").get<bool>());
-    CHECK(payload.at("role").get<std::string>() == "Black");
-
-    std::string roomName = payload.at("roomName").get<std::string>();
-    REQUIRE(f.registry.roomExists(roomName));
-    CHECK(f.registry.roleOf(hdlA) == Chess::Color::White);
-    CHECK(f.registry.roleOf(hdlB) == Chess::Color::Black);
-    CHECK_FALSE(f.matchmaker.isWaiting(hdlA));
-
-    REQUIRE(f.attachedRooms.size() == 1);
-    CHECK(f.attachedRooms[0] == roomName);
-
-    REQUIRE(f.pushed.size() == 1); // alice (the one who was waiting) gets the push
+    REQUIRE(f.pushed.size() == 1);
     nlohmann::json pushedMsg = nlohmann::json::parse(f.pushed[0]);
-    CHECK(pushedMsg.at("payload").at("role").get<std::string>() == "White");
-    CHECK(pushedMsg.at("payload").at("roomName").get<std::string>() == roomName);
+    CHECK(pushedMsg.at("type").get<std::string>() == "GAME_FOUND");
+    nlohmann::json payload = pushedMsg.at("payload");
+    CHECK(payload.at("success").get<bool>());
+    CHECK(payload.at("role").get<std::string>() == "White");
+    CHECK(payload.at("roomName").get<std::string>() == "match-1");
+    CHECK(payload.at("shard").get<std::string>() == "ws://gameserver-a:9002");
+    CHECK(payload.at("whiteName").get<std::string>() == "alice");
+    CHECK(payload.at("blackName").get<std::string>() == "bob");
 
-    // Freshly matched room -> always empty, but present for shape
-    // consistency with JoinRoom's reply (see GameSession::fullMoveLog).
+    // Regression check: a bare `[]` here (instead of the
+    // {"white":[...],"black":[...]} shape MoveLogCodec::encodeAll produces)
+    // compiles and passes every other assertion above, but crashes the
+    // real client with "cannot use at() with array" the moment it calls
+    // MoveLogCodec::decodeAll on this field - only caught by an actual
+    // two-client run, not by asserting individual keys, so decode it here.
     REQUIRE(payload.contains("moveLog"));
     CHECK(MoveLogCodec::decodeAll(payload.at("moveLog")).white.empty());
-    REQUIRE(pushedMsg.at("payload").contains("moveLog"));
-    CHECK(MoveLogCodec::decodeAll(pushedMsg.at("payload").at("moveLog")).white.empty());
+    CHECK(MoveLogCodec::decodeAll(payload.at("moveLog")).black.empty());
 }
 
-TEST_CASE("FindGameHandler - שחקנים מחוץ לטווח ELO נשארים שניהם ממתינים") {
+TEST_CASE("FindGameHandler - matchmaking.assigned לטיקט של חיבור אחר לא דוחף כלום") {
     Fixture f;
-    std::shared_ptr<int> a, b;
+    std::shared_ptr<int> a;
     auto hdlA = handleFrom(a);
-    auto hdlB = handleFrom(b);
-    f.sessions.onLogin(hdlA, "alice", 900);
-    f.sessions.onLogin(hdlB, "bob", 1200); // outside the +-100 range
+    f.sessions.onLogin(hdlA, "alice", 1200);
+    f.handler.handle(hdlA, {}); // mints ticket "shard#1"
 
-    f.handler.handle(hdlA, {});
-    nlohmann::json reply = f.handler.handle(hdlB, {});
+    // Neither ticket belongs to this shard's MatchTicketRegistry - the
+    // event the OTHER shard's own subscription would react to.
+    f.nats.publish("matchmaking.assigned",
+                    { {"ticketA", "other-shard#3"}, {"roleA", "White"},
+                      {"ticketB", "other-shard#9"}, {"roleB", "Black"},
+                      {"roomName", "match-2"}, {"shard", "ws://gameserver-b:9002"},
+                      {"whiteName", "carol"}, {"whiteElo", 1000},
+                      {"blackName", "dave"}, {"blackElo", 1050} });
+    f.io.poll();
 
-    CHECK(reply.at("message").get<std::string>() == "searching for opponent");
-    CHECK(f.matchmaker.isWaiting(hdlA));
-    CHECK(f.matchmaker.isWaiting(hdlB));
+    CHECK(f.pushed.empty());
+}
+
+TEST_CASE("FindGameHandler - matchmaking.timeout עבור טיקט ממתין נדחף כ-GAME_FOUND כושל") {
+    Fixture f;
+    std::shared_ptr<int> a;
+    auto hdlA = handleFrom(a);
+    f.sessions.onLogin(hdlA, "alice", 1200);
+    f.handler.handle(hdlA, {}); // mints ticket "shard#1"
+
+    f.nats.publish("matchmaking.timeout", { {"ticketId", "shard#1"} });
+    f.io.poll();
+
+    REQUIRE(f.pushed.size() == 1);
+    nlohmann::json pushedMsg = nlohmann::json::parse(f.pushed[0]);
+    CHECK(pushedMsg.at("type").get<std::string>() == "GAME_FOUND");
+    CHECK_FALSE(pushedMsg.at("payload").at("success").get<bool>());
 }

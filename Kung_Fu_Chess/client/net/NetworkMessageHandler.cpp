@@ -123,8 +123,8 @@ void NetworkMessageHandler::onMessage(const std::string& text) {
             case MessageType::Move:
             case MessageType::Jump:         handleCommandAck(j); break;
             // Every other type either never reaches this handler (Login/
-            // CreateRoom/JoinRoom/FindGame are consumed by their own
-            // temporary handlers before this one is even installed - see
+            // JoinRoom/FindGame are consumed by their own temporary
+            // handlers before this one is even installed - see
             // GraphicalApplication::run()) or carries nothing this screen
             // needs (GameFound, Hello).
             default: break;

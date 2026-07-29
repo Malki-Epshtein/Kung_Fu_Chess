@@ -1,0 +1,85 @@
+# One Deployment, N identical pods - each self-registers its own reachable
+# address via the Downward API (POD_IP -> SHARD_ADDRESS below) instead of
+# reading a static per-instance value, which is what makes `replicas: N`
+# meaningful here instead of needing one hand-duplicated block per shard
+# (see docker-compose.yml's gameserver service for the Compose-side
+# equivalent, and server_main.cpp's deriveShardAddress() for the shared
+# C++ logic both paths feed into - env var wins if set, exactly what this
+# does). WsGateway/ApiGateway never target this Deployment's Service
+# directly for room traffic - they discover live pod addresses dynamically
+# from shard.heartbeat over NATS (see shared/discovery/ShardRegistry.h),
+# since a room is pinned to one specific pod and a Service VIP can't
+# express "route to exactly this one."
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gameserver
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gameserver
+  template:
+    metadata:
+      labels:
+        app: gameserver
+    spec:
+      # Kubernetes auto-injects a `REDIS_PORT` env var into every pod for
+      # each Service named "redis" in scope (legacy Docker-links-style
+      # "Service Links" - `tcp://<clusterIP>:6379`), which collides with
+      # this app's own REDIS_PORT (expected to be a plain port number, or
+      # unset to fall back to 6379 - see server_main.cpp's makeRoomDirectory/
+      # makeSessionStore). Without this, `std::atoi("tcp://...")` silently
+      # parses to 0 and every Redis connection fails with "Connection
+      # refused" - found by deploying this manifest for real, not a
+      # hypothetical.
+      enableServiceLinks: false
+      containers:
+        - name: gameserver
+          image: kung-fu-chess/server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9002
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://kfc:kfc@postgres:5432/kfc"
+            - name: REDIS_HOST
+              value: "redis"
+            - name: NATS_URL
+              value: "nats://nats:4222"
+            # Kubernetes' "dependent environment variable" substitution -
+            # POD_IP must be defined before SHARD_ADDRESS references it via
+            # $(POD_IP). Pod IPs are routable cluster-wide by default, no
+            # Service needed just for this reachability.
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SHARD_ADDRESS
+              value: "ws://$(POD_IP):9002"
+          # The Server binary has no HTTP health endpoint today (WS-only on
+          # 9002) - tcpSocket is a pragmatic stand-in, not the fuller
+          # draining-vs-down distinction Server_Design.md §7 describes.
+          readinessProbe:
+            tcpSocket:
+              port: 9002
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 9002
+            periodSeconds: 10
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gameserver
+spec:
+  # ClusterIP for hygiene/introspection (kubectl get svc/endpoints,
+  # port-forward) - not load-bearing for actual room routing, see the
+  # comment above.
+  selector:
+    app: gameserver
+  ports:
+    - port: 9002
+      targetPort: 9002

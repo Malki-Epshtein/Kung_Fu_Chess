@@ -79,6 +79,15 @@ HttpClient::HttpClient(const std::string& host, uint16_t port) : impl(std::make_
     // WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY would add.
     impl->hSession = WinHttpOpen(L"KungFuChessClient/1.0",
         WINHTTP_ACCESS_TYPE_NO_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+    // Default receive timeout (30s) is shorter than POST /play's up-to-60s
+    // hold-open wait (see ApiGateway.cpp) - a real match found near the end
+    // of that window would fail here first, misreported as "server
+    // unreachable" instead of the actual match result. Session-level, so
+    // every request handle derived from hSession inherits it; harmless for
+    // the fast calls (/login, /rooms), which still return as soon as the
+    // server replies.
+    if (impl->hSession)
+        WinHttpSetTimeouts(impl->hSession, 0, 60000, 65000, 65000);
 }
 
 HttpClient::~HttpClient() {

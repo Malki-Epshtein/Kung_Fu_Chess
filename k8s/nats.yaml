@@ -1,0 +1,56 @@
+# NATS - the event bus every other tier talks over: shard.heartbeat,
+# room.created/room.closed, matchmaking.*, shard.<addr>.allocate. Distinct
+# from Redis above - NATS carries events/requests, Redis carries the
+# queryable roomName -> shard state (see docker-compose.yml's own note on
+# this split).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nats
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nats
+  template:
+    metadata:
+      labels:
+        app: nats
+    spec:
+      containers:
+        - name: nats
+          image: nats:2-alpine
+          imagePullPolicy: IfNotPresent
+          # -m exposes the monitoring endpoint (8222) used by the
+          # readiness probe below.
+          args: ["-m", "8222"]
+          ports:
+            - name: client
+              containerPort: 4222
+            - name: monitor
+              containerPort: 8222
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8222
+            periodSeconds: 2
+            failureThreshold: 10
+          livenessProbe:
+            tcpSocket:
+              port: 4222
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+spec:
+  selector:
+    app: nats
+  ports:
+    - name: client
+      port: 4222
+      targetPort: 4222
+    - name: monitor
+      port: 8222
+      targetPort: 8222

@@ -1,0 +1,43 @@
+# Redis - room directory (roomName -> shard address) + session store, both
+# ephemeral by design (matches docker-compose.yml's redis: no volume here
+# either).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 2
+            failureThreshold: 10
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+      targetPort: 6379

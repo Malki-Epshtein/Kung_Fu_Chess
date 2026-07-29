@@ -1,0 +1,50 @@
+# replicas: 2 - previously pinned to 1 because Matchmaker subscribed to
+# matchmaking.request via plain NATS pub/sub (fan-out to every subscriber)
+# over an in-memory waiting pool private to each process; running 2+
+# instances would have each one independently try to pair the same waiting
+# players, racing to publish duplicate matchmaking.matched events for the
+# same two tickets. Fixed: the waiting pool is now Redis-backed
+# (shared/matchmaking/RedisMatchPool.h), shared across every replica, and
+# matchmaker_main.cpp subscribes via a NATS queue group ("matchmakers") so
+# NATS itself delivers each request to exactly one replica - the two
+# pieces together are what make replicas > 1 actually safe, not just one
+# of them alone (see RedisMatchPool.h's own comment on why the queue group
+# is still needed even with a shared pool).
+#
+# enableServiceLinks: false - same REDIS_PORT auto-injection collision
+# every other Redis-consuming Deployment already guards against (see
+# gameserver.yaml's comment) - this one didn't need it before since it
+# never touched Redis.
+#
+# No Service: nothing reaches this pod through Kubernetes networking, only
+# through NATS (both inbound subscriptions and outbound publishes).
+#
+# No readiness/liveness probe: the binary exposes no listening port at all
+# (pure NATS client), so there's nothing honest to tcpSocket-probe; relying
+# on Kubernetes' default crash-restart behavior (process exit code) rather
+# than faking a probe that would always report healthy regardless of
+# actual NATS/Redis connectivity.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matchmaker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: matchmaker
+  template:
+    metadata:
+      labels:
+        app: matchmaker
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: matchmaker
+          image: kung-fu-chess/matchmaker:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NATS_URL
+              value: "nats://nats:4222"
+            - name: REDIS_HOST
+              value: "redis"

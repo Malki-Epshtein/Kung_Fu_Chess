@@ -147,13 +147,13 @@
     <ClCompile Include="server\app\logic\EloService.cpp">
       <Filter>app\logic</Filter>
     </ClCompile>
+    <ClCompile Include="server\app\logic\GameHistoryService.cpp">
+      <Filter>app\logic</Filter>
+    </ClCompile>
     <ClCompile Include="server\app\logic\StartingBoard.cpp">
       <Filter>app\logic</Filter>
     </ClCompile>
     <ClCompile Include="server\app\handlers\LoginHandler.cpp">
-      <Filter>app\handlers</Filter>
-    </ClCompile>
-    <ClCompile Include="server\app\handlers\CreateRoomHandler.cpp">
       <Filter>app\handlers</Filter>
     </ClCompile>
     <ClCompile Include="server\app\handlers\JoinRoomHandler.cpp">
@@ -169,9 +169,6 @@
       <Filter>app\handlers</Filter>
     </ClCompile>
     <ClCompile Include="test\test_LoginHandler.cpp">
-      <Filter>app\handlers</Filter>
-    </ClCompile>
-    <ClCompile Include="test\test_CreateRoomHandler.cpp">
       <Filter>app\handlers</Filter>
     </ClCompile>
     <ClCompile Include="test\test_JoinRoomHandler.cpp">
@@ -500,6 +497,9 @@
     <ClInclude Include="server\app\logic\EloService.h">
       <Filter>app\logic</Filter>
     </ClInclude>
+    <ClInclude Include="server\app\logic\GameHistoryService.h">
+      <Filter>app\logic</Filter>
+    </ClInclude>
     <ClInclude Include="server\app\logic\StartingBoard.h">
       <Filter>app\logic</Filter>
     </ClInclude>
@@ -510,9 +510,6 @@
       <Filter>app\handlers</Filter>
     </ClInclude>
     <ClInclude Include="server\app\handlers\LoginHandler.h">
-      <Filter>app\handlers</Filter>
-    </ClInclude>
-    <ClInclude Include="server\app\handlers\CreateRoomHandler.h">
       <Filter>app\handlers</Filter>
     </ClInclude>
     <ClInclude Include="server\app\handlers\JoinRoomHandler.h">

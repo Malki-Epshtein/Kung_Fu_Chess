@@ -24,7 +24,7 @@ nlohmann::json EnterRoomHandler::handle(ConnectionHandle hdl, const nlohmann::js
     if (!registry_.roomExists(roomName))
         return { {"success", false}, {"message", "room not found"} };
 
-    registry_.joinRoom(roomName, hdl);
+    registry_.joinRoom(roomName, hdl, session->username);
     Chess::Color role = registry_.roleOf(hdl);
     spdlog::info("'{}' entered room '{}', assigned role: {}", session->username, roomName, roleName(role));
 

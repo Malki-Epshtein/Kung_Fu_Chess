@@ -1,83 +1,80 @@
 #include "FindGameHandler.h"
-#include "../session/SessionRegistry.h"
-#include "../session/GameSession.h"
 #include "../session/ClientSessionRegistry.h"
-#include "../session/RoomIdentityResolver.h"
-#include "../session/RoleName.h"
-#include "../logic/Matchmaker.h"
-#include "../logic/StartingBoard.h"
+#include "../logic/MatchTicketRegistry.h"
 #include "../../../shared/protocol/Message.h"
 #include "../../../shared/protocol/MessageCodec.h"
+#include "../../../shared/protocol/MoveLogCodec.h"
 #include "../../../shared/log/Log.h"
-#include <asio/steady_timer.hpp>
-#include <chrono>
-#include <memory>
 
-namespace {
-    // How long a FindGame request waits in Matchmaker's pool before giving
-    // up and pushing a "no players available" GameFound(success:false).
-    constexpr int kSearchTimeoutSeconds = 60;
+FindGameHandler::FindGameHandler(ClientSessionRegistry& sessions, MatchTicketRegistry& tickets,
+                                  INatsClient* nats, PushToConnection push, asio::io_context& ioContext)
+    : sessions_(sessions), tickets_(tickets), nats_(nats), push_(std::move(push)), ioContext_(ioContext) {
+    if (!nats_)
+        return;
+
+    // Fires once per matched pair, delivered to every shard subscribed -
+    // each just no-ops for the ticket it doesn't recognize (see
+    // MatchTicketRegistry::resolve). Whichever shard the Game Allocator
+    // actually put the room on is carried in the event itself ("shard"),
+    // not implied by who receives this.
+    nats_->subscribe("matchmaking.assigned", [this](const nlohmann::json& event) {
+        ioContext_.post([this, event] { handleAssigned(event); });
+    });
+    nats_->subscribe("matchmaking.timeout", [this](const nlohmann::json& event) {
+        ioContext_.post([this, event] { handleTimeout(event); });
+    });
 }
 
 nlohmann::json FindGameHandler::handle(ConnectionHandle hdl, const nlohmann::json& /*payload*/) {
+    if (!nats_)
+        return { {"success", false}, {"message", "matchmaking unavailable"} };
+
     const ClientSession* session = sessions_.sessionFor(hdl);
     if (!session)
         return { {"success", false}, {"message", "must be logged in to find a game"} };
 
-    auto opponent = matchmaker_.findMatch(session->elo);
-    if (opponent) {
-        matchmaker_.remove(*opponent);
-        std::string name = "match-" + std::to_string(nextMatchId_++);
-        registry_.createRoom(name, makeStartingBoard(), bus_, /*simultaneousMode=*/true);
-        attachBroadcaster_(name);//פה קורה לי כל ההתחברות
-        registry_.joinRoom(name, *opponent); // was waiting first -> White
-        registry_.joinRoom(name, hdl);        // just matched -> Black
-
-        // Always empty here (the room was just created for this match) -
-        // included for shape consistency with JoinRoom's reply, same as
-        // CreateRoom (see GameSession::fullMoveLog).
-        nlohmann::json moveLog = registry_.room(name)->fullMoveLog();
-
-        RoomIdentity identity = RoomIdentityResolver::resolve(registry_, sessions_, name);
-
-        // The opponent isn't expecting a reply right now - this is a
-        // server->client PUSH (see Message.h), sent unprompted outside the
-        // normal reply flow (which only ever reaches `hdl`, the sender).
-        Message opponentMsg{ MessageType::GameFound,
-            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry_.roleOf(*opponent))}, {"moveLog", moveLog},
-              {"whiteName", identity.whiteUsername}, {"whiteElo", identity.whiteElo},
-              {"blackName", identity.blackUsername}, {"blackElo", identity.blackElo} } };
-        push_(*opponent, MessageCodec::encode(opponentMsg));
-
-        // The sender DOES get the normal reply flow (handled by whoever
-        // calls this), but shaped as the same GameFound envelope so both
-        // players receive an identical message shape.
-        Message senderMsg{ MessageType::GameFound,
-            { {"success", true}, {"message", "match found"}, {"roomName", name}, {"role", roleName(registry_.roleOf(hdl))}, {"moveLog", moveLog},
-              {"whiteName", identity.whiteUsername}, {"whiteElo", identity.whiteElo},
-              {"blackName", identity.blackUsername}, {"blackElo", identity.blackElo} } };
-        spdlog::info("matched '{}' via FindGame", name);
-        return nlohmann::json::parse(MessageCodec::encode(senderMsg));
-    }
-
-    matchmaker_.addToPool(hdl, session->elo);
-
-    // 60s search timeout - same asio::steady_timer pattern as the
-    // disconnect countdown. isWaiting() tells a real timeout apart from
-    // "already matched by someone else's FindGame in the meantime, this
-    // firing is now moot".
-    Matchmaker&      matchmaker = matchmaker_;
-    PushToConnection push       = push_;
-    auto timer = std::make_shared<asio::steady_timer>(ioContext_);
-    timer->expires_after(std::chrono::seconds(kSearchTimeoutSeconds));
-    timer->async_wait([&matchmaker, push, hdl, timer](const asio::error_code& ec) {
-        if (ec || !matchmaker.isWaiting(hdl))
-            return;
-        matchmaker.remove(hdl);
-        Message timeoutMsg{ MessageType::GameFound, { {"success", false}, {"message", "no players available"} } };
-        push(hdl, MessageCodec::encode(timeoutMsg));
-        spdlog::info("FindGame timed out, no match found");
-    });
+    std::string ticketId = tickets_.add(hdl);
+    nats_->publish("matchmaking.request",
+                    { {"ticketId", ticketId}, {"username", session->username}, {"elo", session->elo} });
+    spdlog::info("'{}' searching for opponent (ticket {})", session->username, ticketId);
 
     return { {"success", true}, {"message", "searching for opponent"} };
+}
+
+void FindGameHandler::handleAssigned(const nlohmann::json& event) {
+    for (const char* side : {"A", "B"}) {
+        std::string ticketId = event.at(std::string("ticket") + side).get<std::string>();
+        std::optional<ConnectionHandle> hdl = tickets_.resolve(ticketId);
+        if (!hdl)
+            continue; // not a ticket this shard owns - the other matched player's, or already handled
+
+        Message msg{ MessageType::GameFound,
+            { {"success", true}, {"message", "match found"},
+              {"roomName", event.at("roomName")}, {"shard", event.at("shard")},
+              {"role", event.at(std::string("role") + side)},
+              // Always empty - a freshly allocated room has no history yet
+              // (same as the old in-process FindGameHandler's moveLog,
+              // which was always registry_.room(name)->fullMoveLog() on a
+              // room it had just created itself). Must be the
+              // {"white":[...],"black":[...]} shape MoveLogCodec::encodeAll
+              // produces - a bare [] fails MoveLogCodec::decodeAll's
+              // j.at("white")/j.at("black") on the client with
+              // "cannot use at() with array".
+              {"moveLog", MoveLogCodec::encodeAll({}, {})},
+              {"whiteName", event.at("whiteName")}, {"whiteElo", event.at("whiteElo")},
+              {"blackName", event.at("blackName")}, {"blackElo", event.at("blackElo")} } };
+        push_(*hdl, MessageCodec::encode(msg));
+        spdlog::info("matched, assigned to room '{}' on {}", event.at("roomName").get<std::string>(),
+                     event.at("shard").get<std::string>());
+    }
+}
+
+void FindGameHandler::handleTimeout(const nlohmann::json& event) {
+    std::string ticketId = event.at("ticketId").get<std::string>();
+    std::optional<ConnectionHandle> hdl = tickets_.resolve(ticketId);
+    if (!hdl)
+        return;
+    Message msg{ MessageType::GameFound, { {"success", false}, {"message", "no players available"} } };
+    push_(*hdl, MessageCodec::encode(msg));
+    spdlog::info("FindGame timed out, no match found");
 }

@@ -4,8 +4,9 @@
 #include "../app/session/ClientSessionRegistry.h"
 #include "../app/session/RoomIdentityResolver.h"
 #include "../app/session/ConnectionHandler.h"
-#include "../app/logic/Matchmaker.h"
+#include "../app/logic/MatchTicketRegistry.h"
 #include "../app/logic/EloService.h"
+#include "../app/logic/GameHistoryService.h"
 #include "../app/networking/BroadcasterManager.h"
 #include "../app/handlers/MessageDispatcher.h"
 #include "../db/IUserRepository.h"
@@ -24,15 +25,17 @@ namespace {
 }
 
 void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, IUserRepository& users,
-                    IClientSessionStore* sessionStore, int tickMs) {
+                    IClientSessionStore* sessionStore, INatsClient* nats, std::string shardAddress, int tickMs,
+                    IGameHistoryRepository* gameHistory) {
     WsppServer server;
     server.clear_access_channels(websocketpp::log::alevel::all);
     server.clear_error_channels(websocketpp::log::elevel::all);
     server.init_asio();
 
     ClientSessionRegistry clientSessions;
-    Matchmaker            matchmaker;
-    EloService            eloService(users);
+    MatchTicketRegistry    tickets(shardAddress);
+    EloService             eloService(users);
+    GameHistoryService     gameHistoryService(gameHistory);
 
     // The one place any of this subsystem's objects actually touch a
     // socket - wraps server.send for "push this text to some connection
@@ -47,9 +50,10 @@ void WsServer::run(uint16_t port, SessionRegistry& registry, EventBus& bus, IUse
     };
 
     BroadcasterManager broadcasters(bus, registry, sendToConnection);
-    ConnectionHandler  connectionHandler(registry, clientSessions, matchmaker, server.get_io_service());
-    MessageDispatcher  dispatcher(users, clientSessions, registry, bus, matchmaker,
-                                   broadcasters, eloService, sendToConnection, server.get_io_service(), sessionStore);
+    ConnectionHandler  connectionHandler(registry, clientSessions, tickets, nats, server.get_io_service());
+    MessageDispatcher  dispatcher(users, clientSessions, registry, bus, tickets,
+                                   broadcasters, eloService, gameHistoryService, sendToConnection,
+                                   server.get_io_service(), sessionStore, nats, shardAddress);
 
     server.set_open_handler([&connectionHandler](websocketpp::connection_hdl hdl) {
         connectionHandler.onOpen(hdl);

@@ -16,8 +16,8 @@ namespace {
     }
 }
 
-SessionRegistry::SessionRegistry(IRoomDirectory* directory, std::string shardAddress)
-    : directory_(directory), shardAddress_(std::move(shardAddress)) {}
+SessionRegistry::SessionRegistry(IRoomDirectory* directory, std::string shardAddress, INatsClient* nats)
+    : directory_(directory), shardAddress_(std::move(shardAddress)), nats_(nats) {}
 
 bool SessionRegistry::createRoom(const std::string& name, std::shared_ptr<Board> board, EventBus& bus, bool simultaneousMode) {
     if (rooms_.count(name))
@@ -28,6 +28,8 @@ bool SessionRegistry::createRoom(const std::string& name, std::shared_ptr<Board>
     rooms_.emplace(name, std::move(room));
     if (directory_)
         directory_->set(name, shardAddress_);
+    if (nats_)
+        nats_->publish("room.created", { {"roomName", name}, {"shard", shardAddress_} });
     return true;
 }
 
@@ -48,19 +50,35 @@ std::vector<std::string> SessionRegistry::roomNames() const {
     return names;
 }
 
-bool SessionRegistry::joinRoom(const std::string& name, ConnectionHandle hdl) {
+bool SessionRegistry::joinRoom(const std::string& name, ConnectionHandle hdl, const std::string& username) {
     auto it = rooms_.find(name);
     if (it == rooms_.end())
         return false;
 
     Room& room = it->second;
     ++room.connectionCount;
-    Chess::Color role = room.connectionCount == 1 ? Chess::Color::White
-                       : room.connectionCount == 2 ? Chess::Color::Black
-                       : Chess::Color::None;
+
+    Chess::Color role;
+    auto reservedIt = username.empty() ? room.seatReservations.end() : room.seatReservations.find(username);
+    if (reservedIt != room.seatReservations.end())
+        role = reservedIt->second;
+    else
+        role = room.connectionCount == 1 ? Chess::Color::White
+             : room.connectionCount == 2 ? Chess::Color::Black
+             : Chess::Color::None;
+
     room.roles[hdl] = role;
     connectionRoom_[hdl] = name;
     return true;
+}
+
+void SessionRegistry::reserveSeats(const std::string& name, const std::string& whiteUsername,
+                                    const std::string& blackUsername) {
+    auto it = rooms_.find(name);
+    if (it == rooms_.end())
+        return;
+    it->second.seatReservations[whiteUsername] = Chess::Color::White;
+    it->second.seatReservations[blackUsername] = Chess::Color::Black;
 }
 
 Chess::Color SessionRegistry::leave(ConnectionHandle hdl) {
@@ -88,6 +106,8 @@ Chess::Color SessionRegistry::leave(ConnectionHandle hdl) {
             else {
                 if (directory_)
                     directory_->erase(roomIt->second);
+                if (nats_)
+                    nats_->publish("room.closed", { {"roomName", roomIt->second}, {"shard", shardAddress_} });
                 rooms_.erase(rIt);
             }
         }
@@ -101,6 +121,8 @@ void SessionRegistry::reapIfSafe(const std::string& name) {
     if (it != rooms_.end() && it->second.pendingRemoval && !it->second.session->tickInFlight()) {
         if (directory_)
             directory_->erase(name);
+        if (nats_)
+            nats_->publish("room.closed", { {"roomName", name}, {"shard", shardAddress_} });
         rooms_.erase(it);
     }
 }

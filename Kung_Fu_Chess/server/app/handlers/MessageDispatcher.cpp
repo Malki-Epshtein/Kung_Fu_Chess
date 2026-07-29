@@ -1,11 +1,11 @@
 #include "MessageDispatcher.h"
 #include "IMessageHandler.h"
 #include "LoginHandler.h"
-#include "CreateRoomHandler.h"
 #include "JoinRoomHandler.h"
 #include "FindGameHandler.h"
 #include "EnterRoomHandler.h"
 #include "AuthHandler.h"
+#include "AllocateRoomHandler.h"
 #include "MessageRouter.h"
 #include "../session/RoleName.h"
 #include "../session/SessionRegistry.h"
@@ -13,36 +13,55 @@
 #include "../networking/BroadcasterManager.h"
 #include "../logic/CommandDispatcher.h"
 #include "../logic/EloService.h"
+#include "../logic/GameHistoryService.h"
 #include "../../../shared/protocol/MessageCodec.h"
 #include "../../../shared/model/Piece.h"
 #include "../../../shared/log/Log.h"
+#include <cctype>
+
+namespace {
+    // NATS subjects can't contain "." (it's the token separator) or
+    // whitespace - a shard address like "ws://gameserver-a:9002" needs
+    // sanitizing before it's usable as one token. Both server_main.cpp's
+    // shard (subscribing) and the Game Allocator (requesting) apply this
+    // same transform to the same raw SHARD_ADDRESS, so they always agree
+    // on the resulting subject without coordinating anything else.
+    std::string subjectSafe(const std::string& raw) {
+        std::string safe = raw;
+        for (char& c : safe)
+            if (!std::isalnum(static_cast<unsigned char>(c)))
+                c = '_';
+        return safe;
+    }
+}
 
 MessageDispatcher::MessageDispatcher(IUserRepository& users, ClientSessionRegistry& clientSessions,
-                                      SessionRegistry& registry, EventBus& bus, Matchmaker& matchmaker,
-                                      BroadcasterManager& broadcasters, EloService& eloService, ConnectionSender push,
-                                      asio::io_context& ioContext, IClientSessionStore* sessionStore)
+                                      SessionRegistry& registry, EventBus& bus, MatchTicketRegistry& tickets,
+                                      BroadcasterManager& broadcasters, EloService& eloService,
+                                      GameHistoryService& gameHistoryService, ConnectionSender push,
+                                      asio::io_context& ioContext, IClientSessionStore* sessionStore,
+                                      INatsClient* nats, std::string shardAddress)
     : registry_(registry) {
     // Called once a new room actually exists (room creation or a Play
     // match) - attaches every per-room subscriber a fresh room needs:
-    // NetworkBroadcaster's three client-facing topics, and EloService's
-    // server-internal gameEndedTopic. CreateRoomHandler/FindGameHandler
-    // just call this; neither needs to know what "attach" entails.
+    // NetworkBroadcaster's three client-facing topics, EloService's and
+    // GameHistoryService's server-internal gameEndedTopic. AllocateRoomHandler
+    // just calls this; it doesn't need to know what "attach" entails.
     BroadcasterManager* broadcastersPtr = &broadcasters;
     EloService* eloServicePtr = &eloService;
-    auto attachBroadcaster = [broadcastersPtr, eloServicePtr, &bus](const std::string& name) {
+    GameHistoryService* gameHistoryServicePtr = &gameHistoryService;
+    auto attachBroadcaster = [broadcastersPtr, eloServicePtr, gameHistoryServicePtr, &bus](const std::string& name) {
         broadcastersPtr->attach(name);
         eloServicePtr->attach(bus, name);
+        gameHistoryServicePtr->attach(bus, name);
     };
 
     loginHandler_      = std::make_unique<LoginHandler>(users, clientSessions);
-    createRoomHandler_ = std::make_unique<CreateRoomHandler>(registry, clientSessions, bus, attachBroadcaster);
     joinRoomHandler_   = std::make_unique<JoinRoomHandler>(registry, clientSessions);
-    findGameHandler_   = std::make_unique<FindGameHandler>(clientSessions, matchmaker, registry, bus,
-                                                             attachBroadcaster, push, ioContext);
+    findGameHandler_   = std::make_unique<FindGameHandler>(clientSessions, tickets, nats, push, ioContext);
 
     router_ = std::make_unique<MessageRouter>();
     router_->registerHandler(MessageType::Login, *loginHandler_);
-    router_->registerHandler(MessageType::CreateRoom, *createRoomHandler_);
     router_->registerHandler(MessageType::JoinRoom, *joinRoomHandler_);
     router_->registerHandler(MessageType::FindGame, *findGameHandler_);
 
@@ -52,6 +71,22 @@ MessageDispatcher::MessageDispatcher(IUserRepository& users, ClientSessionRegist
 
         authHandler_ = std::make_unique<AuthHandler>(clientSessions, *sessionStore);
         router_->registerHandler(MessageType::Auth, *authHandler_);
+    }
+
+    // The Game Allocator's counterpart to FindGameHandler's
+    // matchmaking.assigned subscription above - answers "create/host this
+    // matched room here" for whichever shard the Allocator picks. Only
+    // meaningful with both NATS (to receive the request) and a real
+    // SHARD_ADDRESS (so the Allocator can target this shard specifically);
+    // the native Windows build and any Docker build missing either just
+    // never registers a responder, and the Allocator's request to that
+    // shard would simply time out (never attempted in practice, since the
+    // Allocator only ever targets shards it heard a heartbeat from).
+    if (nats && !shardAddress.empty()) {
+        allocateRoomHandler_ = std::make_unique<AllocateRoomHandler>(registry, bus, attachBroadcaster, ioContext);
+        AllocateRoomHandler* handlerPtr = allocateRoomHandler_.get();
+        nats->subscribeRequest("shard." + subjectSafe(shardAddress) + ".allocate",
+                                [handlerPtr](const nlohmann::json& request) { return handlerPtr->handle(request); });
     }
 }
 

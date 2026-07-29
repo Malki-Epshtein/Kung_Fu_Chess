@@ -5,8 +5,8 @@
 
 // The registry half of the Command pattern (IMessageHandler is the
 // command interface): maps each MessageType that has a dedicated handler
-// to that handler. WsServer registers Login/CreateRoom/JoinRoom/FindGame
-// here; MessageTypes with no registered handler (Move/Jump/...) stay on
+// to that handler. WsServer registers Login/JoinRoom/FindGame here;
+// MessageTypes with no registered handler (Move/Jump/...) stay on
 // WsServer's existing CommandDispatcher path, since those need a
 // GameEngine + sender role rather than a fixed set of constructor-injected
 // dependencies.

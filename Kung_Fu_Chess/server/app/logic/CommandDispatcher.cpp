@@ -61,10 +61,9 @@ DispatchResult CommandDispatcher::dispatch(const Message& message, GameEngine& e
                 // (it's an identity operation, not a GameEngine action) -
                 // this case only exists so the switch stays exhaustive.
                 return { false, "login must be handled before dispatch" };
-            case MessageType::CreateRoom:
             case MessageType::JoinRoom:
-                // Same reasoning as LOGIN: WsServer intercepts these before
-                // dispatch (they act on the SessionRegistry, not on a
+                // Same reasoning as LOGIN: WsServer intercepts this before
+                // dispatch (it acts on the SessionRegistry, not on a
                 // specific room's GameEngine).
                 return { false, "room messages must be handled before dispatch" };
             case MessageType::FindGame:
@@ -83,8 +82,8 @@ DispatchResult CommandDispatcher::dispatch(const Message& message, GameEngine& e
                 // Same reasoning again: server->client push only.
                 return { false, "CaptureEvent is server-to-client only" };
             case MessageType::EnterRoom:
-                // Same reasoning as CreateRoom/JoinRoom: WsServer intercepts
-                // this before dispatch (it acts on SessionRegistry +
+                // Same reasoning as JoinRoom: WsServer intercepts this
+                // before dispatch (it acts on SessionRegistry +
                 // ClientSessionRegistry, not on a specific room's GameEngine).
                 return { false, "EnterRoom must be handled before dispatch" };
         }

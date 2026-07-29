@@ -18,8 +18,8 @@ void BroadcasterManager::attach(const std::string& roomName) {
     // GameSession's class comment) - wired straight onto the session
     // instead of going through a NetworkBroadcaster/EventBus topic. Always
     // non-null here: attach() only runs for a room that already exists in
-    // the registry (this constructor's own loop, or CreateRoomHandler/
-    // FindGameHandler calling this right after registry_.createRoom).
+    // the registry (this constructor's own loop, or AllocateRoomHandler
+    // calling this right after registry_.createRoom).
     if (GameSession* session = registry_.room(roomName))
         session->setSnapshotSender(forwardToRoom);
 

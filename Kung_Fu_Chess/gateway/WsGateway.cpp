@@ -31,7 +31,7 @@ namespace {
     using LinkMap = std::map<ConnectionHandle, LinkPtr, std::owner_less<ConnectionHandle>>;
 }
 
-void WsGateway::run(asio::io_context& io, uint16_t listenPort, const std::vector<std::string>& shardUris) {
+void WsGateway::run(asio::io_context& io, uint16_t listenPort, ShardRegistry& shards) {
     // Heap-allocated and intentionally never freed: io.run() (called by
     // gateway_main.cpp, after this function returns) needs both endpoints
     // to stay alive for the rest of the process's lifetime, which a stack
@@ -68,21 +68,33 @@ void WsGateway::run(asio::io_context& io, uint16_t listenPort, const std::vector
         auto link = std::make_shared<Link>();
         link->downstreamHdl = downstreamHdl;
 
+        // Snapshot the live set once per connection - liveShards() prunes
+        // and copies under its own lock, cheap enough at this scale and
+        // simpler than trying to keep the hint check and the round-robin
+        // pick consistent against two separate live reads.
+        std::vector<std::string> liveShards = shards.liveShards();
+        if (liveShards.empty()) {
+            spdlog::error("gateway: no live shard to route to (no heartbeat seen yet)");
+            websocketpp::lib::error_code closeEc;
+            downstream.close(downstreamHdl, websocketpp::close::status::try_again_later, "no shard available", closeEc);
+            return;
+        }
+
         // A hint from the API Gateway's REST room resolution beats
         // round-robin: it means "this exact shard already has the room I'm
-        // about to ask for". Missing/unrecognized (old direct-WS flow, or
-        // no room chosen yet) falls back to round-robin, same as before
-        // this existed.
+        // about to ask for". Missing/unrecognized (old direct-WS flow, no
+        // room chosen yet, or a shard that's since gone stale) falls back
+        // to round-robin, same as before this existed.
         std::string uri;
         websocketpp::lib::error_code hdrEc;
         Downstream::connection_ptr downCon = downstream.get_con_from_hdl(downstreamHdl, hdrEc);
         if (!hdrEc) {
             std::string hint = downCon->get_request_header("X-Shard-Hint");
-            if (!hint.empty() && std::find(shardUris.begin(), shardUris.end(), hint) != shardUris.end())
+            if (!hint.empty() && std::find(liveShards.begin(), liveShards.end(), hint) != liveShards.end())
                 uri = hint;
         }
         if (uri.empty()) {
-            uri = shardUris[roundRobinNext % shardUris.size()];
+            uri = liveShards[roundRobinNext % liveShards.size()];
             ++roundRobinNext;
         }
 
@@ -174,7 +186,7 @@ void WsGateway::run(asio::io_context& io, uint16_t listenPort, const std::vector
 
     downstream.listen(listenPort);
     downstream.start_accept();
-    spdlog::info("gateway: WS listening on port {}, {} shard(s) configured", listenPort, shardUris.size());
+    spdlog::info("gateway: WS listening on port {}, shards discovered dynamically via NATS", listenPort);
 
     // No io.run() here - gateway_main.cpp calls it once, after ApiGateway
     // has set up its own listener on the same io_context.

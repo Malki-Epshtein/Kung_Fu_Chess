@@ -1,0 +1,78 @@
+# Postgres - the one genuinely stateful tier here. Server_Design.md itself
+# flags StatefulSet as the more correct primitive for a database (stable
+# per-pod identity + storage); this is a plain Deployment + PVC instead -
+# the pragmatic single-replica local-K3s stand-in, not presented as the
+# ideal production shape. Fine at replicas: 1, where per-pod identity
+# doesn't matter yet.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+type: Opaque
+stringData:
+  POSTGRES_USER: kfc
+  POSTGRES_PASSWORD: kfc
+  POSTGRES_DB: kfc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: postgres-credentials
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              # Same check docker-compose.yml's healthcheck already used -
+              # "container started" isn't "accepting connections yet".
+              command: ["pg_isready", "-U", "kfc", "-d", "kfc"]
+            periodSeconds: 2
+            failureThreshold: 10
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+            periodSeconds: 10
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

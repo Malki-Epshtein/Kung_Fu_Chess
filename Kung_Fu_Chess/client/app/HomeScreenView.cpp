@@ -11,6 +11,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -105,14 +106,14 @@ namespace {
         }
     }
 
-    // FindGame can take up to 60s to resolve (see WsServer.cpp) - blocking
-    // the Home screen loop for that long would freeze the window (no
-    // rendering, no ESC). So unlike Room's sendAndWaitForReply, Play
-    // installs its own onMessage handler that just stashes any GAME_FOUND
-    // push here; the main loop below polls it once per frame instead of
-    // blocking on it.
+    // POST /play can take up to 60s to resolve (see the Matchmaker's own
+    // search timeout) - blocking the Home screen loop for that long would
+    // freeze the window (no rendering, no ESC). So unlike Room's
+    // sendRoomRequest, Play runs its blocking HttpClient::post() call on a
+    // background thread that just stashes the raw reply here; the main loop
+    // below polls it once per frame instead of blocking on it.
     std::mutex                     g_findGameMutex;
-    std::optional<nlohmann::json>  g_gameFoundResult;
+    std::optional<nlohmann::json>  g_playResult;
 
     void drawButton(cv::Mat& canvas, const ButtonBounds& bounds, const std::string& label, HomeIcon icon, bool hovered) {
         cv::Rect rect(bounds.x, bounds.y, bounds.width, bounds.height);
@@ -143,10 +144,11 @@ namespace {
             g_pendingChoice = choice;
     }
 
-    // Sends CreateRoom/JoinRoom for `roomName` and blocks for the reply.
-    // Empty roomName on failure (message logged); non-empty is the room
-    // name to display, taken from the server's reply rather than echoing
-    // back whatever was typed, since the two can differ in principle.
+    // Result of a Create or Join room request for `roomName` (sent over
+    // REST - see sendRoomRequest below). Empty roomName on failure (message
+    // logged); non-empty is the room name to display, taken from the
+    // server's reply rather than echoing back whatever was typed, since the
+    // two can differ in principle.
     struct RoomJoinOutcome {
         std::string    roomName;
         nlohmann::json moveLog;
@@ -175,12 +177,41 @@ namespace {
         return true;
     }
 
+    // Connects to `shard` (round-robin if empty, pinned via X-Shard-Hint
+    // otherwise - see ConnectFn), authenticates, then claims a seat in
+    // `roomName` via EnterRoom. Shared by the Room path below (which
+    // learns its shard from POST /rooms's REST reply) and Play's
+    // GAME_FOUND handling in runHomeScreen (which learns its shard from
+    // the matchmaking push instead - see AllocateRoomHandler/GameAllocator)
+    // - both need this exact same three-step sequence once they know which
+    // shard to land on. Empty roomName on failure (message already shown
+    // via showRoomError inside here).
+    RoomJoinOutcome enterRoomOnShard(const std::string& token, const ConnectFn& connect,
+                                      const std::string& shard, const std::string& roomName) {
+        WsClient& client = connect(shard);
+        if (!authenticateConnection(client, token))
+            return {};
+
+        Message enterRequest{ MessageType::EnterRoom, { {"token", token}, {"roomName", roomName} } };
+        nlohmann::json reply = sendAndWaitForReply(client, enterRequest, MessageType::EnterRoom);
+
+        if (!reply.value("success", false)) {
+            std::string message = reply.value("message", "");
+            spdlog::info("EnterRoom failed: {}", message);
+            showRoomError(message);
+            return {};
+        }
+        return { reply.value("roomName", roomName), reply.value("moveLog", HomeScreenResult{}.moveLog),
+                 reply.value("whiteName", std::string()), reply.value("whiteElo", 0),
+                 reply.value("blackName", std::string()), reply.value("blackElo", 0),
+                 colorFromRole(reply.value("role", std::string())) };
+    }
+
     // Resolves `roomName` over REST (POST /rooms for Create, POST
-    // /rooms/{name}/join for Join) to find which shard hosts it, connects
-    // there (X-Shard-Hint - see ConnectFn), authenticates, then claims the
-    // seat with EnterRoom. Replaces the old direct CREATE_ROOM/JOIN_ROOM
-    // WebSocket exchange now that LOGIN (and so this connection's identity)
-    // no longer happens on the WebSocket at all.
+    // /rooms/{name}/join for Join) to find which shard hosts it, then
+    // hands off to enterRoomOnShard() above. Replaces the old direct
+    // CREATE_ROOM/JOIN_ROOM WebSocket exchange now that LOGIN (and so this
+    // connection's identity) no longer happens on the WebSocket at all.
     RoomJoinOutcome sendRoomRequest(HttpClient& api, const std::string& token, const ConnectFn& connect,
                                      RoomDialogResult::Action action, const std::string& roomName) {
         bool isCreate = action == RoomDialogResult::Action::Create;
@@ -195,58 +226,41 @@ namespace {
             showRoomError(message);
             return {};
         }
-        std::string shard          = restReply.value("shard", std::string());
-        std::string resolvedName   = restReply.value("roomName", roomName);
-
-        WsClient& client = connect(shard);
-        if (!authenticateConnection(client, token))
-            return {};
-
-        Message enterRequest{ MessageType::EnterRoom, { {"token", token}, {"roomName", resolvedName} } };
-        nlohmann::json reply = sendAndWaitForReply(client, enterRequest, MessageType::EnterRoom);
-
-        if (!reply.value("success", false)) {
-            std::string message = reply.value("message", "");
-            spdlog::info("EnterRoom failed: {}", message);
-            showRoomError(message);
-            return {};
-        }
-        return { reply.value("roomName", resolvedName), reply.value("moveLog", HomeScreenResult{}.moveLog),
-                 reply.value("whiteName", std::string()), reply.value("whiteElo", 0),
-                 reply.value("blackName", std::string()), reply.value("blackElo", 0),
-                 colorFromRole(reply.value("role", std::string())) };
+        std::string shard        = restReply.value("shard", std::string());
+        std::string resolvedName = restReply.value("roomName", roomName);
+        return enterRoomOnShard(token, connect, shard, resolvedName);
     }
 
-    // Sends FindGame and returns immediately (does not wait for a result -
-    // see g_gameFoundResult above). Installs its own onMessage handler
-    // that only reacts to GAME_FOUND pushes; the immediate "searching for
-    // opponent" ack (tagged "type":"FIND_GAME", not "GAME_FOUND") is
-    // deliberately ignored here.
-    void startFindGame(WsClient& client) {
+    // Sends POST /play and returns immediately (does not wait for a result -
+    // see g_playResult above) - the diagram's "matchmaking requests over
+    // REST", replacing the old direct WebSocket FIND_GAME. The actual
+    // HttpClient::post() call blocks for up to 60s (the Matchmaker's own
+    // search timeout - see HttpClient.cpp's WinHttpSetTimeouts comment), so
+    // it runs on a detached background thread rather than the render loop;
+    // that thread's only job is to run one blocking call and stash its
+    // result, nothing here needs joining.
+    void sendPlayRequest(HttpClient& api, const std::string& token) {
         {
             std::lock_guard<std::mutex> lock(g_findGameMutex);
-            g_gameFoundResult.reset();
+            g_playResult.reset();
         }
-        client.setOnMessage([](const std::string& text) {
-            nlohmann::json j = nlohmann::json::parse(text);
-            if (j.value("type", std::string()) != "GAME_FOUND")
-                return;
+        std::thread([&api, token] {
+            nlohmann::json reply = api.post("/play", { {"token", token} });
             std::lock_guard<std::mutex> lock(g_findGameMutex);
-            g_gameFoundResult = j;
-        });
-        client.send(MessageCodec::encode(Message{ MessageType::FindGame, {} }));
-        spdlog::info("FindGame sent, searching for opponent");
+            g_playResult = reply;
+        }).detach();
+        spdlog::info("Play request sent, searching for opponent");
     }
 
-    // Non-blocking: returns the GAME_FOUND payload once startFindGame()'s
-    // push has arrived, nullopt otherwise (keep waiting).
+    // Non-blocking: returns POST /play's reply once sendPlayRequest()'s
+    // background thread has stashed it, nullopt otherwise (keep waiting).
     std::optional<nlohmann::json> pollGameFound() {//אם כבר נמצא לי שחקן או לא
         std::lock_guard<std::mutex> lock(g_findGameMutex);
-        if (!g_gameFoundResult)
+        if (!g_playResult)
             return std::nullopt;
-        nlohmann::json payload = g_gameFoundResult->at("payload");
-        g_gameFoundResult.reset();
-        return payload;
+        nlohmann::json reply = *g_playResult;
+        g_playResult.reset();
+        return reply;
     }
 }
 
@@ -292,28 +306,33 @@ HomeScreenResult runHomeScreen(HttpClient& api, const std::string& token, Connec
             if (found) {
                 searching = false;
                 if (found->value("success", false)) {
+                    // POST /play only names which shard the Game Allocator
+                    // put the room on (see AllocateRoomHandler) - it never
+                    // seats this connection itself. Connect there and claim
+                    // the reserved seat, same as the Room path.
+                    std::string shard    = found->value("shard", std::string());
+                    std::string roomName = found->value("roomName", std::string());
+                    RoomJoinOutcome outcome = enterRoomOnShard(token, connect, shard, roomName);
+                    if (outcome.roomName.empty())
+                        continue; // failure already shown via showRoomError - stay on Home screen
+
                     result.joinedRoom = true;
-                    result.roomName   = found->value("roomName", std::string());
-                    result.moveLog    = found->value("moveLog", HomeScreenResult{}.moveLog);
-                    result.whiteName  = found->value("whiteName", std::string());
-                    result.whiteElo   = found->value("whiteElo", 0);
-                    result.blackName  = found->value("blackName", std::string());
-                    result.blackElo   = found->value("blackElo", 0);
-                    result.role       = colorFromRole(found->value("role", std::string()));
+                    result.roomName   = outcome.roomName;
+                    result.moveLog    = outcome.moveLog;
+                    result.whiteName  = outcome.whiteName;
+                    result.whiteElo   = outcome.whiteElo;
+                    result.blackName  = outcome.blackName;
+                    result.blackElo   = outcome.blackElo;
+                    result.role       = outcome.role;
                     break;
                 }
-                spdlog::info("FindGame failed: {}", found->value("message", ""));
+                spdlog::info("Play failed: {}", found->value("message", ""));
                 showRoomError(found->value("message", "no players available"));
             }
         } else if (g_pendingChoice == HomeScreenChoice::Play) {//אם לחצץ על PLAY
             spdlog::info("Home: Play clicked");
             g_pendingChoice = HomeScreenChoice::None;
-            // No room known yet - round-robin (empty shard hint), same as
-            // before the Gateway existed.
-            WsClient& client = connect("");
-            if (!authenticateConnection(client, token))
-                continue;
-            startFindGame(client);
+            sendPlayRequest(api, token);
             searching = true;
         } else if (g_pendingChoice == HomeScreenChoice::Room) {//אם לחצת על ROOM
             spdlog::info("Home: Room clicked");

@@ -23,8 +23,8 @@ services:
     image: redis:7-alpine
     # Room directory (roomName -> shard address) - a plain key/value store,
     # not pub/sub (Server_Design.md: "a room is fully owned by one pod", no
-    # broadcast fan-out needed). Both shards write to it on room
-    # create/destroy; the API Gateway reads it to resolve POST
+    # broadcast fan-out needed). Every gameserver replica writes to it on
+    # room create/destroy; the API Gateway reads it to resolve POST
     # /rooms/{name}/join. The WS Gateway itself still just round-robins
     # (see WsGateway.h) - it never reads the directory, only trusts the
     # X-Shard-Hint header the client sets from the API Gateway's answer.
@@ -34,57 +34,64 @@ services:
       timeout: 3s
       retries: 10
 
-  # Two shards sharing the same Postgres/Redis data tier - each is the exact
-  # same image, differing only in SHARD_ADDRESS (what it registers itself as
-  # in the room directory). The WS Gateway below round-robins new
-  # connections across both (see its UPSTREAM_URIS) unless a client's
-  # X-Shard-Hint header already names one.
-  gameserver-a:
+  nats:
+    image: nats:2-alpine
+    # -m exposes the monitoring endpoint (8222) used by the healthcheck
+    # below - not published to the host, only other containers need it.
+    command: ["-m", "8222"]
+    # This is Server_Design.md step 3's event bus, backfilled here (it
+    # shipped without it originally - see project memory). Shards publish
+    # room.created/room.closed/shard.heartbeat; the Matchmaker/GameAllocator
+    # services (step 6) subscribe to those plus their own matchmaking.*
+    # subjects. Distinct from the Redis room directory above - NATS carries
+    # events/requests, Redis carries the queryable roomName -> shard state.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8222/healthz"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  # One service, N replicas - each container is identical (same image, same
+  # config) and self-derives its own SHARD_ADDRESS from its own hostname at
+  # startup (see server_main.cpp's deriveShardAddress()) rather than reading
+  # a per-instance env var, which is what makes a single `replicas:` block
+  # possible here instead of one hand-duplicated gameserver-a/gameserver-b
+  # block per shard (that was the previous shape of this file). Both
+  # gateways below discover the live set of shard addresses dynamically
+  # from shard.heartbeat over NATS (see shared/discovery/ShardRegistry.h)
+  # instead of reading a static shard list, which is the other half of what
+  # makes this collapse to one block safe - see Server_Design.md step 8 /
+  # the matching k8s/ manifests for the Kubernetes-side equivalent.
+  gameserver:
     build:
       context: .
       target: server
-    # Explicit shared tag - without this, Compose auto-names an image per
-    # *service* (kung_fu_chess-gameserver-a / -b), even though both build
-    # from the identical target/context. Naming both the same makes it one
-    # literal image, built once, run as two containers differing only in
-    # SHARD_ADDRESS below.
-    image: kung_fu_chess-server
+    deploy:
+      replicas: 2
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      nats:
+        condition: service_healthy
     environment:
       DATABASE_URL: "postgresql://kfc:kfc@postgres:5432/kfc"
       REDIS_HOST: "redis"
-      SHARD_ADDRESS: "ws://gameserver-a:9002"
+      NATS_URL: "nats://nats:4222"
+      # SHARD_ADDRESS intentionally not set - self-derived per-replica (see
+      # the comment above). A single service block can't give each replica
+      # a distinct static value anyway.
     # No published port here - only reachable from other containers on this
     # compose network. Real clients only ever talk to the Gateway; this is
     # what makes the split real instead of cosmetic.
-    volumes:
-      # server.log is written relative to CWD (WORKDIR /data) - bind-mounting
-      # keeps it on the host, surviving `docker compose down`. Each shard
-      # gets its own subdirectory so their logs don't collide.
-      - ./docker-data/a:/data
+    #
+    # No bind-mounted log volume anymore either - one service block can't
+    # give each replica a distinct host path (the old ./docker-data/a and
+    # /b split), and `docker compose logs gameserver` already covers every
+    # replica, which is how logs were actually read in practice.
 
-  gameserver-b:
-    build:
-      context: .
-      target: server
-    image: kung_fu_chess-server
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: "postgresql://kfc:kfc@postgres:5432/kfc"
-      REDIS_HOST: "redis"
-      SHARD_ADDRESS: "ws://gameserver-b:9002"
-    volumes:
-      - ./docker-data/b:/data
-
-  # Two separate processes/containers now (Server_Design.md's target
+  # Two separate processes/containers (Server_Design.md's target
   # architecture: "the boundary that matters for this design is API
   # Gateway vs. WS Gateway") - they don't actually share a runtime
   # dependency, so there's no reason to scale or restart them together.
@@ -93,16 +100,14 @@ services:
       context: .
       target: ws-gateway
     depends_on:
-      gameserver-a:
-        condition: service_started
-      gameserver-b:
-        condition: service_started
+      # Not gameserver - a gateway no longer needs any shard to exist at
+      # its own startup, only NATS (it discovers shards dynamically from
+      # there once they start heartbeating - see ShardRegistry.h).
+      nats:
+        condition: service_healthy
     environment:
       GATEWAY_PORT: "8080"
-      # Comma-separated - round-robins every new connection across these
-      # at connect time, unless X-Shard-Hint already names one (see
-      # WsGateway.h for why it's round-robin and not directory-aware).
-      UPSTREAM_URIS: "ws://gameserver-a:9002,ws://gameserver-b:9002"
+      NATS_URL: "nats://nats:4222"
     ports:
       # Host port matches the game server's old port on purpose - the
       # existing client (GraphicalApplication.h: ws://localhost:9002) reaches
@@ -114,22 +119,70 @@ services:
       context: .
       target: api-gateway
     depends_on:
-      gameserver-a:
-        condition: service_started
-      gameserver-b:
-        condition: service_started
+      nats:
+        condition: service_healthy
       # ApiGateway talks to Redis directly for the room directory/session
       # store - unlike ws-gateway's traffic, that's never just relayed
       # through a shard.
       redis:
         condition: service_healthy
+      # Optional dependency (GET /history degrades to an empty list without
+      # it, see ApiGateway.cpp) but there's no reason to race it - postgres
+      # starts fast and every other tier already waits on its own deps.
+      postgres:
+        condition: service_healthy
     environment:
       API_PORT: "8081"
-      UPSTREAM_URIS: "ws://gameserver-a:9002,ws://gameserver-b:9002"
+      NATS_URL: "nats://nats:4222"
       REDIS_HOST: "redis"
+      DATABASE_URL: "postgresql://kfc:kfc@postgres:5432/kfc"
     ports:
       # Matches GraphicalApplication.h's API_PORT.
       - "8081:8081"
+
+  # Server_Design.md step 6: pairs waiting players by ELO, out of process
+  # from any shard, reachable by all of them over NATS. Waiting pool lives
+  # in Redis (shared/matchmaking/RedisMatchPool.h), not in-process, so the
+  # 2 replicas below can safely share one queue instead of each racing its
+  # own copy - see matchmaker_main.cpp's subscribeQueue call for the other
+  # half of what makes that safe (NATS delivers each request to exactly
+  # one replica).
+  matchmaker:
+    build:
+      context: .
+      target: matchmaker
+    deploy:
+      replicas: 2
+    depends_on:
+      nats:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NATS_URL: "nats://nats:4222"
+      REDIS_HOST: "redis"
+
+  # Server_Design.md step 6: picks which shard hosts a newly-matched pair
+  # (least loaded, from shard.heartbeat) and mints its room name. Needs
+  # Redis for RedisSequence (globally-unique room names across shards -
+  # see its header for the bug this replaces). matchmaking.matched/
+  # allocation.request are NATS queue groups (allocator_main.cpp), so the
+  # 2 replicas below split that traffic instead of each racing to
+  # allocate the same match/room twice.
+  game-allocator:
+    build:
+      context: .
+      target: game-allocator
+    deploy:
+      replicas: 2
+    depends_on:
+      nats:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NATS_URL: "nats://nats:4222"
+      REDIS_HOST: "redis"
 
 volumes:
   pgdata:

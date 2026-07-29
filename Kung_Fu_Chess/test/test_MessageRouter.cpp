@@ -28,9 +28,9 @@ TEST_CASE("MessageRouter - טיפוסים שונים לא מתערבבים") {
     FakeHandler loginHandler;
     FakeHandler roomHandler;
     router.registerHandler(MessageType::Login, loginHandler);
-    router.registerHandler(MessageType::CreateRoom, roomHandler);
+    router.registerHandler(MessageType::JoinRoom, roomHandler);
 
     CHECK(router.find(MessageType::Login) == &loginHandler);
-    CHECK(router.find(MessageType::CreateRoom) == &roomHandler);
-    CHECK(router.find(MessageType::JoinRoom) == nullptr);
+    CHECK(router.find(MessageType::JoinRoom) == &roomHandler);
+    CHECK(router.find(MessageType::FindGame) == nullptr);
 }

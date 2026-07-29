@@ -21,7 +21,7 @@ struct MoveLogBundle {
 // Wire format for move-log data. encode/decode is one move, sent as the
 // payload of a single MOVE_LOGGED push each time a move completes.
 // encodeAll/decodeAll is the full history, embedded as one field on a
-// room-join reply (CreateRoom/JoinRoom/FindGame) - not its own message type,
+// room-join reply (JoinRoom/FindGame/EnterRoom) - not its own message type,
 // since it only ever rides along on an existing reply.
 class MoveLogCodec {
 public:

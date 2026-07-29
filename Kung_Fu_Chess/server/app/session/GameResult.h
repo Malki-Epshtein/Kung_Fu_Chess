@@ -1,5 +1,6 @@
 #pragma once
 #include "../../../shared/model/Piece.h"
+#include "json.hpp"
 #include <string>
 
 // How a finished game ended - not just "was there a winner", so ELO
@@ -21,4 +22,9 @@ struct GameResult {
     int           winnerElo = 0;
     std::string   loserUsername;
     int           loserElo = 0;
+    // The room's full history at the moment the game ended - see
+    // GameSession::fullMoveLog(). Rides along here (rather than being
+    // fetched separately) because by the time a gameEndedTopic subscriber
+    // reacts, the GameSession that owns the move log may already be gone.
+    nlohmann::json moveLog;
 };
