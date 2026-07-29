@@ -5,6 +5,7 @@
 #include "../shared/db/IRoomDirectory.h"
 #include "../shared/db/IClientSessionStore.h"
 #include "../shared/db/IGameHistoryRepository.h"
+#include "../shared/db/IReconnectStore.h"
 #ifdef KFC_HAVE_POSTGRES
 #include "db/PostgresUserRepository.h"
 #include "../shared/db/PostgresGameHistoryRepository.h"
@@ -12,6 +13,7 @@
 #ifdef KFC_HAVE_REDIS
 #include "../shared/db/RedisRoomDirectory.h"
 #include "../shared/db/RedisClientSessionStore.h"
+#include "../shared/db/RedisReconnectStore.h"
 #endif
 #include "../shared/bus/INatsClient.h"
 #ifdef KFC_HAVE_NATS
@@ -22,6 +24,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <memory>
+#include <optional>
 #include <thread>
 #ifdef _WIN32
 #include <winsock2.h>
@@ -32,6 +35,30 @@
 namespace {
     constexpr uint16_t kPort = 9002;
     constexpr const char* kUserDbPath = "users.db";
+
+    // Every other std::getenv() call in this file lives inside a
+    // KFC_HAVE_POSTGRES/REDIS/NATS #ifdef, so it compiles out entirely on
+    // Windows (none of those are ever defined there). deriveShardAddress()
+    // below is the one exception - it runs unconditionally on every
+    // platform - so plain std::getenv() there hits Server.vcxproj's
+    // SDLCheck setting, which turns that deprecation warning into a hard
+    // compile error (confirmed: this file was never actually built as
+    // Server.vcxproj before now). _dupenv_s is the SDL-safe equivalent
+    // MSVC itself suggests.
+    std::optional<std::string> envVar(const char* name) {
+#ifdef _WIN32
+        char* value = nullptr;
+        size_t len = 0;
+        if (_dupenv_s(&value, &len, name) != 0 || !value)
+            return std::nullopt;
+        std::string result(value);
+        free(value);
+        return result;
+#else
+        const char* value = std::getenv(name);
+        return value ? std::optional<std::string>(value) : std::nullopt;
+#endif
+    }
 
     // DATABASE_URL selects Postgres (only possible on the Docker/Linux
     // build - see CMakeLists.txt's KFC_HAVE_POSTGRES). Unset, or running the
@@ -71,6 +98,22 @@ namespace {
             int port = portEnv ? std::atoi(portEnv) : 6379;
             spdlog::info("connecting to Redis");
             return std::make_unique<RedisRoomDirectory>(host, port);
+        }
+#endif
+        return nullptr;
+    }
+
+    // Same REDIS_HOST gate again - shares the connection info, just a
+    // different key prefix ("reconnect:" vs "room:"/"session:"). Null
+    // (native Windows, or no REDIS_HOST) means the disconnect countdown
+    // stays purely in-memory, exactly as it always was before this
+    // existed - see IReconnectStore.h.
+    std::unique_ptr<IReconnectStore> makeReconnectStore() {
+#ifdef KFC_HAVE_REDIS
+        if (const char* host = std::getenv("REDIS_HOST")) {
+            const char* portEnv = std::getenv("REDIS_PORT");
+            int port = portEnv ? std::atoi(portEnv) : 6379;
+            return std::make_unique<RedisReconnectStore>(host, port);
         }
 #endif
         return nullptr;
@@ -121,8 +164,8 @@ namespace {
     // the Windows equivalent, used only so Server.vcxproj keeps building -
     // matchmaking/allocation are already compiled out there regardless.
     std::string deriveShardAddress() {
-        if (const char* explicitAddress = std::getenv("SHARD_ADDRESS"))
-            return explicitAddress;
+        if (std::optional<std::string> explicitAddress = envVar("SHARD_ADDRESS"))
+            return *explicitAddress;
 
         char hostname[256] = {};
 #ifdef _WIN32
@@ -164,8 +207,9 @@ int main(int /*argc*/, char** /*argv*/) {
         EventBus bus;
         std::unique_ptr<IRoomDirectory> directory = makeRoomDirectory();
         std::unique_ptr<INatsClient> nats = makeNatsClient();
+        std::unique_ptr<IReconnectStore> reconnectStore = makeReconnectStore();
         std::string shardAddressStr = deriveShardAddress();
-        SessionRegistry registry(directory.get(), shardAddressStr, nats.get());
+        SessionRegistry registry(directory.get(), shardAddressStr, nats.get(), reconnectStore.get());
         std::unique_ptr<IUserRepository> users = makeUserRepository();
         std::unique_ptr<IClientSessionStore> sessionStore = makeSessionStore();
         std::unique_ptr<IGameHistoryRepository> gameHistory = makeGameHistoryRepository();

@@ -1,11 +1,13 @@
 #pragma once
 #include "GameSession.h"
 #include "../../../shared/db/IRoomDirectory.h"
+#include "../../../shared/db/IReconnectStore.h"
 #include "../../../shared/bus/EventBus.h"
 #include "../../../shared/bus/INatsClient.h"
 #include "../../../shared/model/Piece.h"
 #include <websocketpp/common/connection_hdl.hpp>
 #include <asio/io_context.hpp>
+#include <asio/steady_timer.hpp>
 #include <map>
 #include <memory>
 #include <string>
@@ -24,13 +26,13 @@ class SessionRegistry {
 public:
     using ConnectionHandle = websocketpp::connection_hdl;
 
-    // `directory`/`shardAddress`/`nats` are optional (default: no-op) - only
-    // server_main.cpp's Docker/Linux build ever passes a real
-    // RedisRoomDirectory + this shard's address + a real NatsClient; every
-    // test and the native Windows build get the same behavior as before
-    // these existed.
+    // `directory`/`shardAddress`/`nats`/`reconnectStore` are optional
+    // (default: no-op) - only server_main.cpp's Docker/Linux build ever
+    // passes a real RedisRoomDirectory + this shard's address + a real
+    // NatsClient + a real RedisReconnectStore; every test and the native
+    // Windows build get the same behavior as before these existed.
     explicit SessionRegistry(IRoomDirectory* directory = nullptr, std::string shardAddress = "",
-                              INatsClient* nats = nullptr);
+                              INatsClient* nats = nullptr, IReconnectStore* reconnectStore = nullptr);
 
     // Creates a new room under `name`. Returns false (does nothing) if that
     // name is already taken.
@@ -88,16 +90,31 @@ public:
     Chess::Color roleOf(ConnectionHandle hdl) const;
 
     // Starts a 20s auto-resign countdown for `color` in room `roomName`,
-    // running on `ioContext`. No-op if the room doesn't exist. Never
-    // cancelled once started (Stage D's simplified scope has no
-    // reconnect/seat-reclaim support) - always runs to completion.
+    // running on `ioContext`. No-op if the room doesn't exist. Also holds
+    // that seat under disconnectedUsername (same mechanism as
+    // reserveSeats()) so a reconnecting client gets its color back rather
+    // than being seated as a new arrival - see cancelDisconnectCountdown().
     // disconnectedUsername/disconnectedElo must be captured by the caller
     // (ConnectionHandler) before this - they're handed straight through to
     // GameSession::markDisconnectResign once the countdown expires, since
-    // this connection's own ClientSession is already gone by then.
+    // this connection's own ClientSession is already gone by then. If a
+    // reconnectStore was given at construction, every tick also mirrors
+    // this status to Redis (documentation only - nothing reads it back to
+    // actually reconnect a room; see IReconnectStore.h).
     void startDisconnectCountdown(const std::string& roomName, Chess::Color color,
                                    std::string disconnectedUsername, int disconnectedElo,
                                    asio::io_context& ioContext);
+
+    // Cancels a running auto-resign countdown for `color` in `roomName`,
+    // provided `username` is the same player it was started for (a
+    // different user asking for the same seat is refused, leaving the
+    // countdown running). Called by EnterRoomHandler right after a
+    // reconnecting client reclaims its seat. Clears the disconnect banner
+    // (GameSession::setDisconnectStatus) and the Redis mirror
+    // (reconnectStore_->clearDisconnected), same cleanup the countdown's own
+    // expiry path does. Returns false (no-op) if there's no such countdown.
+    bool cancelDisconnectCountdown(const std::string& roomName, Chess::Color color,
+                                    const std::string& username);
 
 private:
     struct Room {
@@ -112,12 +129,22 @@ private:
         // emptied out while session->tickInFlight() was still true -
         // reapIfSafe() finishes the erase once that tick completes.
         bool pendingRemoval = false;
+
+        // One entry per color currently mid-countdown - lets
+        // cancelDisconnectCountdown() find and stop the right timer, and
+        // confirm the reconnecting username matches who actually disconnected.
+        struct PendingDisconnect {
+            std::string username;
+            std::shared_ptr<asio::steady_timer> timer;
+        };
+        std::map<Chess::Color, PendingDisconnect> pendingDisconnects;
     };
 
     std::unordered_map<std::string, Room> rooms_;
     std::map<ConnectionHandle, std::string, std::owner_less<ConnectionHandle>> connectionRoom_;//לבדוק באיזה חדר נמצא המתשמש הספציפי שלי עשכיו
 
-    IRoomDirectory* directory_ = nullptr;
-    std::string     shardAddress_;
-    INatsClient*    nats_ = nullptr;
+    IRoomDirectory*   directory_ = nullptr;
+    std::string       shardAddress_;
+    INatsClient*      nats_ = nullptr;
+    IReconnectStore*  reconnectStore_ = nullptr;
 };

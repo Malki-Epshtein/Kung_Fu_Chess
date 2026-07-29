@@ -552,6 +552,7 @@
     <ClInclude Include="server\app\handlers\AuthHandler.h" />
     <ClInclude Include="shared\db\IRoomDirectory.h" />
     <ClInclude Include="shared\db\IGameHistoryRepository.h" />
+    <ClInclude Include="shared\db\IReconnectStore.h" />
     <ClInclude Include="shared\db\IClientSessionStore.h" />
     <ClInclude Include="client\net\WsClient.h" />
     <ClInclude Include="client\net\BlockingRequest.h" />

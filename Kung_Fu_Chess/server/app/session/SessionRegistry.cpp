@@ -16,8 +16,9 @@ namespace {
     }
 }
 
-SessionRegistry::SessionRegistry(IRoomDirectory* directory, std::string shardAddress, INatsClient* nats)
-    : directory_(directory), shardAddress_(std::move(shardAddress)), nats_(nats) {}
+SessionRegistry::SessionRegistry(IRoomDirectory* directory, std::string shardAddress, INatsClient* nats,
+                                  IReconnectStore* reconnectStore)
+    : directory_(directory), shardAddress_(std::move(shardAddress)), nats_(nats), reconnectStore_(reconnectStore) {}
 
 bool SessionRegistry::createRoom(const std::string& name, std::shared_ptr<Board> board, EventBus& bus, bool simultaneousMode) {
     if (rooms_.count(name))
@@ -28,8 +29,6 @@ bool SessionRegistry::createRoom(const std::string& name, std::shared_ptr<Board>
     rooms_.emplace(name, std::move(room));
     if (directory_)
         directory_->set(name, shardAddress_);
-    if (nats_)
-        nats_->publish("room.created", { {"roomName", name}, {"shard", shardAddress_} });
     return true;
 }
 
@@ -106,8 +105,6 @@ Chess::Color SessionRegistry::leave(ConnectionHandle hdl) {
             else {
                 if (directory_)
                     directory_->erase(roomIt->second);
-                if (nats_)
-                    nats_->publish("room.closed", { {"roomName", roomIt->second}, {"shard", shardAddress_} });
                 rooms_.erase(rIt);
             }
         }
@@ -121,8 +118,6 @@ void SessionRegistry::reapIfSafe(const std::string& name) {
     if (it != rooms_.end() && it->second.pendingRemoval && !it->second.session->tickInFlight()) {
         if (directory_)
             directory_->erase(name);
-        if (nats_)
-            nats_->publish("room.closed", { {"roomName", name}, {"shard", shardAddress_} });
         rooms_.erase(it);
     }
 }
@@ -163,14 +158,23 @@ void SessionRegistry::startDisconnectCountdown(const std::string& roomName, Ches
 
     *handler = [this, timer, remaining, roomName, color, disconnectedUsername, disconnectedElo, handler](const asio::error_code& ec) {
         if (ec)
-            return;
+            return; // cancelled - see cancelDisconnectCountdown()
         GameSession* gameSession = room(roomName);
         if (!gameSession)
             return; // room no longer exists - nothing to update
 
         gameSession->setDisconnectStatus({ true, color, *remaining });
+        if (reconnectStore_)
+            reconnectStore_->setDisconnected(roomName, roleName(color), disconnectedUsername, disconnectedElo, *remaining);
         if (*remaining <= 0) {
             spdlog::info("{} auto-resigned (disconnected too long)", roleName(color));
+            if (reconnectStore_)
+                reconnectStore_->clearDisconnected(roomName);
+            auto rIt = rooms_.find(roomName);
+            if (rIt != rooms_.end()) {
+                rIt->second.pendingDisconnects.erase(color);
+                rIt->second.seatReservations.erase(disconnectedUsername);
+            }
             gameSession->markDisconnectResign(color, disconnectedUsername, disconnectedElo);
             return;
         }
@@ -179,6 +183,39 @@ void SessionRegistry::startDisconnectCountdown(const std::string& roomName, Ches
         timer->expires_after(std::chrono::seconds(1));
         timer->async_wait(*handler);
     };
+
+    auto rIt = rooms_.find(roomName);
+    if (rIt == rooms_.end())
+        return;
+    // Hold this seat under the disconnected player's username - same
+    // mechanism reserveSeats() uses for PLAY-matched rooms - so joinRoom()
+    // seats a reconnecting client back into its own color instead of
+    // treating it as a fresh arrival (which would land it as Spectator).
+    rIt->second.seatReservations[disconnectedUsername] = color;
+    rIt->second.pendingDisconnects[color] = { disconnectedUsername, timer };
+
     timer->expires_after(std::chrono::seconds(0));
     timer->async_wait(*handler);
+}
+
+bool SessionRegistry::cancelDisconnectCountdown(const std::string& roomName, Chess::Color color,
+                                                 const std::string& username) {
+    auto rIt = rooms_.find(roomName);
+    if (rIt == rooms_.end())
+        return false;
+
+    auto pendingIt = rIt->second.pendingDisconnects.find(color);
+    if (pendingIt == rIt->second.pendingDisconnects.end())
+        return false;
+    if (pendingIt->second.username != username)
+        return false; // a different user can't claim this seat back
+
+    pendingIt->second.timer->cancel();
+    rIt->second.pendingDisconnects.erase(pendingIt);
+
+    if (GameSession* gameSession = room(roomName))
+        gameSession->setDisconnectStatus({});
+    if (reconnectStore_)
+        reconnectStore_->clearDisconnected(roomName);
+    return true;
 }

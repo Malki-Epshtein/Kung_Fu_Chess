@@ -44,6 +44,7 @@ add_executable(Server
     ${KFC_DIR}/server/db/PostgresUserRepository.cpp
     ${KFC_DIR}/shared/db/RedisRoomDirectory.cpp
     ${KFC_DIR}/shared/db/RedisClientSessionStore.cpp
+    ${KFC_DIR}/shared/db/RedisReconnectStore.cpp
     ${KFC_DIR}/shared/db/PostgresGameHistoryRepository.cpp
     ${KFC_DIR}/server/engine/GameEngine.cpp
     ${KFC_DIR}/server/engine/ScoreObserver.cpp

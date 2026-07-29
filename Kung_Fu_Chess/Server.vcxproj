@@ -137,6 +137,8 @@
     <ClCompile Include="server\app\handlers\LoginHandler.cpp" />
     <ClCompile Include="server\app\handlers\JoinRoomHandler.cpp" />
     <ClCompile Include="server\app\handlers\FindGameHandler.cpp" />
+    <ClCompile Include="server\app\handlers\EnterRoomHandler.cpp" />
+    <ClCompile Include="server\app\handlers\AuthHandler.cpp" />
     <ClCompile Include="server\app\handlers\MessageRouter.cpp" />
     <ClCompile Include="server\app\handlers\MessageDispatcher.cpp" />
     <ClCompile Include="server\db\UserRepository.cpp" />
@@ -189,6 +191,8 @@
     <ClInclude Include="server\app\handlers\LoginHandler.h" />
     <ClInclude Include="server\app\handlers\JoinRoomHandler.h" />
     <ClInclude Include="server\app\handlers\FindGameHandler.h" />
+    <ClInclude Include="server\app\handlers\EnterRoomHandler.h" />
+    <ClInclude Include="server\app\handlers\AuthHandler.h" />
     <ClInclude Include="server\app\handlers\MessageRouter.h" />
     <ClInclude Include="server\app\handlers\MessageDispatcher.h" />
     <ClInclude Include="server\db\UserRepository.h" />

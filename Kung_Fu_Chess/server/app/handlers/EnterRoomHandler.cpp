@@ -28,6 +28,11 @@ nlohmann::json EnterRoomHandler::handle(ConnectionHandle hdl, const nlohmann::js
     Chess::Color role = registry_.roleOf(hdl);
     spdlog::info("'{}' entered room '{}', assigned role: {}", session->username, roomName, roleName(role));
 
+    // If this seat had a disconnect grace-period countdown running for this
+    // same username, stop it - they're back before it expired.
+    if (registry_.cancelDisconnectCountdown(roomName, role, session->username))
+        spdlog::info("'{}' reconnected to '{}' - auto-resign cancelled", session->username, roomName);
+
     RoomIdentity identity = RoomIdentityResolver::resolve(registry_, clientSessions_, roomName);
     return { {"success", true}, {"message", "entered room"}, {"role", roleName(role)}, {"roomName", roomName},
              {"moveLog", registry_.room(roomName)->fullMoveLog()},
